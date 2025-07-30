@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, startTransition } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -96,20 +96,22 @@ export default function Chat() {
         setStreamingMessage(accumulated);
       }
 
-      // Create assistant message and transition smoothly
-      const assistantMessage: Message = {
-        id: `${Date.now()}-assistant`,
-        conversationId,
-        role: 'assistant',
-        content: accumulated,
-        metadata: null,
-        createdAt: new Date(),
-      };
-      
-      // Add to optimistic messages first, then clear streaming in same update
-      setOptimisticMessages(current => [...current, assistantMessage]);
-      setIsStreaming(false);
-      setStreamingMessage("");
+      // Use startTransition to ensure all state updates are batched into single render
+      startTransition(() => {
+        const assistantMessage: Message = {
+          id: `${Date.now()}-assistant`,
+          conversationId,
+          role: 'assistant',
+          content: accumulated,
+          metadata: null,
+          createdAt: new Date(),
+        };
+        
+        // All state updates happen atomically in this transition
+        setOptimisticMessages(current => [...current, assistantMessage]);
+        setIsStreaming(false);
+        setStreamingMessage("");
+      });
     },
     onError: (error) => {
       setIsStreaming(false);
