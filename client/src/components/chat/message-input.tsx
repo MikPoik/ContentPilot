@@ -66,11 +66,13 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
           />
           
           {/* Character Counter */}
-          <div className={`absolute bottom-1 right-12 text-xs ${
+          {/*
+          <div className={`absolute bottom-1 right-1 text-xs ${
             message.length > maxChars * 0.9 ? 'text-red-400' : 'text-gray-400'
           }`}>
             {message.length}/{maxChars}
           </div>
+          */}
         </div>
         
         <Button
