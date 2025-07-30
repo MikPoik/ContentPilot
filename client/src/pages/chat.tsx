@@ -99,18 +99,10 @@ export default function Chat() {
       setIsStreaming(false);
       setStreamingMessage("");
       
-      // Add AI response to optimistic messages instead of refetching
-      const aiMessage: Message = {
-        id: `temp-ai-${Date.now()}`,
-        conversationId,
-        role: 'assistant',
-        content: accumulated,
-        metadata: null,
-        createdAt: new Date(),
-      };
-      setOptimisticMessages(prev => [...prev, aiMessage]);
+      // Refetch messages to get the AI response that was saved on the server
+      refetchMessages();
       
-      // Only update conversation list for title changes, don't refetch messages
+      // Update conversation list for title changes
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
     },
     onError: () => {
