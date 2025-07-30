@@ -99,20 +99,33 @@ export default function Chat() {
       setIsStreaming(false);
       setStreamingMessage("");
       
-      // Don't clear optimistic messages immediately - let them persist until real data loads
-      // This prevents the flash when messages temporarily disappear
+      // Add final messages to cache to preserve them after clearing optimistic state
+      const finalUserMessage: Message = {
+        id: `${Date.now()}-user`,
+        conversationId,
+        role: 'user',
+        content,
+        metadata: null,
+        createdAt: new Date(),
+      };
       
-      // Invalidate and refetch messages to get actual saved data with correct IDs
-      await queryClient.invalidateQueries({ 
-        queryKey: ["/api/conversations", conversationId, "messages"],
-        refetchType: 'active'
-      });
+      const finalAssistantMessage: Message = {
+        id: `${Date.now()}-assistant`,
+        conversationId,
+        role: 'assistant',
+        content: accumulated,
+        metadata: null,
+        createdAt: new Date(),
+      };
       
-      // Now clear optimistic messages since real data should be loaded
+      // Update cache first, then clear optimistic state
+      queryClient.setQueryData(
+        ["/api/conversations", conversationId, "messages"],
+        (oldMessages: Message[] = []) => [...oldMessages, finalUserMessage, finalAssistantMessage]
+      );
       setOptimisticMessages([]);
       
-      // Update conversation list for title changes
-      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      // TODO: Handle conversation title updates separately without triggering cascades
     },
     onError: (error) => {
       setIsStreaming(false);
