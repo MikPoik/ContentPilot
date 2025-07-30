@@ -18,7 +18,7 @@ export default function Sidebar({
   onNewConversation, 
   onClose 
 }: SidebarProps) {
-  
+
   const formatTimeAgo = (date: Date | string) => {
     try {
       return formatDistanceToNow(new Date(date), { addSuffix: true });
@@ -66,7 +66,7 @@ export default function Sidebar({
           <div className="text-xs font-medium text-gray-500 mb-3 uppercase tracking-wide">
             Recent Conversations
           </div>
-          
+
           {conversations.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <div className="text-sm">No conversations yet</div>
@@ -74,7 +74,7 @@ export default function Sidebar({
             </div>
           ) : (
             conversations.map((conversation) => (
-              <a 
+              <button 
                 key={conversation.id}
                 href={`/chat/${conversation.id}`}
                 className={`block rounded-lg p-3 cursor-pointer transition-colors group ${
@@ -113,7 +113,7 @@ export default function Sidebar({
                     <MoreHorizontal className="h-3 w-3" />
                   </Button>
                 </div>
-              </a>
+              </button>
             ))
           )}
         </div>

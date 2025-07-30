@@ -1,5 +1,5 @@
 import { useState, useEffect, startTransition } from "react";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { apiRequest } from "@/lib/queryClient";
@@ -15,6 +15,7 @@ import { Menu, X, Share, MoreVertical, LogOut } from "lucide-react";
 
 export default function Chat() {
   const { id: conversationId } = useParams();
+  const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -43,7 +44,7 @@ export default function Chat() {
     },
     onSuccess: (newConversation) => {
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
-      window.location.href = `/chat/${newConversation.id}`;
+      setLocation(`/chat/${newConversation.id}`);
     },
   });
 
@@ -53,7 +54,7 @@ export default function Chat() {
       if (!conversationId) {
         // Create new conversation first
         const newConversation = await createConversationMutation.mutateAsync("New Conversation");
-        window.location.href = `/chat/${newConversation.id}`;
+        setLocation(`/chat/${newConversation.id}`);
         return;
       }
 
