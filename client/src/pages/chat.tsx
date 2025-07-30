@@ -99,33 +99,16 @@ export default function Chat() {
       setIsStreaming(false);
       setStreamingMessage("");
       
-      // Add final messages to cache to preserve them after clearing optimistic state
-      const finalUserMessage: Message = {
-        id: `${Date.now()}-user`,
-        conversationId,
-        role: 'user',
-        content,
-        metadata: null,
-        createdAt: new Date(),
-      };
-      
-      const finalAssistantMessage: Message = {
+      // Add assistant message to optimistic state and leave everything there
+      // No clearing, no refetching - messages are already saved to database
+      setOptimisticMessages(current => [...current, {
         id: `${Date.now()}-assistant`,
         conversationId,
         role: 'assistant',
         content: accumulated,
         metadata: null,
         createdAt: new Date(),
-      };
-      
-      // Update cache first, then clear optimistic state
-      queryClient.setQueryData(
-        ["/api/conversations", conversationId, "messages"],
-        (oldMessages: Message[] = []) => [...oldMessages, finalUserMessage, finalAssistantMessage]
-      );
-      setOptimisticMessages([]);
-      
-      // TODO: Handle conversation title updates separately without triggering cascades
+      }]);
     },
     onError: (error) => {
       setIsStreaming(false);
