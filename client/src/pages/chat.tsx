@@ -99,9 +99,33 @@ export default function Chat() {
       setIsStreaming(false);
       setStreamingMessage("");
       
-      // Clear optimistic messages and refetch from server
+      // Add the final messages to cache instead of refetching
+      const finalUserMessage: Message = {
+        id: `${Date.now()}-user`,
+        conversationId,
+        role: 'user',
+        content,
+        metadata: null,
+        createdAt: new Date(),
+      };
+      
+      const finalAssistantMessage: Message = {
+        id: `${Date.now()}-assistant`,
+        conversationId,
+        role: 'assistant',
+        content: accumulated,
+        metadata: null,
+        createdAt: new Date(),
+      };
+      
+      // Update the query cache with the new messages
+      queryClient.setQueryData(
+        ["/api/conversations", conversationId, "messages"],
+        (oldMessages: Message[] = []) => [...oldMessages, finalUserMessage, finalAssistantMessage]
+      );
+      
+      // Clear optimistic messages
       setOptimisticMessages([]);
-      refetchMessages();
       
       // Update conversation list for title changes
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
