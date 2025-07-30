@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, X, Settings, MoreHorizontal } from "lucide-react";
 import { type Conversation, type User } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
+import { useLocation } from "wouter";
 
 interface SidebarProps {
   conversations: Conversation[];
@@ -18,6 +19,7 @@ export default function Sidebar({
   onNewConversation, 
   onClose 
 }: SidebarProps) {
+  const [, setLocation] = useLocation();
 
   const formatTimeAgo = (date: Date | string) => {
     try {
@@ -25,6 +27,11 @@ export default function Sidebar({
     } catch {
       return "Unknown";
     }
+  };
+
+  const handleConversationClick = (conversationId: string) => {
+    setLocation(`/chat/${conversationId}`);
+    onClose(); // Close sidebar on mobile after selection
   };
 
   return (
@@ -74,9 +81,9 @@ export default function Sidebar({
             </div>
           ) : (
             conversations.map((conversation) => (
-              <button 
+              <div 
                 key={conversation.id}
-                href={`/chat/${conversation.id}`}
+                onClick={() => handleConversationClick(conversation.id)}
                 className={`block rounded-lg p-3 cursor-pointer transition-colors group ${
                   conversation.id === currentConversationId
                     ? 'bg-emerald-50 border border-emerald-200'
@@ -101,19 +108,21 @@ export default function Sidebar({
                       {formatTimeAgo(conversation.updatedAt)}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 ${
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Handle conversation options menu
+                    }}
+                    className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-gray-200 ${
                       conversation.id === currentConversationId
                         ? 'text-emerald-400 hover:text-emerald-600'
                         : 'text-gray-400 hover:text-gray-600'
                     }`}
                   >
                     <MoreHorizontal className="h-3 w-3" />
-                  </Button>
+                  </button>
                 </div>
-              </button>
+              </div>
             ))
           )}
         </div>
