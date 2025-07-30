@@ -82,6 +82,7 @@ export default function MessageList({
       className="flex-1 overflow-y-auto px-4 py-6 space-y-6"
       data-testid="message-list"
     >
+      {/* Render all messages including streaming inline */}
       {messages.map((message) => (
         <div 
           key={message.id} 
@@ -133,7 +134,7 @@ export default function MessageList({
         </div>
       ))}
 
-      {/* Streaming message */}
+      {/* Streaming message - render inline in same position */}
       {(isStreaming || streamingMessage) && (
         <div className="flex items-start space-x-3 animate-fade-in">
           <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center flex-shrink-0">

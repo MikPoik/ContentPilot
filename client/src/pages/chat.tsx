@@ -96,23 +96,20 @@ export default function Chat() {
         setStreamingMessage(accumulated);
       }
 
-      // Use setTimeout to batch all state updates in next render cycle
-      // This prevents intermediate renders that cause flashing
-      setTimeout(() => {
-        const assistantMessage: Message = {
-          id: `${Date.now()}-assistant`,
-          conversationId,
-          role: 'assistant',
-          content: accumulated,
-          metadata: null,
-          createdAt: new Date(),
-        };
-        
-        // All state updates happen together in this render cycle
-        setOptimisticMessages(current => [...current, assistantMessage]);
-        setIsStreaming(false);
-        setStreamingMessage("");
-      }, 0);
+      // Create assistant message and transition smoothly
+      const assistantMessage: Message = {
+        id: `${Date.now()}-assistant`,
+        conversationId,
+        role: 'assistant',
+        content: accumulated,
+        metadata: null,
+        createdAt: new Date(),
+      };
+      
+      // Add to optimistic messages first, then clear streaming in same update
+      setOptimisticMessages(current => [...current, assistantMessage]);
+      setIsStreaming(false);
+      setStreamingMessage("");
     },
     onError: (error) => {
       setIsStreaming(false);
