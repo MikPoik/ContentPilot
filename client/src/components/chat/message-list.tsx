@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { type Message, type User } from "@shared/schema";
+import ReactMarkdown from "react-markdown";
 
 interface MessageListProps {
   messages: Message[];
@@ -58,14 +59,13 @@ export default function MessageList({
           </div>
           <div className="flex-1 max-w-3xl">
             <div className="bg-gray-100 rounded-2xl rounded-tl-md px-4 py-3">
-              <p className="text-gray-900 text-sm leading-relaxed">
-                Hi there! 👋 I'm excited to help you create amazing social media content. 
-                To get started, I'd love to learn more about you and your brand.
-              </p>
-              <p className="text-gray-900 text-sm leading-relaxed mt-2">
-                What type of content creator are you? Are you focused on a specific niche 
-                like fitness, food, tech, lifestyle, or business?
-              </p>
+              <div className="text-gray-900 text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-p:leading-relaxed prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0">
+                <ReactMarkdown>
+                  {`Hi there! 👋 I'm excited to help you create amazing social media content. To get started, I'd love to learn more about you and your brand.
+
+What type of content creator are you? Are you focused on a specific niche like fitness, food, tech, lifestyle, or business?`}
+                </ReactMarkdown>
+              </div>
             </div>
             <div className="text-xs text-gray-500 mt-1 px-1">Just now</div>
           </div>
@@ -108,9 +108,15 @@ export default function MessageList({
                 ? 'bg-emerald-500 text-white rounded-tr-md ml-auto max-w-fit'
                 : 'bg-gray-100 text-gray-900 rounded-tl-md'
             }`}>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                {message.content}
-              </p>
+              {message.role === 'user' ? (
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  {message.content}
+                </p>
+              ) : (
+                <div className="text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-p:leading-relaxed prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0">
+                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                </div>
+              )}
             </div>
             <div className={`text-xs text-gray-500 mt-1 px-1 ${
               message.role === 'user' ? 'text-right' : ''
@@ -150,10 +156,10 @@ export default function MessageList({
           <div className="flex-1 max-w-3xl">
             <div className="bg-gray-100 rounded-2xl rounded-tl-md px-4 py-3">
               {streamingMessage ? (
-                <p className="text-gray-900 text-sm leading-relaxed whitespace-pre-wrap">
-                  {streamingMessage}
+                <div className="text-gray-900 text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-p:leading-relaxed prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0">
+                  <ReactMarkdown>{streamingMessage}</ReactMarkdown>
                   <span className="inline-block w-2 h-4 bg-gray-400 ml-1 animate-pulse" />
-                </p>
+                </div>
               ) : (
                 <div className="flex space-x-1">
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
