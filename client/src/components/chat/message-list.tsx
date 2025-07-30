@@ -83,13 +83,19 @@ export default function MessageList({
       data-testid="message-list"
     >
       {/* Render all messages including streaming inline */}
-      {messages.map((message) => (
-        <div 
-          key={message.id} 
-          className={`flex items-start space-x-3 ${
-            message.role === 'user' ? 'justify-end' : ''
-          }`}
-        >
+      {messages.map((message) => {
+        // Only apply fade-in to user messages and assistant messages from real DB (not optimistic)
+        // Optimistic assistant messages have timestamp IDs, real DB messages have UUIDs
+        const isOptimisticAssistant = message.role === 'assistant' && /^\d+-assistant$/.test(message.id.toString());
+        const shouldAnimate = message.role === 'user' || !isOptimisticAssistant;
+        
+        return (
+          <div 
+            key={message.id} 
+            className={`flex items-start space-x-3 ${shouldAnimate ? 'animate-fade-in' : ''} ${
+              message.role === 'user' ? 'justify-end' : ''
+            }`}
+          >
           {message.role === 'assistant' && (
             <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-white text-sm">🤖</span>
@@ -132,7 +138,8 @@ export default function MessageList({
             </div>
           )}
         </div>
-      ))}
+        );
+      })}
 
       {/* Streaming message - render inline in same position */}
       {(isStreaming || streamingMessage) && (
