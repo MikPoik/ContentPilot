@@ -189,6 +189,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Catch-all route for client-side routing - must be last
+  app.get('*', (req, res, next) => {
+    // Skip API routes
+    if (req.path.startsWith('/api/')) {
+      return next();
+    }
+    // For all other routes, let the client handle routing
+    res.sendFile('index.html', { root: 'client' });
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

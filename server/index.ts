@@ -54,6 +54,12 @@ app.use((req, res, next) => {
     await setupVite(app, server);
   } else {
     serveStatic(app);
+    // Ensure SPA fallback for production
+    app.get('*', (req, res) => {
+      if (!req.path.startsWith('/api/')) {
+        res.sendFile('index.html', { root: 'dist/client' });
+      }
+    });
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
