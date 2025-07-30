@@ -96,20 +96,9 @@ export default function Chat() {
         setStreamingMessage(accumulated);
       }
 
-      // Add assistant message to optimistic state BEFORE clearing streaming
-      // This prevents the flash when transitioning from streaming to static message
-      setOptimisticMessages(current => [...current, {
-        id: `${Date.now()}-assistant`,
-        conversationId,
-        role: 'assistant',
-        content: accumulated,
-        metadata: null,
-        createdAt: new Date(),
-      }]);
-      
-      // Now clear streaming state - message already exists in optimistic state
+      // Just stop the streaming indicator, leave the message content visible
+      // No clearing, no state changes that could cause visual flashing
       setIsStreaming(false);
-      setStreamingMessage("");
     },
     onError: (error) => {
       setIsStreaming(false);
