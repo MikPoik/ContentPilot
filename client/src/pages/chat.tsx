@@ -34,6 +34,7 @@ export default function Chat() {
   const { data: messages = [], refetch: refetchMessages } = useQuery<Message[]>({
     queryKey: ["/api/conversations", conversationId, "messages"],
     enabled: !!conversationId,
+    staleTime: 0, // Always consider messages stale to ensure fresh data when switching conversations
   });
 
   // Create new conversation mutation
@@ -63,7 +64,7 @@ export default function Chat() {
       // Add user message immediately to optimistic state
       const userMessage: Message = {
         id: `temp-${Date.now()}`,
-        conversationId: targetConversationId,
+        conversationId: targetConversationId!,
         role: 'user',
         content,
         metadata: null,
@@ -103,7 +104,7 @@ export default function Chat() {
       startTransition(() => {
         const assistantMessage: Message = {
           id: `${Date.now()}-assistant`,
-          conversationId: targetConversationId,
+          conversationId: targetConversationId!,
           role: 'assistant',
           content: accumulated,
           metadata: null,
