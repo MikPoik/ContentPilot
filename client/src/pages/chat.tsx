@@ -6,9 +6,12 @@ import { apiRequest } from "@/lib/queryClient";
 import Sidebar from "../components/chat/sidebar";
 import MessageList from "../components/chat/message-list";
 import MessageInput from "../components/chat/message-input";
-import { type Conversation, type Message, type UserProfile } from "@shared/schema";
+import { type Conversation, type Message, type User } from "@shared/schema";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { isUnauthorizedError } from "@/lib/authUtils";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Share, MoreVertical } from "lucide-react";
+import { Menu, X, Share, MoreVertical, LogOut } from "lucide-react";
 
 export default function Chat() {
   const { id: conversationId } = useParams();
@@ -18,6 +21,8 @@ export default function Chat() {
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
+  const { user } = useAuth() as { user: User | undefined };
+  const { toast } = useToast();
 
   // Get conversations list
   const { data: conversations = [] } = useQuery<Conversation[]>({
@@ -28,11 +33,6 @@ export default function Chat() {
   const { data: messages = [], refetch: refetchMessages } = useQuery<Message[]>({
     queryKey: ["/api/conversations", conversationId, "messages"],
     enabled: !!conversationId,
-  });
-
-  // Get user profile
-  const { data: userProfile } = useQuery<UserProfile>({
-    queryKey: ["/api/profile"],
   });
 
   // Create new conversation mutation
@@ -106,10 +106,28 @@ export default function Chat() {
       // Update conversation list for title changes
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
     },
-    onError: () => {
+    onError: (error) => {
       setIsStreaming(false);
       setStreamingMessage("");
-      setOptimisticMessages([]); // Clear optimistic messages on error
+      setOptimisticMessages([]);
+      
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive",
+      });
     },
   });
 
@@ -165,7 +183,7 @@ export default function Chat() {
         <Sidebar
           conversations={conversations}
           currentConversationId={conversationId}
-          userProfile={userProfile}
+          user={user}
           onNewConversation={handleNewConversation}
           onClose={() => setSidebarOpen(false)}
         />
@@ -207,6 +225,15 @@ export default function Chat() {
             <Button variant="ghost" size="sm" className="p-2 text-gray-500 hover:text-gray-700">
               <MoreVertical className="h-4 w-4" />
             </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="p-2 text-gray-500 hover:text-gray-700"
+              onClick={() => window.location.href = "/api/logout"}
+              data-testid="button-logout"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </header>
 
@@ -216,7 +243,7 @@ export default function Chat() {
             messages={allMessages}
             streamingMessage={streamingMessage}
             isStreaming={isStreaming}
-            userProfile={userProfile}
+            user={user}
             conversationId={conversationId}
           />
         </div>

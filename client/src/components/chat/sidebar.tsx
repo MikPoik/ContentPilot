@@ -1,12 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Plus, X, Settings, MoreHorizontal } from "lucide-react";
-import { type Conversation, type UserProfile } from "@shared/schema";
+import { type Conversation, type User } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 
 interface SidebarProps {
   conversations: Conversation[];
   currentConversationId?: string;
-  userProfile?: UserProfile;
+  user?: User;
   onNewConversation: () => void;
   onClose: () => void;
 }
@@ -14,7 +14,7 @@ interface SidebarProps {
 export default function Sidebar({ 
   conversations, 
   currentConversationId, 
-  userProfile, 
+  user, 
   onNewConversation, 
   onClose 
 }: SidebarProps) {
@@ -123,16 +123,26 @@ export default function Sidebar({
       <div className="border-t border-gray-200 p-4">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-            <span className="text-white text-sm font-medium">
-              {userProfile?.initials || "U"}
-            </span>
+            {user?.profileImageUrl ? (
+              <img 
+                src={user.profileImageUrl} 
+                alt="Profile" 
+                className="w-full h-full rounded-full object-cover"
+              />
+            ) : (
+              <span className="text-white text-sm font-medium">
+                {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || "U"}
+              </span>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {userProfile?.name || "User"}
+              {user?.firstName && user?.lastName 
+                ? `${user.firstName} ${user.lastName}` 
+                : user?.email || "User"}
             </p>
             <p className="text-xs text-gray-500">
-              {userProfile?.niche || "Content Creator"}
+              Content Creator
             </p>
           </div>
           <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600 p-1">

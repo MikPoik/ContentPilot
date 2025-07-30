@@ -1,36 +1,31 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertConversationSchema, insertMessageSchema, insertUserProfileSchema } from "@shared/schema";
+import { insertConversationSchema, insertMessageSchema } from "@shared/schema";
 import { generateChatResponse, generateConversationTitle } from "./services/openai";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  
-  // Get user profile
-  app.get("/api/profile", async (req, res) => {
+  // Auth middleware
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const profile = await storage.getUserProfile();
-      res.json(profile || null);
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get user profile" });
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
     }
   });
 
-  // Create or update user profile
-  app.post("/api/profile", async (req, res) => {
+  // Get all conversations for authenticated user
+  app.get("/api/conversations", isAuthenticated, async (req: any, res) => {
     try {
-      const validatedData = insertUserProfileSchema.parse(req.body);
-      const profile = await storage.createOrUpdateUserProfile(validatedData);
-      res.json(profile);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid profile data" });
-    }
-  });
-
-  // Get all conversations
-  app.get("/api/conversations", async (req, res) => {
-    try {
-      const conversations = await storage.getConversations();
+      const userId = req.user.claims.sub;
+      const conversations = await storage.getConversations(userId);
       res.json(conversations);
     } catch (error) {
       res.status(500).json({ message: "Failed to get conversations" });
@@ -38,11 +33,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get a specific conversation
-  app.get("/api/conversations/:id", async (req, res) => {
+  app.get("/api/conversations/:id", isAuthenticated, async (req: any, res) => {
     try {
       const conversation = await storage.getConversation(req.params.id);
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
+      }
+      // Verify ownership
+      const userId = req.user.claims.sub;
+      if (conversation.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
       }
       res.json(conversation);
     } catch (error) {
@@ -51,19 +51,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a new conversation
-  app.post("/api/conversations", async (req, res) => {
+  app.post("/api/conversations", isAuthenticated, async (req: any, res) => {
     try {
-      const validatedData = insertConversationSchema.parse(req.body);
+      const userId = req.user.claims.sub;
+      const validatedData = insertConversationSchema.parse({ ...req.body, userId });
       const conversation = await storage.createConversation(validatedData);
       res.json(conversation);
     } catch (error) {
+      console.error("Conversation creation error:", error);
       res.status(400).json({ message: "Invalid conversation data" });
     }
   });
 
   // Delete a conversation
-  app.delete("/api/conversations/:id", async (req, res) => {
+  app.delete("/api/conversations/:id", isAuthenticated, async (req: any, res) => {
     try {
+      // Verify ownership first
+      const conversation = await storage.getConversation(req.params.id);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      const userId = req.user.claims.sub;
+      if (conversation.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
       const deleted = await storage.deleteConversation(req.params.id);
       if (!deleted) {
         return res.status(404).json({ message: "Conversation not found" });
@@ -75,9 +87,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get messages for a conversation
-  app.get("/api/conversations/:id/messages", async (req, res) => {
+  app.get("/api/conversations/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
-      const messages = await storage.getMessages(req.params.id);
+      const conversationId = req.params.id;
+      const userId = req.user.claims.sub;
+      
+      // Verify conversation exists and user owns it
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      if (conversation.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const messages = await storage.getMessages(conversationId);
       res.json(messages);
     } catch (error) {
       res.status(500).json({ message: "Failed to get messages" });
@@ -85,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send a message and get AI response (streaming)
-  app.post("/api/conversations/:id/messages", async (req, res) => {
+  app.post("/api/conversations/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
       const { content } = req.body;
       if (!content || typeof content !== 'string') {
@@ -93,11 +117,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const conversationId = req.params.id;
+      const userId = req.user.claims.sub;
       
-      // Verify conversation exists
+      // Verify conversation exists and user owns it
       const conversation = await storage.getConversation(conversationId);
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
+      }
+      if (conversation.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
       }
 
       // Save user message

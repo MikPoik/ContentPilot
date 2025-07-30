@@ -1,9 +1,14 @@
-import { type Conversation, type InsertConversation, type Message, type InsertMessage, type UserProfile, type InsertUserProfile } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { type Conversation, type InsertConversation, type Message, type InsertMessage, type User, type UpsertUser, users, conversations, messages } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
+  // User operations (required for Replit Auth)
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  
   // Conversations
-  getConversations(): Promise<Conversation[]>;
+  getConversations(userId: string): Promise<Conversation[]>;
   getConversation(id: string): Promise<Conversation | undefined>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   updateConversation(id: string, updates: Partial<Conversation>): Promise<Conversation | undefined>;
@@ -13,121 +18,94 @@ export interface IStorage {
   getMessages(conversationId: string): Promise<Message[]>;
   getMessage(id: string): Promise<Message | undefined>;
   createMessage(message: InsertMessage): Promise<Message>;
-  
-  // User Profile
-  getUserProfile(): Promise<UserProfile | undefined>;
-  createOrUpdateUserProfile(profile: InsertUserProfile): Promise<UserProfile>;
 }
 
-export class MemStorage implements IStorage {
-  private conversations: Map<string, Conversation>;
-  private messages: Map<string, Message>;
-  private userProfile: UserProfile | undefined;
-
-  constructor() {
-    this.conversations = new Map();
-    this.messages = new Map();
-    this.userProfile = undefined;
+export class DatabaseStorage implements IStorage {
+  // User operations (required for Replit Auth)
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
-  async getConversations(): Promise<Conversation[]> {
-    return Array.from(this.conversations.values()).sort((a, b) => 
-      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  }
+
+  // Conversations
+  async getConversations(userId: string): Promise<Conversation[]> {
+    return await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.userId, userId))
+      .orderBy(desc(conversations.updatedAt));
   }
 
   async getConversation(id: string): Promise<Conversation | undefined> {
-    return this.conversations.get(id);
+    const [conversation] = await db.select().from(conversations).where(eq(conversations.id, id));
+    return conversation;
   }
 
   async createConversation(insertConversation: InsertConversation): Promise<Conversation> {
-    const id = randomUUID();
-    const now = new Date();
-    const conversation: Conversation = { 
-      ...insertConversation, 
-      id,
-      createdAt: now,
-      updatedAt: now
-    };
-    this.conversations.set(id, conversation);
+    const [conversation] = await db
+      .insert(conversations)
+      .values(insertConversation)
+      .returning();
     return conversation;
   }
 
   async updateConversation(id: string, updates: Partial<Conversation>): Promise<Conversation | undefined> {
-    const conversation = this.conversations.get(id);
-    if (!conversation) return undefined;
-    
-    const updated = { ...conversation, ...updates, updatedAt: new Date() };
-    this.conversations.set(id, updated);
-    return updated;
+    const [conversation] = await db
+      .update(conversations)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(conversations.id, id))
+      .returning();
+    return conversation;
   }
 
   async deleteConversation(id: string): Promise<boolean> {
-    // Delete all messages in the conversation
-    const conversationMessages = Array.from(this.messages.values()).filter(
-      m => m.conversationId === id
-    );
-    conversationMessages.forEach(m => this.messages.delete(m.id));
-    
-    return this.conversations.delete(id);
+    const result = await db.delete(conversations).where(eq(conversations.id, id));
+    return result.rowCount! > 0;
   }
 
+  // Messages
   async getMessages(conversationId: string): Promise<Message[]> {
-    return Array.from(this.messages.values())
-      .filter(m => m.conversationId === conversationId)
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId))
+      .orderBy(messages.createdAt);
   }
 
   async getMessage(id: string): Promise<Message | undefined> {
-    return this.messages.get(id);
-  }
-
-  async createMessage(insertMessage: InsertMessage): Promise<Message> {
-    const id = randomUUID();
-    const message: Message = { 
-      ...insertMessage,
-      metadata: insertMessage.metadata || null,
-      id,
-      createdAt: new Date()
-    };
-    this.messages.set(id, message);
-    
-    // Update conversation's updatedAt
-    const conversation = this.conversations.get(insertMessage.conversationId);
-    if (conversation) {
-      await this.updateConversation(conversation.id, { updatedAt: new Date() });
-    }
-    
+    const [message] = await db.select().from(messages).where(eq(messages.id, id));
     return message;
   }
 
-  async getUserProfile(): Promise<UserProfile | undefined> {
-    return this.userProfile;
-  }
-
-  async createOrUpdateUserProfile(insertProfile: InsertUserProfile): Promise<UserProfile> {
-    const now = new Date();
-    if (this.userProfile) {
-      this.userProfile = {
-        ...this.userProfile,
-        ...insertProfile,
-        updatedAt: now
-      };
-    } else {
-      const id = randomUUID();
-      this.userProfile = {
-        name: insertProfile.name || "User",
-        initials: insertProfile.initials || "U",
-        niche: insertProfile.niche || null,
-        platforms: insertProfile.platforms || null,
-        interests: insertProfile.interests || null,
-        id,
-        createdAt: now,
-        updatedAt: now
-      };
-    }
-    return this.userProfile;
+  async createMessage(insertMessage: InsertMessage): Promise<Message> {
+    const [message] = await db
+      .insert(messages)
+      .values(insertMessage)
+      .returning();
+    
+    // Update conversation's updatedAt
+    await db
+      .update(conversations)
+      .set({ updatedAt: new Date() })
+      .where(eq(conversations.id, insertMessage.conversationId));
+    
+    return message;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

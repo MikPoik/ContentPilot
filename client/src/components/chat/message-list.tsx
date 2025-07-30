@@ -1,12 +1,11 @@
 import { useEffect, useRef } from "react";
-import { type Message, type UserProfile } from "@shared/schema";
-import TypingIndicator from "./typing-indicator";
+import { type Message, type User } from "@shared/schema";
 
 interface MessageListProps {
   messages: Message[];
   streamingMessage: string;
   isStreaming: boolean;
-  userProfile?: UserProfile;
+  user?: User;
   conversationId?: string;
 }
 
@@ -14,7 +13,7 @@ export default function MessageList({
   messages, 
   streamingMessage, 
   isStreaming, 
-  userProfile,
+  user,
   conversationId 
 }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -118,9 +117,17 @@ export default function MessageList({
 
           {message.role === 'user' && (
             <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-sm font-medium">
-                {userProfile?.initials || "U"}
-              </span>
+              {user?.profileImageUrl ? (
+                <img 
+                  src={user.profileImageUrl} 
+                  alt="Profile" 
+                  className="w-full h-full rounded-full object-cover"
+                />
+              ) : (
+                <span className="text-white text-sm font-medium">
+                  {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || "U"}
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -140,7 +147,11 @@ export default function MessageList({
                   <span className="inline-block w-2 h-4 bg-gray-400 ml-1 animate-pulse" />
                 </p>
               ) : (
-                <TypingIndicator />
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
               )}
             </div>
             <div className="text-xs text-gray-500 mt-1 px-1">Just now</div>
