@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Plus, X, Settings, MoreHorizontal } from "lucide-react";
+import { Plus, X, Trash2, Settings } from "lucide-react";
 import { type Conversation, type User } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 import { useLocation } from "wouter";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface SidebarProps {
   conversations: Conversation[];
@@ -20,6 +23,8 @@ export default function Sidebar({
   onClose 
 }: SidebarProps) {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const formatTimeAgo = (date: Date | string) => {
     try {
@@ -32,6 +37,38 @@ export default function Sidebar({
   const handleConversationClick = (conversationId: string) => {
     setLocation(`/chat/${conversationId}`);
     onClose(); // Close sidebar on mobile after selection
+  };
+
+  // Delete conversation mutation
+  const deleteConversationMutation = useMutation({
+    mutationFn: async (conversationId: string) => {
+      await apiRequest("DELETE", `/api/conversations/${conversationId}`);
+    },
+    onSuccess: (_, deletedConversationId) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      
+      // If we deleted the current conversation, navigate to home
+      if (deletedConversationId === currentConversationId) {
+        setLocation("/");
+      }
+      
+      toast({
+        title: "Success",
+        description: "Conversation deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete conversation",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteConversation = (conversationId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    deleteConversationMutation.mutate(conversationId);
   };
 
   return (
@@ -109,17 +146,17 @@ export default function Sidebar({
                     </p>
                   </div>
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Handle conversation options menu
-                    }}
-                    className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-gray-200 ${
+                    onClick={(e) => handleDeleteConversation(conversation.id, e)}
+                    disabled={deleteConversationMutation.isPending}
+                    className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-100 disabled:opacity-50 ${
                       conversation.id === currentConversationId
-                        ? 'text-emerald-400 hover:text-emerald-600'
-                        : 'text-gray-400 hover:text-gray-600'
+                        ? 'text-red-500 hover:text-red-700'
+                        : 'text-red-400 hover:text-red-600'
                     }`}
+                    data-testid={`button-delete-conversation-${conversation.id}`}
+                    title="Delete conversation"
                   >
-                    <MoreHorizontal className="h-3 w-3" />
+                    <Trash2 className="h-3 w-3" />
                   </button>
                 </div>
               </div>
