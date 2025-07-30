@@ -99,7 +99,8 @@ export default function Chat() {
       setIsStreaming(false);
       setStreamingMessage("");
       
-      // Refetch messages to get the AI response that was saved on the server
+      // Clear optimistic messages and refetch from server
+      setOptimisticMessages([]);
       refetchMessages();
       
       // Update conversation list for title changes
