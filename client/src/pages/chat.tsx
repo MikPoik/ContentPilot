@@ -96,11 +96,8 @@ export default function Chat() {
         setStreamingMessage(accumulated);
       }
 
-      setIsStreaming(false);
-      setStreamingMessage("");
-      
-      // Add assistant message to optimistic state and leave everything there
-      // No clearing, no refetching - messages are already saved to database
+      // Add assistant message to optimistic state BEFORE clearing streaming
+      // This prevents the flash when transitioning from streaming to static message
       setOptimisticMessages(current => [...current, {
         id: `${Date.now()}-assistant`,
         conversationId,
@@ -109,6 +106,10 @@ export default function Chat() {
         metadata: null,
         createdAt: new Date(),
       }]);
+      
+      // Now clear streaming state - message already exists in optimistic state
+      setIsStreaming(false);
+      setStreamingMessage("");
     },
     onError: (error) => {
       setIsStreaming(false);
