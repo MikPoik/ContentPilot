@@ -182,22 +182,6 @@ export default function Chat() {
     setOptimisticMessages([]);
   }, [conversationId, isMobile]);
 
-  // Sync with server periodically to ensure data consistency
-  useEffect(() => {
-    if (conversationId && optimisticMessages.length > 0) {
-      const syncTimer = setTimeout(() => {
-        // Clear optimistic messages first, then refetch in next tick
-        setOptimisticMessages([]);
-        // Use setTimeout to ensure state update happens before refetch
-        setTimeout(() => {
-          refetchMessages();
-        }, 0);
-      }, 5000); // Sync after 5 seconds of inactivity
-
-      return () => clearTimeout(syncTimer);
-    }
-  }, [conversationId, optimisticMessages.length, refetchMessages]);
-
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar */}
