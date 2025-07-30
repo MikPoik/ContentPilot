@@ -51,17 +51,19 @@ export default function Chat() {
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
+      let targetConversationId = conversationId;
+      
       if (!conversationId) {
         // Create new conversation first
         const newConversation = await createConversationMutation.mutateAsync("New Conversation");
+        targetConversationId = newConversation.id;
         setLocation(`/chat/${newConversation.id}`);
-        return;
       }
 
       // Add user message immediately to optimistic state
       const userMessage: Message = {
         id: `temp-${Date.now()}`,
-        conversationId,
+        conversationId: targetConversationId,
         role: 'user',
         content,
         metadata: null,
@@ -72,7 +74,7 @@ export default function Chat() {
       setIsStreaming(true);
       setStreamingMessage("");
 
-      const response = await fetch(`/api/conversations/${conversationId}/messages`, {
+      const response = await fetch(`/api/conversations/${targetConversationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
@@ -101,7 +103,7 @@ export default function Chat() {
       startTransition(() => {
         const assistantMessage: Message = {
           id: `${Date.now()}-assistant`,
-          conversationId,
+          conversationId: targetConversationId,
           role: 'assistant',
           content: accumulated,
           metadata: null,
@@ -164,6 +166,8 @@ export default function Chat() {
     }
     // Clear optimistic messages when conversation changes
     setOptimisticMessages([]);
+    setStreamingMessage("");
+    setIsStreaming(false);
   }, [conversationId, isMobile]);
 
   return (
