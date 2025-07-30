@@ -38,11 +38,6 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
     if (value.length <= maxChars) {
       setMessage(value);
     }
-    
-    // Auto-resize textarea
-    const textarea = e.target;
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
   };
 
   const isValid = message.trim().length > 0 && message.length <= maxChars;
@@ -65,7 +60,7 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             placeholder=""
-            className="min-h-[44px] max-h-[120px] resize-none border border-gray-300 rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-gray-500 text-sm leading-relaxed"
+            className="min-h-[44px] max-h-[44px] resize-none border border-gray-300 rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-gray-500 text-sm leading-relaxed overflow-hidden"
             disabled={disabled}
             data-testid="input-message"
           />
