@@ -151,9 +151,12 @@ export default function Chat() {
   useEffect(() => {
     if (conversationId && optimisticMessages.length > 0) {
       const syncTimer = setTimeout(() => {
-        // Clear optimistic messages and refetch to sync with server
+        // Clear optimistic messages first, then refetch in next tick
         setOptimisticMessages([]);
-        refetchMessages();
+        // Use setTimeout to ensure state update happens before refetch
+        setTimeout(() => {
+          refetchMessages();
+        }, 0);
       }, 5000); // Sync after 5 seconds of inactivity
 
       return () => clearTimeout(syncTimer);
