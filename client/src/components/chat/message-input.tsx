@@ -9,12 +9,6 @@ interface MessageInputProps {
   disabled: boolean;
 }
 
-const QUICK_SUGGESTIONS = [
-  "💡 Content ideas for this week",
-  "📱 Trending hashtags",
-  "🎯 Audience engagement tips",
-];
-
 export default function MessageInput({ onSendMessage, isLoading, disabled }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -49,12 +43,6 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
     const textarea = e.target;
     textarea.style.height = 'auto';
     textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-  };
-
-  const handleSuggestionClick = (suggestion: string) => {
-    const cleanSuggestion = suggestion.replace(/[💡📱🎯]/g, '').trim();
-    setMessage(cleanSuggestion);
-    textareaRef.current?.focus();
   };
 
   const isValid = message.trim().length > 0 && message.length <= maxChars;
@@ -98,22 +86,6 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
         >
           <Send className="h-4 w-4" />
         </Button>
-      </div>
-      
-      {/* Quick Suggestions */}
-      <div className="flex flex-wrap gap-2 mt-3 max-w-4xl mx-auto">
-        {QUICK_SUGGESTIONS.map((suggestion) => (
-          <Button
-            key={suggestion}
-            variant="secondary"
-            size="sm"
-            onClick={() => handleSuggestionClick(suggestion)}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-2 rounded-full transition-colors"
-            data-testid={`suggestion-${suggestion.slice(0, 10)}`}
-          >
-            {suggestion}
-          </Button>
-        ))}
       </div>
     </div>
   );
