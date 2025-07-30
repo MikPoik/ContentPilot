@@ -86,7 +86,7 @@ export default function MessageList({
       {messages.map((message) => (
         <div 
           key={message.id} 
-          className={`flex items-start space-x-3 animate-fade-in ${
+          className={`flex items-start space-x-3 ${
             message.role === 'user' ? 'justify-end' : ''
           }`}
         >
