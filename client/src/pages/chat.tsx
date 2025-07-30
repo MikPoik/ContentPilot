@@ -96,9 +96,23 @@ export default function Chat() {
         setStreamingMessage(accumulated);
       }
 
-      // Just stop the streaming indicator, leave the message content visible
-      // No clearing, no state changes that could cause visual flashing
-      setIsStreaming(false);
+      // Use setTimeout to batch all state updates in next render cycle
+      // This prevents intermediate renders that cause flashing
+      setTimeout(() => {
+        const assistantMessage: Message = {
+          id: `${Date.now()}-assistant`,
+          conversationId,
+          role: 'assistant',
+          content: accumulated,
+          metadata: null,
+          createdAt: new Date(),
+        };
+        
+        // All state updates happen together in this render cycle
+        setOptimisticMessages(current => [...current, assistantMessage]);
+        setIsStreaming(false);
+        setStreamingMessage("");
+      }, 0);
     },
     onError: (error) => {
       setIsStreaming(false);
