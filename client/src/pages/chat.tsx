@@ -99,9 +99,18 @@ export default function Chat() {
       setIsStreaming(false);
       setStreamingMessage("");
       
-      // Clear optimistic messages and refetch to get real data
-      setOptimisticMessages([]);
-      refetchMessages();
+      // Add AI response to optimistic messages instead of refetching
+      const aiMessage: Message = {
+        id: `temp-ai-${Date.now()}`,
+        conversationId,
+        role: 'assistant',
+        content: accumulated,
+        metadata: null,
+        createdAt: new Date(),
+      };
+      setOptimisticMessages(prev => [...prev, aiMessage]);
+      
+      // Only update conversation list for title changes, don't refetch messages
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
     },
     onError: () => {
@@ -137,6 +146,19 @@ export default function Chat() {
     // Clear optimistic messages when conversation changes
     setOptimisticMessages([]);
   }, [conversationId, isMobile]);
+
+  // Sync with server periodically to ensure data consistency
+  useEffect(() => {
+    if (conversationId && optimisticMessages.length > 0) {
+      const syncTimer = setTimeout(() => {
+        // Clear optimistic messages and refetch to sync with server
+        setOptimisticMessages([]);
+        refetchMessages();
+      }, 5000); // Sync after 5 seconds of inactivity
+
+      return () => clearTimeout(syncTimer);
+    }
+  }, [conversationId, optimisticMessages.length, refetchMessages]);
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">

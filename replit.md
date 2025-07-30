@@ -15,6 +15,9 @@ Preferred communication style: Simple, everyday language.
 - Added optimistic updates to show user messages instantly before AI response
 - Implemented proper message ordering and state management
 - User messages now appear immediately when sent, followed by streaming AI responses
+- Eliminated unnecessary message refetches after streaming completes
+- Added AI responses directly to optimistic state for smooth UX without jitter
+- Implemented delayed server sync (5 seconds) to maintain data consistency
 
 ### Work instructions for Agent
 If you need to use OpenAI models, model "gpt-4.1" is the newest model released on 14.4.2025 
