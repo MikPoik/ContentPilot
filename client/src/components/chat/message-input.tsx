@@ -48,7 +48,7 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
   const isValid = message.trim().length > 0 && message.length <= maxChars;
 
   return (
-    <div className="border-t border-gray-200 bg-white px-4 py-4">
+    <div className="border-t border-gray-200 bg-white px-2 py-2">
       <div className="flex items-end space-x-3 max-w-4xl mx-auto">
         <Button 
           variant="ghost" 
@@ -64,7 +64,7 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
             value={message}
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
-            placeholder="Tell me about your content goals, target audience, or ask for specific ideas..."
+            placeholder=""
             className="min-h-[44px] max-h-[120px] resize-none border border-gray-300 rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-gray-500 text-sm leading-relaxed"
             disabled={disabled}
             data-testid="input-message"
