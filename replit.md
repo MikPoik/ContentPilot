@@ -8,6 +8,34 @@ ContentCraft AI is a full-stack web application that serves as an AI-powered soc
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### January 30, 2025
+- Fixed message flow issue where user messages weren't displayed immediately
+- Added optimistic updates to show user messages instantly before AI response
+- Implemented proper message ordering and state management
+- User messages now appear immediately when sent, followed by streaming AI responses
+
+### Work instructions for Agent
+If you need to use OpenAI models, model "gpt-4.1" is the newest model released on 14.4.2025 
+
+You can use grep commands to get overview of current routes and functions with these commands when needed:
+
+For JavaScript/TypeScript function declarations: grep -r -n "^ *app." server/
+
+For JavaScript/TypeScript function declarations: grep -r -n "^ *(function|export function|async function)" server/
+
+For arrow functions and method definitions: grep -r -n "^ (const|let|var).=.*=>" server/
+
+For TypeScript/JavaScript methods in classes or objects: grep -r -n "^ [a-zA-Z_][a-zA-Z0-9_]\s*(" server/
+
+For Express route handlers specifically: grep -r -n "^ *app.(get|post|put|delete|patch)" server/
+
+Always test the api routes after changes with "curl" e.g. curl https://localhost:5000 ... 
+
+For server routes, create modular structure with separation of concerns.
+UI design choices should be mobile first unless stated otherwise.
+
 ## System Architecture
 
 ### Frontend Architecture

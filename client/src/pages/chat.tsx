@@ -15,6 +15,7 @@ export default function Chat() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
 
@@ -56,6 +57,17 @@ export default function Chat() {
         return;
       }
 
+      // Add user message immediately to optimistic state
+      const userMessage: Message = {
+        id: `temp-${Date.now()}`,
+        conversationId,
+        role: 'user',
+        content,
+        metadata: null,
+        createdAt: new Date(),
+      };
+      setOptimisticMessages(prev => [...prev, userMessage]);
+
       setIsStreaming(true);
       setStreamingMessage("");
 
@@ -86,12 +98,16 @@ export default function Chat() {
 
       setIsStreaming(false);
       setStreamingMessage("");
+      
+      // Clear optimistic messages and refetch to get real data
+      setOptimisticMessages([]);
       refetchMessages();
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
     },
     onError: () => {
       setIsStreaming(false);
       setStreamingMessage("");
+      setOptimisticMessages([]); // Clear optimistic messages on error
     },
   });
 
@@ -108,11 +124,18 @@ export default function Chat() {
   // Get current conversation
   const currentConversation = conversations.find(c => c.id === conversationId);
 
-  // Close sidebar on mobile when route changes
+  // Combine real messages with optimistic messages
+  const allMessages = [...messages, ...optimisticMessages].sort((a, b) => 
+    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+
+  // Close sidebar on mobile when route changes and clear optimistic messages
   useEffect(() => {
     if (isMobile) {
       setSidebarOpen(false);
     }
+    // Clear optimistic messages when conversation changes
+    setOptimisticMessages([]);
   }, [conversationId, isMobile]);
 
   return (
@@ -172,7 +195,7 @@ export default function Chat() {
         {/* Messages */}
         <div className="flex-1 overflow-hidden">
           <MessageList
-            messages={messages}
+            messages={allMessages}
             streamingMessage={streamingMessage}
             isStreaming={isStreaming}
             userProfile={userProfile}
