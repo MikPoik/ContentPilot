@@ -1,4 +1,4 @@
-import { type Conversation, type InsertConversation, type Message, type InsertMessage, type User, type UpsertUser, users, conversations, messages } from "@shared/schema";
+import { type Conversation, type InsertConversation, type Message, type InsertMessage, type User, type UpsertUser, type UpdateUserProfile, users, conversations, messages } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -6,6 +6,7 @@ export interface IStorage {
   // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUserProfile(id: string, profileData: Partial<UpdateUserProfile>): Promise<User | undefined>;
   
   // Conversations
   getConversations(userId: string): Promise<Conversation[]>;
@@ -105,6 +106,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(conversations.id, insertMessage.conversationId));
     
     return message;
+  }
+
+  async updateUserProfile(id: string, profileData: Partial<UpdateUserProfile>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ ...profileData, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
   }
 }
 

@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertConversationSchema, insertMessageSchema } from "@shared/schema";
-import { generateChatResponse, generateConversationTitle } from "./services/openai";
+import { insertConversationSchema, insertMessageSchema, updateUserProfileSchema } from "@shared/schema";
+import { generateChatResponse, generateConversationTitle, extractProfileInfo } from "./services/openai";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -135,8 +135,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content,
       });
 
-      // Get conversation history
+      // Get conversation history and user profile
       const messages = await storage.getMessages(conversationId);
+      const user = await storage.getUser(userId);
       const chatHistory = messages.map(m => ({
         role: m.role as 'user' | 'assistant' | 'system',
         content: m.content
@@ -147,8 +148,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
 
-      // Generate AI response stream
-      const responseStream = await generateChatResponse(chatHistory);
+      // Generate AI response stream with user profile
+      const responseStream = await generateChatResponse(chatHistory, user);
       let fullResponse = '';
 
       const reader = responseStream.getReader();
@@ -168,6 +169,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: 'assistant',
           content: fullResponse,
         });
+
+        // Extract and update user profile from conversation
+        try {
+          const profileUpdates = await extractProfileInfo(content, fullResponse, user!);
+          if (profileUpdates && Object.keys(profileUpdates).length > 0) {
+            await storage.updateUserProfile(userId, profileUpdates);
+          }
+        } catch (error) {
+          console.log('Profile extraction error:', error);
+        }
 
         // Update conversation title if it's the first exchange
         if (messages.length <= 2 && conversation.title === 'New Conversation') {
