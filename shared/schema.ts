@@ -21,6 +21,11 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  // Profile fields for conversation-driven learning
+  contentNiche: text("content_niche").array(), // Array of content focus areas
+  primaryPlatform: varchar("primary_platform"), // Main social media platform
+  profileData: jsonb("profile_data"), // Flexible storage for learned info
+  profileCompleteness: varchar("profile_completeness").default("0"), // Percentage as string
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -54,9 +59,17 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
   metadata: true,
 });
 
+export const updateUserProfileSchema = createInsertSchema(users).pick({
+  contentNiche: true,
+  primaryPlatform: true,
+  profileData: true,
+  profileCompleteness: true,
+});
+
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type Conversation = typeof conversations.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
