@@ -7,6 +7,41 @@ ContentCraft AI is a full-stack web application that serves as an AI-powered soc
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+<policy>
+  <title>Development Workflow Policies & Guidelines</title>
+
+  <cost-efficient-workflow target="3-5 total tool calls for most modification requests">
+    <phase number="1" name="Error Investigation & Discovery" max-calls="1-2">
+      <rule>Trace to source, not symptoms - Find the actual originating file/function, not just where errors surface</rule>
+      <rule>Read error stack traces completely - The deepest stack frame often contains the real issue</rule>
+      <rule>Search for error patterns first before assuming location (e.g., "localStorage" across codebase)</rule>
+      <rule>Use `search_codebase` ONLY if truly don't know where relevant code lives</rule>
+      <rule>Otherwise, directly `read` target files in parallel (batch 3-6 files at once)</rule>
+      <rule>Skip exploratory reading - be surgical about what you need</rule>
+    </phase>
+  </cost-efficient-workflow>
+
+  <mandatory-workflow-adherence>
+    <rule>MAXIMUM 5 tool calls for any change request</rule>
+    <rule>No exploration - be surgical about file reading</rule>
+    <rule>No incremental changes - make all related edits in one batch</rule>
+    <rule>No workflow restarts unless runtime actually fails (not just for verification)</rule>
+  </mandatory-workflow-adherence>
+
+  <defensive-coding-patterns>
+    <pattern>Apply sandbox-safe patterns by default (safeLocalStorage, safe DOM access)</pattern>
+    <pattern>Wrap external API calls in try-catch from the start</pattern>
+    <pattern>Use null-safe operations for optional properties</pattern>
+    <pattern>Apply security patterns consistently across similar code</pattern>
+  </defensive-coding-patterns>
+
+  <verification-anxiety-prevention>
+    <principle>Stop checking once the development environment confirms success</principle>
+    <principle>Resist urge to "double-check" working changes</principle>
+    <principle>Trust professional development tools over manual verification</principle>
+    <principle>Remember: More verification ≠ better quality, just higher cost</principle>
+  </verification-anxiety-prevention>
+</policy>
 
 ## Recent Changes
 
