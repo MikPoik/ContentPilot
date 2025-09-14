@@ -2,7 +2,7 @@
 
 ## Overview
 
-ContentCraft AI is a full-stack web application that serves as an AI-powered social media content strategist. The application features a chat interface where users can interact with an AI assistant to brainstorm content ideas, get platform-specific advice, and plan their social media strategy. Built as a modern React SPA with an Express backend, it uses PostgreSQL for data persistence and OpenAI's GPT-4o for AI-powered conversations.
+ContentCraft AI is an AI-powered social media content strategist delivered as a full-stack web application. It provides a chat interface for users to interact with an AI assistant for content brainstorming, platform-specific advice, and strategic planning. The project aims to empower users with intelligent tools to streamline their social media presence and enhance content creation efficiency, offering a robust solution for content creators and marketers.
 
 ## User Preferences
 
@@ -80,7 +80,7 @@ Preferred communication style: Simple, everyday language.
       <rule>Example: multi_edit(schema.ts) + multi_edit(routes.ts) + multi_edit(storage.ts)</rule>
       <rule>Plan all related changes upfront - Don't fix incrementally</rule>
       <rule>Identify change scope before starting - localStorage issue = all localStorage calls need fixing</rule>
-      <rule>Apply patterns consistently - If one component needs safeLocalStorage, likely others do too</rule>
+      <rule>Apply patterns consistently - If one component needs safeLocalStorage, likely others do safeLocalStorage too</rule>
       <rule>Group by file impact - All changes to same file in one `multi_edit`</rule>
       <rule>Fix root causes, not band-aids - One proper fix beats multiple symptom patches</rule>
     </phase-3>
@@ -311,211 +311,31 @@ Preferred communication style: Simple, everyday language.
   </workflow-examples>
 </development-workflow-policy>
 
-
-## Project Structure
-
-A full-stack TypeScript app: React + Vite + Tailwind (client), Express + Drizzle ORM + Neon Postgres (server), OpenAI GPT-4o integration, and Replit OIDC auth. Built as a single process that serves both API and SPA.
-
-- `/` (root)
-  - `package.json` — Project metadata, scripts (`dev`, `build`, `start`, `db:push`), dependencies.
-  - `package-lock.json` — Locked dependency versions.
-  - `tsconfig.json` — TypeScript config with path aliases (`@`, `@shared`).
-  - `vite.config.ts` — Vite config for client build/dev, aliases, Replit plugins.
-  - `tailwind.config.ts` — Tailwind theme, content paths, plugins.
-  - `postcss.config.js` — PostCSS plugins (Tailwind, Autoprefixer).
-  - `drizzle.config.ts` — Drizzle Kit config (schema path, migrations dir, DATABASE_URL).
-  - `components.json` — shadcn/ui generator configuration and path aliases.
-  - `replit.md` — Project overview and development workflow policies.
-  - `attached_assets/` — Static assets used by the app.
-    - `image_1753874927528.png` — Image asset.
-  - `shared/` — Code shared across server and client.
-    - `schema.ts` — Drizzle schema and Zod helpers for `sessions`, `users`, `conversations`, `messages`; exported types and insert/update schemas.
-
-- `server/` — Express API + auth + persistence + dev server wiring
-  - `index.ts` — Bootstraps Express, JSON parsing, request logging for `/api/*`, registers routes, global error handler, mounts Vite dev middleware (dev) or static files (prod), starts HTTP server on `PORT`.
-  - `routes.ts` — REST API routes secured by auth:
-    - `GET /api/auth/user` — Current user profile.
-    - Conversation CRUD: list, get, create, delete.
-    - Messages: list for conversation; `POST` streams assistant response, persists both user and AI messages, updates title and profile.
-    - Returns the created `http.Server` for Vite HMR.
-  - `storage.ts` — Data access layer using Drizzle. `IStorage` interface and `DatabaseStorage` implementation for users (get/upsert/updateProfile), conversations (CRUD), and messages (CRUD, ordered); keeps conversation `updatedAt` fresh.
-  - `db.ts` — Neon serverless Postgres pool + Drizzle client, loads `@shared/schema`; requires `DATABASE_URL`.
-  - `services/openai.ts` — OpenAI client and chat domain logic:
-    - Builds personalized system prompt from user profile.
-    - `generateChatResponse` — Streams GPT-4o completions via Web API `ReadableStream<string>`.
-    - `generateConversationTitle` — Short title from recent turns.
-    - `extractProfileInfo` — LLM-assisted extraction of profile fields from a turn; computes completeness.
-  - `replitAuth.ts` — Replit OIDC auth with Passport/OpenID:
-    - Session storage via `connect-pg-simple` (table `sessions`).
-    - Multi-domain strategy setup from `REPLIT_DOMAINS`; login, callback, logout routes.
-    - `isAuthenticated` middleware with token refresh flow; user upsert on login.
-  - `vite.ts` — Dev tooling integration and static serving:
-    - `setupVite` mounts Vite middleware and transforms `index.html` with a cache-busting query.
-    - `serveStatic` serves built SPA from `dist/public` in production.
-    - `log` helper for formatted console logs.
-
-- `client/` — React SPA (Vite)
-  - `index.html` — SPA shell mounting `#root`, loads `/src/main.tsx`.
-  - `src/main.tsx` — React root renderer.
-  - `src/App.tsx` — App providers (React Query, Tooltip, Toaster) and routes (Wouter): Landing for unauthenticated, Chat for `/` and `/chat/:id?` when authenticated.
-  - `src/index.css` — Tailwind layers, design tokens (CSS variables), and keyframe utilities (fade, typing, bounce).
-  - `src/pages/`
-    - `landing.tsx` — Marketing/entry page with CTA to `/api/login` and feature highlights.
-    - `chat.tsx` — Chat experience: loads conversations/messages, optimistic user/assistant messages, streaming via `fetch` reader, mobile sidebar, logout button.
-    - `not-found.tsx` — Simple 404 screen.
-  - `src/components/chat/`
-    - `sidebar.tsx` — Left sidebar: new conversation, list with relative times, delete action, user mini-profile; mobile close behavior.
-    - `message-list.tsx` — Scrollable thread with Markdown rendering for assistant, welcome message for empty/new chats, inline streaming placeholder.
-    - `message-input.tsx` — Textarea with Enter-to-send, char limit, and send button.
-    - `typing-indicator.tsx` — Animated three-dot typing indicator.
-  - `src/components/ui/` — shadcn/ui primitives and wrappers used across the app.
-    - `accordion.tsx` — Collapsible content sections.
-    - `alert-dialog.tsx` — Modal confirmation dialogs.
-    - `alert.tsx` — Inline alert styles.
-    - `aspect-ratio.tsx` — Box maintaining aspect ratio.
-    - `avatar.tsx` — User avatar primitive.
-    - `badge.tsx` — Status/label chips.
-    - `breadcrumb.tsx` — Breadcrumb navigation.
-    - `button.tsx` — Button variants.
-    - `calendar.tsx` — Date picker component.
-    - `card.tsx` — Card layout container.
-    - `carousel.tsx` — Carousel wrapper around Embla.
-    - `chart.tsx` — Chart container/styles for Recharts.
-    - `checkbox.tsx` — Checkbox control.
-    - `collapsible.tsx` — Show/hide wrapper.
-    - `command.tsx` — Command palette primitives (cmdk).
-    - `context-menu.tsx` — Context menu wrapper.
-    - `dialog.tsx` — Dialog/modal primitive.
-    - `drawer.tsx` — Drawer/sheet UI.
-    - `dropdown-menu.tsx` — Dropdown menu.
-    - `form.tsx` — Form field helpers with React Hook Form.
-    - `hover-card.tsx` — Hover-activated info card.
-    - `input-otp.tsx` — OTP input field group.
-    - `input.tsx` — Text input.
-    - `label.tsx` — Form label.
-    - `menubar.tsx` — Menu bar components.
-    - `navigation-menu.tsx` — Top navigation menu.
-    - `pagination.tsx` — Pagination controls.
-    - `popover.tsx` — Popover wrapper.
-    - `progress.tsx` — Progress bar.
-    - `radio-group.tsx` — Radio inputs.
-    - `resizable.tsx` — Resizable panels.
-    - `scroll-area.tsx` — Scrollable container.
-    - `select.tsx` — Select dropdown.
-    - `separator.tsx` — Horizontal/vertical separators.
-    - `sheet.tsx` — Sheet/side panel.
-    - `sidebar.tsx` — Advanced responsive sidebar system with offcanvas/icon modes and keyboard toggle.
-    - `skeleton.tsx` — Loading skeletons.
-    - `slider.tsx` — Slider input.
-    - `switch.tsx` — Toggle switch.
-    - `table.tsx` — Table primitives.
-    - `tabs.tsx` — Tabs UI.
-    - `textarea.tsx` — Textarea input.
-    - `toast.tsx` — Toast primitives; used by `Toaster`.
-    - `toaster.tsx` — Toast container component.
-    - `toggle-group.tsx` — Toggle button group.
-    - `toggle.tsx` — Toggle button.
-    - `tooltip.tsx` — Tooltip primitives.
-  - `src/hooks/`
-    - `useAuth.ts` — React Query hook to fetch `/api/auth/user`; returns auth state.
-    - `use-mobile.tsx` — Media-query-based mobile breakpoint detection.
-    - `use-toast.ts` — Client-side toast store/utilities (imperative API and hook).
-  - `src/lib/`
-    - `queryClient.ts` — Configured React Query client, default `queryFn`, and `apiRequest` helper with credentials and error handling.
-    - `authUtils.ts` — Helpers to detect `401 Unauthorized` errors.
-    - `utils.ts` — `cn` className utility using `clsx` and `tailwind-merge`.
-
-## Notes
-- Environment variables: `DATABASE_URL`, `OPENAI_API_KEY`, `REPLIT_DOMAINS`, `SESSION_SECRET`, `ISSUER_URL`, `REPL_ID`, `PORT` are used across server/auth/DB.
-- Build outputs: Client builds to `dist/public`; server bundles to `dist/index.js` via esbuild.
-- Data model: Users own Conversations, which have Messages; sessions table supports Replit auth sessions.
-
 ## System Architecture
 
-### Frontend Architecture
-- **Framework**: React 18 with TypeScript using Vite as the build tool
-- **UI Library**: Radix UI components with shadcn/ui styling system
-- **Styling**: Tailwind CSS with CSS variables for theming
-- **State Management**: TanStack Query (React Query) for server state management
-- **Routing**: Wouter for lightweight client-side routing
-- **Mobile-First Design**: Responsive design with mobile breakpoint detection
+### Frontend
+- **Framework**: React 18 with TypeScript and Vite.
+- **UI/UX**: Radix UI components, shadcn/ui, and Tailwind CSS for a mobile-first, responsive design.
+- **State Management**: TanStack Query (React Query) for server-side state and caching.
+- **Routing**: Wouter for lightweight client-side routing.
 
-### Backend Architecture  
-- **Runtime**: Node.js with Express.js framework
-- **Language**: TypeScript with ES modules
-- **API**: RESTful JSON API with structured error handling
-- **Middleware**: Request logging, JSON parsing, and error handling
-- **Development**: Hot module replacement via Vite integration
+### Backend
+- **Runtime**: Node.js with Express.js and TypeScript (ES modules).
+- **API**: RESTful JSON API with structured error handling.
+- **Key Features**: Replit OIDC authentication, conversation/message CRUD, and OpenAI GPT-4o integration for streaming AI responses.
+- **Deployment**: Single-process serving both API and SPA, with hot module replacement during development.
 
 ### Data Layer
-- **Database**: PostgreSQL with connection via Neon serverless
-- **ORM**: Drizzle ORM for type-safe database operations
-- **Schema**: Shared TypeScript schema definitions with Zod validation
-- **Storage**: Dual storage implementation (memory for development, database for production)
-
-## Key Components
-
-### Core Entities
-1. **Conversations**: Chat sessions with titles and timestamps
-2. **Messages**: Individual chat messages with role-based content (user/assistant/system)
-3. **User Profile**: User preferences including name, niche, platforms, and interests
-
-### Chat System
-- **Real-time Streaming**: OpenAI GPT-4o integration with streaming responses
-- **Message Management**: Persistent conversation history with message threading
-- **UI Components**: Responsive chat interface with typing indicators and auto-scroll
-
-### Authentication & Sessions
-- **Replit Auth Integration**: Full OpenID Connect authentication with Replit as provider
-- **Session Management**: PostgreSQL-backed sessions with connect-pg-simple
-- **User Data**: User profiles stored with email, name, and profile images from Replit
-- **Access Control**: All conversations and messages are user-scoped with ownership verification
-
-## Data Flow
-
-1. **Client Interaction**: User sends message through React chat interface
-2. **API Processing**: Express server receives message, validates with Zod schemas
-3. **Storage**: Message stored in database/memory via storage abstraction layer
-4. **AI Integration**: OpenAI API called with conversation context for streaming response
-5. **Response Handling**: Streamed AI response sent back to client and stored as assistant message
-6. **UI Updates**: React Query manages cache invalidation and UI state updates
+- **Database**: PostgreSQL, utilizing Neon serverless for connections.
+- **ORM**: Drizzle ORM for type-safe database interactions.
+- **Schema**: Shared TypeScript schema definitions with Zod validation for consistency.
+- **Persistence**: PostgreSQL-backed sessions using `connect-pg-simple` and dual storage (memory for dev, DB for prod).
 
 ## External Dependencies
 
-### Core Dependencies
-- **@neondatabase/serverless**: PostgreSQL connection for Neon database
-- **drizzle-orm**: Type-safe database ORM with PostgreSQL dialect
-- **openai**: Official OpenAI SDK for GPT-4o integration
-- **@tanstack/react-query**: Server state management and caching
-- **@radix-ui/***: Comprehensive UI component library
-- **tailwindcss**: Utility-first CSS framework
-
-### Development Tools
-- **tsx**: TypeScript execution for development server
-- **esbuild**: Fast bundling for production builds
-- **drizzle-kit**: Database migration and schema management
-- **@replit/vite-plugin-runtime-error-modal**: Development error handling
-
-## Deployment Strategy
-
-### Build Process
-- **Frontend**: Vite builds React app to `dist/public` directory
-- **Backend**: esbuild bundles Express server to `dist/index.js`
-- **Database**: Drizzle migrations applied via `db:push` command
-
-### Environment Configuration
-- **DATABASE_URL**: PostgreSQL connection string (required)
-- **OPENAI_API_KEY**: OpenAI API authentication (required)
-- **NODE_ENV**: Environment mode (development/production)
-
-### Production Setup
-- Single-process deployment with Express serving both API and static files
-- Database migrations handled through Drizzle Kit
-- Session persistence via PostgreSQL with connect-pg-simple
-- Error handling with structured JSON responses and appropriate HTTP status codes
-
-### Development Workflow
-- **Hot Reloading**: Vite dev server with HMR for frontend development
-- **API Development**: tsx with auto-restart for backend changes
-- **Database**: Local PostgreSQL or Neon database with shared schema
-- **Type Safety**: Shared TypeScript definitions between client and server
+- **@neondatabase/serverless**: PostgreSQL database connectivity.
+- **drizzle-orm**: Type-safe ORM.
+- **openai**: OpenAI's GPT-4o integration.
+- **@tanstack/react-query**: Server state management.
+- **@radix-ui/***: UI component library.
+- **tailwindcss**: CSS framework.
