@@ -41,6 +41,53 @@ Preferred communication style: Simple, everyday language.
     <principle>Trust professional development tools over manual verification</principle>
     <principle>Remember: More verification ≠ better quality, just higher cost</principle>
   </verification-anxiety-prevention>
+
+  <super-batching-workflow priority="CRITICAL">
+    <target>3-5 tool calls maximum for any feature implementation</target>
+    
+    <phase-1 name="Planning Before Acting" requirement="MANDATORY">
+      <rule>Map ALL information needed (files to read, searches to do) before starting</rule>
+      <rule>Map ALL changes to make (edits, database updates, new files)</rule>
+      <rule>Identify dependencies between operations</rule>
+      <rule>Target minimum possible tool calls</rule>
+    </phase-1>
+
+    <phase-2 name="Information Gathering" requirement="MAX PARALLELIZATION">
+      <rule>Batch ALL independent reads/searches in one function_calls block</rule>
+      <rule>NEVER do: read(file1) → analyze → read(file2) → analyze</rule>
+      <rule>ALWAYS do: read(file1) + read(file2) + read(file3) + search_codebase() + grep()</rule>
+      <rule>Only make sequential calls if later reads depend on analysis of earlier reads</rule>
+    </phase-2>
+
+    <phase-3 name="Implementation" requirement="AGGRESSIVE MULTI-EDITING">
+      <rule>Use multi_edit for ANY file needing multiple changes</rule>
+      <rule>NEVER do multiple separate edit() calls to same file</rule>
+      <rule>Batch independent file changes in parallel</rule>
+      <rule>Example: multi_edit(schema.ts) + multi_edit(routes.ts) + multi_edit(storage.ts)</rule>
+    </phase-3>
+
+    <phase-4 name="Operations & Testing" requirement="SMART BUNDLING">
+      <rule>Bundle logically connected operations</rule>
+      <rule>Example: bash("npm run db:push") + refresh_logs() + get_diagnostics() + restart_workflow()</rule>
+      <rule>NEVER do sequential operations when they can be batched</rule>
+    </phase-4>
+
+    <cost-targets>
+      <feature-implementation max-calls="5">Feature implementation: 3-5 tool calls maximum</feature-implementation>
+      <bug-fixes max-calls="3">Bug fixes: 2-3 tool calls maximum</bug-fixes>
+      <information-gathering max-calls="1">Information gathering: 1 tool call (parallel everything)</information-gathering>
+      <file-modifications max-calls="2">File modifications: 1-2 tool calls (multi_edit everything)</file-modifications>
+    </cost-targets>
+
+    <decision-framework>
+      <question>What else can I batch with this?</question>
+      <question>Do I have ALL the information I need before making changes?</question>
+      <question>Can I combine this edit with others using multi_edit?</question>
+      <question>What's the dependency chain - can I collapse it?</question>
+    </decision-framework>
+
+    <success-metric>Target: 30-50% cost reduction compared to sequential approach</success-metric>
+  </super-batching-workflow>
 </policy>
 
 ## Recent Changes
