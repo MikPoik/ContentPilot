@@ -181,3 +181,18 @@ Extract any NEW profile information:`
     return null;
   }
 }
+
+export async function generateEmbedding(text: string): Promise<number[]> {
+  try {
+    const response = await openai.embeddings.create({
+      model: 'text-embedding-3-small',
+      input: text.trim(),
+      encoding_format: 'float',
+    });
+
+    return response.data[0].embedding;
+  } catch (error) {
+    console.error('Embedding generation error:', error);
+    throw new Error('Failed to generate embedding');
+  }
+}

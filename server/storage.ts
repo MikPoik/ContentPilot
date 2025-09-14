@@ -1,6 +1,6 @@
-import { type Conversation, type InsertConversation, type Message, type InsertMessage, type User, type UpsertUser, type UpdateUserProfile, users, conversations, messages } from "@shared/schema";
+import { type Conversation, type InsertConversation, type Message, type InsertMessage, type Memory, type InsertMemory, type User, type UpsertUser, type UpdateUserProfile, users, conversations, messages, memories } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -19,6 +19,12 @@ export interface IStorage {
   getMessages(conversationId: string): Promise<Message[]>;
   getMessage(id: string): Promise<Message | undefined>;
   createMessage(message: InsertMessage): Promise<Message>;
+  
+  // Memories
+  getMemories(userId: string): Promise<Memory[]>;
+  createMemory(memory: InsertMemory): Promise<Memory>;
+  deleteMemory(id: string): Promise<boolean>;
+  searchSimilarMemories(userId: string, embedding: number[], limit?: number): Promise<(Memory & { similarity: number })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -115,6 +121,57 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return user;
+  }
+
+  // Memories
+  async getMemories(userId: string): Promise<Memory[]> {
+    return await db
+      .select()
+      .from(memories)
+      .where(eq(memories.userId, userId))
+      .orderBy(desc(memories.createdAt));
+  }
+
+  async createMemory(insertMemory: InsertMemory): Promise<Memory> {
+    const [memory] = await db
+      .insert(memories)
+      .values(insertMemory)
+      .returning();
+    return memory;
+  }
+
+  async deleteMemory(id: string): Promise<boolean> {
+    const result = await db.delete(memories).where(eq(memories.id, id));
+    return result.rowCount! > 0;
+  }
+
+  async searchSimilarMemories(userId: string, embedding: number[], limit: number = 10): Promise<(Memory & { similarity: number })[]> {
+    const embeddingString = `[${embedding.join(',')}]`;
+    
+    const result = await db.execute(sql`
+      SELECT 
+        id,
+        user_id,
+        content,
+        embedding,
+        metadata,
+        created_at,
+        1 - (embedding <=> ${embeddingString}::vector) as similarity
+      FROM memories 
+      WHERE user_id = ${userId}
+      ORDER BY embedding <=> ${embeddingString}::vector
+      LIMIT ${limit}
+    `);
+
+    return result.rows.map((row: any) => ({
+      id: row.id,
+      userId: row.user_id,
+      content: row.content,
+      embedding: row.embedding,
+      metadata: row.metadata,
+      createdAt: row.created_at,
+      similarity: parseFloat(row.similarity)
+    }));
   }
 }
 

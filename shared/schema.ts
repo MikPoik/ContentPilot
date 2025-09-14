@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, jsonb, index, vector } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -47,6 +47,15 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const memories = pgTable("memories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  embedding: vector("embedding", { dimensions: 1536 }), // OpenAI text-embedding-3-small dimensions
+  metadata: jsonb("metadata"), // For storing additional context about the memory
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertConversationSchema = createInsertSchema(conversations).pick({
   userId: true,
   title: true,
@@ -66,10 +75,19 @@ export const updateUserProfileSchema = createInsertSchema(users).pick({
   profileCompleteness: true,
 }).partial();
 
+export const insertMemorySchema = createInsertSchema(memories).pick({
+  userId: true,
+  content: true,
+  embedding: true,
+  metadata: true,
+});
+
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type Conversation = typeof conversations.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
+export type InsertMemory = z.infer<typeof insertMemorySchema>;
+export type Memory = typeof memories.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
