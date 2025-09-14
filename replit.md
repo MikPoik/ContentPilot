@@ -222,7 +222,7 @@ Preferred communication style: Simple, everyday language.
     <anti-pattern>React UI tweaks, route additions, API handler adjustments</anti-pattern>
     <anti-pattern>Anything well-served by grep+batch+HMR approach</anti-pattern>
     <rationale>These require tight coordination and unified execution patterns</rationale>
-  </avoid-delegation-for>
+  </anti-patterns>
   <!-- Decision Framework -->
   <delegation-decision-tree>
     <question>Is this an independent deliverable that doesn't affect ongoing code?</question>
