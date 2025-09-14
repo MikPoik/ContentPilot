@@ -70,18 +70,34 @@ function resolveDomain(host: string): string {
   const domains = process.env.REPLIT_DOMAINS!.split(',').map(d => d.trim().toLowerCase());
   const h = host.toLowerCase();
   
+  console.log(`Resolving host: ${host}, available domains: ${domains.join(', ')}`);
+  
   // Check for exact match first
-  if (domains.includes(h)) return h;
+  if (domains.includes(h)) {
+    console.log(`Exact match found: ${h}`);
+    return h;
+  }
   
   // Check for suffix match (for ephemeral subdomains)
   const match = domains.find(d => h === d || h.endsWith(`.${d}`));
-  if (!match) {
-    console.error(`Unrecognized host: ${host}, available domains: ${domains.join(', ')}`);
-    throw new Error(`Unrecognized host: ${host}`);
+  if (match) {
+    console.log(`Suffix match found: ${host} -> ${match}`);
+    return match;
   }
   
-  console.log(`Resolved host ${host} to domain ${match}`);
-  return match;
+  // Handle .co/.dev domain mismatch - convert .co to .dev for development
+  if (h.endsWith('.repl.co')) {
+    const devHost = h.replace('.repl.co', '.replit.dev');
+    console.log(`Converting .co to .dev: ${host} -> ${devHost}`);
+    const devMatch = domains.find(d => devHost === d || devHost.endsWith(`.${d}`));
+    if (devMatch) {
+      console.log(`Dev domain match found: ${devMatch}`);
+      return devMatch;
+    }
+  }
+  
+  console.error(`Unrecognized host: ${host}, available domains: ${domains.join(', ')}`);
+  throw new Error(`Unrecognized host: ${host}`);
 }
 
 export async function setupAuth(app: Express) {
