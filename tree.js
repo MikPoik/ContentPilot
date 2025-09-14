@@ -8,8 +8,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 class SourceCodeTreeGenerator {
-  constructor(filePaths, compilerOptions = {}) {
+  constructor(filePaths, compilerOptions = {}, directoryTree = null) {
     this.filePaths = filePaths;
+    this.directoryTree = directoryTree;
+    this.analysisTree = null; // Will store the analyzed tree
     this.program = ts.createProgram(filePaths, {
       target: ts.ScriptTarget.ES2020,
       module: ts.ModuleKind.CommonJS,
@@ -37,6 +39,7 @@ class SourceCodeTreeGenerator {
       }
     }
 
+    this.analysisTree = roots; // Store for directory tree printing
     return roots;
   }
 
@@ -323,18 +326,70 @@ class SourceCodeTreeGenerator {
         const asyncPrefix = func.isAsync ? "async " : "";
         const exportPrefix = func.isExported ? "export " : "";
         const kindIcon = this.getFunctionIcon(func.kind);
-        result += `${indent}  ${kindIcon} ${exportPrefix}${asyncPrefix}${func.name}(${func.parameters
+        result += `${indent}│  ${kindIcon} ${exportPrefix}${asyncPrefix}${func.name}(${func.parameters
           .map((p) => `${p.name}${p.optional ? "?" : ""}: ${p.type}`)
           .join(", ")}): ${func.returnType}\n`;
       }
 
       // Print children recursively
       if (node.children.length > 0) {
-        result += this.printTree(node.children, indent + "  ");
+        result += this.printTree(node.children, indent + "│  ");
       }
     }
 
     return result;
+  }
+
+  // New method to print directory tree structure
+  printDirectoryTree(tree, indent = "", isLast = true) {
+    let result = "";
+    const entries = Object.entries(tree);
+    
+    entries.forEach(([name, item], index) => {
+      const isLastEntry = index === entries.length - 1;
+      const prefix = isLast ? (isLastEntry ? "└── " : "├── ") : (isLastEntry ? "└── " : "├── ");
+      const nextIndent = indent + (isLast ? (isLastEntry ? "    " : "│   ") : (isLastEntry ? "    " : "│   "));
+      
+      if (item.type === 'directory') {
+        result += `${indent}${prefix}📁 ${name}/\n`;
+        if (Object.keys(item.children).length > 0) {
+          result += this.printDirectoryTree(item.children, nextIndent, isLastEntry);
+        }
+      } else if (item.type === 'file') {
+        // Find the analyzed file data for this path
+        const fileNode = this.findFileInTree(this.analysisTree, item.path);
+        if (fileNode) {
+          result += `${indent}${prefix}📄 ${name}\n`;
+          
+          // Print functions for this file
+          for (const func of fileNode.functions) {
+            const asyncPrefix = func.isAsync ? "async " : "";
+            const exportPrefix = func.isExported ? "export " : "";
+            const kindIcon = this.getFunctionIcon(func.kind);
+            result += `${nextIndent}${kindIcon} ${exportPrefix}${asyncPrefix}${func.name}(${func.parameters
+              .map((p) => `${p.name}${p.optional ? "?" : ""}: ${p.type}`)
+              .join(", ")}): ${func.returnType}\n`;
+          }
+          
+          // Print children (classes, interfaces, etc.)
+          if (fileNode.children.length > 0) {
+            result += this.printTree(fileNode.children, nextIndent);
+          }
+        }
+      }
+    });
+    
+    return result;
+  }
+
+  // Helper method to find file node in analysis tree
+  findFileInTree(nodes, filePath) {
+    for (const node of nodes) {
+      if (node.path === filePath) {
+        return node;
+      }
+    }
+    return null;
   }
 
   getNodeIcon(type) {
@@ -377,26 +432,52 @@ function generateSourceCodeTree(filePaths) {
   };
 }
 
-// Function to recursively find TypeScript and JavaScript files
-function findSourceFiles(dir, extensions = ['.ts', '.tsx', '.js', '.jsx']) {
-  const files = [];
+// Enhanced function that shows directory structure with source analysis
+function generateSourceCodeTreeWithDirectory(filePaths, directoryTree) {
+  const generator = new SourceCodeTreeGenerator(filePaths, {}, directoryTree);
+  const tree = generator.generateTree();
+  const treeOutput = generator.printDirectoryTree(directoryTree);
+
+  console.log("Source Code Tree with Directory Structure:");
+  console.log("=".repeat(60));
+  console.log(treeOutput);
+  
+  return {
+    tree,
+    directoryTree,
+    output: treeOutput
+  };
+}
+
+// Function to build directory tree structure with source files
+function buildDirectoryTree(dir, extensions = ['.ts', '.tsx', '.js', '.jsx'], rootDir = dir) {
+  const tree = {};
   
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
+      const relativePath = path.relative(rootDir, fullPath);
+      
+      // Skip the tree.js file itself
+      if (entry.name === 'tree.js' && dir === rootDir) {
+        continue;
+      }
       
       if (entry.isDirectory()) {
         // Skip common directories that don't contain source code
         const skipDirs = ['node_modules', '.git', 'dist', 'build', '.next', 'coverage', '.nyc_output'];
         if (!skipDirs.includes(entry.name)) {
-          files.push(...findSourceFiles(fullPath, extensions));
+          const subtree = buildDirectoryTree(fullPath, extensions, rootDir);
+          if (Object.keys(subtree).length > 0) {
+            tree[entry.name] = { type: 'directory', children: subtree };
+          }
         }
       } else if (entry.isFile()) {
         const ext = path.extname(entry.name);
         if (extensions.includes(ext)) {
-          files.push(fullPath);
+          tree[entry.name] = { type: 'file', path: fullPath };
         }
       }
     }
@@ -404,6 +485,24 @@ function findSourceFiles(dir, extensions = ['.ts', '.tsx', '.js', '.jsx']) {
     console.warn(`Warning: Cannot read directory ${dir}: ${error.message}`);
   }
   
+  return tree;
+}
+
+// Function to extract all file paths from directory tree
+function extractFilePaths(tree) {
+  const files = [];
+  
+  function traverse(node, basePath = '') {
+    for (const [name, item] of Object.entries(node)) {
+      if (item.type === 'file') {
+        files.push(item.path);
+      } else if (item.type === 'directory') {
+        traverse(item.children, path.join(basePath, name));
+      }
+    }
+  }
+  
+  traverse(tree);
   return files;
 }
 
@@ -417,7 +516,8 @@ if (isMainModule) {
     // If no arguments, scan the current directory
     console.log("No files specified. Scanning current directory for TypeScript/JavaScript files...");
     const currentDir = process.cwd();
-    const foundFiles = findSourceFiles(currentDir);
+    const directoryTree = buildDirectoryTree(currentDir);
+    const foundFiles = extractFilePaths(directoryTree);
     
     if (foundFiles.length === 0) {
       console.error("No TypeScript or JavaScript files found in current directory.");
@@ -425,10 +525,11 @@ if (isMainModule) {
     }
     
     console.log(`Found ${foundFiles.length} source files to analyze.\n`);
-    generateSourceCodeTree(foundFiles);
+    generateSourceCodeTreeWithDirectory(foundFiles, directoryTree);
   } else {
     // Process specified files/directories
     let filePaths = [];
+    let directoryTree = {};
     
     for (const arg of args) {
       if (!fs.existsSync(arg)) {
@@ -438,12 +539,15 @@ if (isMainModule) {
       
       const stat = fs.statSync(arg);
       if (stat.isDirectory()) {
-        // If directory, find all source files in it
-        const dirFiles = findSourceFiles(arg);
+        // If directory, build tree and find all source files in it
+        const argTree = buildDirectoryTree(arg);
+        const dirFiles = extractFilePaths(argTree);
         filePaths.push(...dirFiles);
+        directoryTree[path.basename(arg)] = { type: 'directory', children: argTree };
       } else if (stat.isFile()) {
         // If file, add it directly
         filePaths.push(arg);
+        directoryTree[path.basename(arg)] = { type: 'file', path: arg };
       }
     }
 
@@ -452,7 +556,7 @@ if (isMainModule) {
       process.exit(1);
     }
 
-    generateSourceCodeTree(filePaths);
+    generateSourceCodeTreeWithDirectory(filePaths, directoryTree);
   }
 }
 
