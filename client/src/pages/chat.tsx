@@ -11,7 +11,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Share, MoreVertical, LogOut } from "lucide-react";
+import { Menu, X, Share, MoreVertical, LogOut, TestTube } from "lucide-react";
+import MemoryTester from "../components/MemoryTester";
 
 export default function Chat() {
   const { id: conversationId } = useParams();
@@ -20,6 +21,7 @@ export default function Chat() {
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
+  const [showMemoryTester, setShowMemoryTester] = useState(false);
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const { user } = useAuth() as { user: User | undefined };
@@ -216,6 +218,15 @@ export default function Chat() {
             </div>
           </div>
           <div className="flex items-center space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className={`p-2 ${showMemoryTester ? 'text-blue-600 bg-blue-50' : 'text-gray-500 hover:text-gray-700'}`}
+              onClick={() => setShowMemoryTester(!showMemoryTester)}
+              data-testid="button-memory-tester"
+            >
+              <TestTube className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" size="sm" className="p-2 text-gray-500 hover:text-gray-700">
               <Share className="h-4 w-4" />
             </Button>
@@ -234,23 +245,29 @@ export default function Chat() {
           </div>
         </header>
 
-        {/* Messages */}
+        {/* Messages or Memory Tester */}
         <div className="flex-1 overflow-hidden">
-          <MessageList
-            messages={allMessages}
-            streamingMessage={streamingMessage}
-            isStreaming={isStreaming}
-            user={user}
-            conversationId={conversationId}
-          />
+          {showMemoryTester ? (
+            <MemoryTester />
+          ) : (
+            <MessageList
+              messages={allMessages}
+              streamingMessage={streamingMessage}
+              isStreaming={isStreaming}
+              user={user}
+              conversationId={conversationId}
+            />
+          )}
         </div>
 
-        {/* Message input */}
-        <MessageInput
-          onSendMessage={handleSendMessage}
-          isLoading={sendMessageMutation.isPending}
-          disabled={isStreaming}
-        />
+        {/* Message input - only show when not in memory tester mode */}
+        {!showMemoryTester && (
+          <MessageInput
+            onSendMessage={handleSendMessage}
+            isLoading={sendMessageMutation.isPending}
+            disabled={isStreaming}
+          />
+        )}
       </div>
     </div>
   );
