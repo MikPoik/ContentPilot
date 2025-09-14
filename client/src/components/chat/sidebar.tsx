@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, X, Trash2, Settings } from "lucide-react";
 import { type Conversation, type User } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -191,8 +191,16 @@ export default function Sidebar({
               Content Creator
             </p>
           </div>
-          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600 p-1">
-            <Settings className="h-4 w-4" />
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-gray-400 hover:text-gray-600 p-1"
+            asChild
+            data-testid="button-profile-settings"
+          >
+            <Link href="/profile-settings">
+              <Settings className="h-4 w-4" />
+            </Link>
           </Button>
         </div>
       </div>

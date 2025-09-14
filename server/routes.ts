@@ -200,6 +200,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user profile
+  app.patch("/api/auth/user/profile", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const profileData = updateUserProfileSchema.parse(req.body);
+      const updatedUser = await storage.updateUserProfile(userId, profileData);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Profile update error:", error);
+      res.status(400).json({ message: "Invalid profile data" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

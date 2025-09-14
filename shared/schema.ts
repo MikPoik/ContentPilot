@@ -64,7 +64,7 @@ export const updateUserProfileSchema = createInsertSchema(users).pick({
   primaryPlatform: true,
   profileData: true,
   profileCompleteness: true,
-});
+}).partial();
 
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type Conversation = typeof conversations.$inferSelect;
