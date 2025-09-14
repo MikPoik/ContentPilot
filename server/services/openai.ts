@@ -11,7 +11,7 @@ export interface ChatMessage {
   content: string;
 }
 
-function buildPersonalizedSystemPrompt(user?: User): string {
+function buildPersonalizedSystemPrompt(user?: User, memories?: any[]): string {
   const basePrompt = `You are ContentCraft AI, a friendly and expert social media content strategist. Your role is to:
 
 1. Get to know the user personally - ask for their name if you don't know it yet
@@ -53,11 +53,20 @@ Always be conversational, enthusiastic, and provide specific, actionable advice.
   
   personalizedPrompt += `\n\nTailor your advice to their specific situation and ask relevant follow-up questions to fill in any missing profile information, especially their name if not yet known.`;
   
+  // Add relevant memories to context
+  if (memories && memories.length > 0) {
+    personalizedPrompt += `\n\nRELEVANT MEMORIES FROM PAST CONVERSATIONS (use this context to provide personalized responses):`;
+    memories.forEach((memory, index) => {
+      personalizedPrompt += `\n${index + 1}. ${memory.content} (similarity: ${(memory.similarity * 100).toFixed(1)}%)`;
+    });
+    personalizedPrompt += `\n\nReference these memories naturally when relevant to provide continuity and personalized advice.`;
+  }
+  
   return personalizedPrompt;
 }
 
-export async function generateChatResponse(messages: ChatMessage[], user?: User): Promise<ReadableStream<string>> {
-  const systemPrompt = buildPersonalizedSystemPrompt(user);
+export async function generateChatResponse(messages: ChatMessage[], user?: User, memories?: any[]): Promise<ReadableStream<string>> {
+  const systemPrompt = buildPersonalizedSystemPrompt(user, memories);
 
   const chatMessages: ChatMessage[] = [
     { role: 'system', content: systemPrompt },
@@ -194,5 +203,44 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   } catch (error) {
     console.error('Embedding generation error:', error);
     throw new Error('Failed to generate embedding');
+  }
+}
+
+export async function extractMemoriesFromConversation(userMessage: string, aiResponse: string): Promise<string[]> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: `Analyze this conversation between a user and ContentCraft AI to extract important information that should be remembered for future conversations. 
+
+Extract 0-3 key facts, insights, or important details that would be valuable to remember. Focus on:
+- Specific business details, goals, or strategies discussed
+- Important preferences or constraints mentioned
+- Key insights or advice given
+- Concrete plans or decisions made
+
+Return ONLY a JSON array of strings, each being a concise memory (1-2 sentences). Return empty array [] if nothing important to remember.
+
+Example: ["User is launching a fitness coaching business targeting busy professionals", "Prefers Instagram Reels over TikTok due to audience demographics"]`
+        },
+        {
+          role: 'user',
+          content: `User message: "${userMessage}"\n\nAI response: "${aiResponse}"`
+        }
+      ],
+      max_tokens: 200,
+      temperature: 0.1,
+    });
+
+    const result = response.choices[0]?.message?.content?.trim();
+    if (!result) return [];
+
+    const memories = JSON.parse(result);
+    return Array.isArray(memories) ? memories.filter(m => typeof m === 'string' && m.length > 0) : [];
+  } catch (error) {
+    console.error('Memory extraction error:', error);
+    return [];
   }
 }

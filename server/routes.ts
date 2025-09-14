@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertConversationSchema, insertMessageSchema, updateUserProfileSchema, insertMemorySchema } from "@shared/schema";
-import { generateChatResponse, generateConversationTitle, extractProfileInfo, generateEmbedding } from "./services/openai";
+import { generateChatResponse, generateConversationTitle, extractProfileInfo, generateEmbedding, extractMemoriesFromConversation } from "./services/openai";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -143,13 +143,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: m.content
       }));
 
+      // Search for relevant memories using user message
+      let relevantMemories: any[] = [];
+      try {
+        const queryEmbedding = await generateEmbedding(content);
+        relevantMemories = await storage.searchSimilarMemories(userId, queryEmbedding, 5);
+      } catch (error) {
+        console.log('Memory search error:', error);
+      }
+
       // Set up streaming response
       res.setHeader('Content-Type', 'text/plain');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
 
-      // Generate AI response stream with user profile
-      const responseStream = await generateChatResponse(chatHistory, user);
+      // Generate AI response stream with user profile and memories
+      const responseStream = await generateChatResponse(chatHistory, user, relevantMemories);
       let fullResponse = '';
 
       const reader = responseStream.getReader();
@@ -178,6 +187,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         } catch (error) {
           console.log('Profile extraction error:', error);
+        }
+
+        // Extract and save new memories from conversation
+        try {
+          const newMemories = await extractMemoriesFromConversation(content, fullResponse);
+          for (const memoryContent of newMemories) {
+            const embedding = await generateEmbedding(memoryContent);
+            await storage.createMemory({
+              userId,
+              content: memoryContent,
+              embedding,
+              metadata: { source: 'conversation', conversationId }
+            });
+          }
+        } catch (error) {
+          console.log('Memory extraction error:', error);
         }
 
         // Update conversation title if it's the first exchange

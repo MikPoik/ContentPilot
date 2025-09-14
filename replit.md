@@ -1,15 +1,12 @@
 # ContentCraft AI
 
 ## Overview
-
-ContentCraft AI is an AI-powered social media content strategist delivered as a full-stack web application. It provides a chat interface for users to interact with an AI assistant for content brainstorming, platform-specific advice, and strategic planning. The project aims to empower users with intelligent tools to streamline their social media presence and enhance content creation efficiency, offering a robust solution for content creators and marketers.
+ContentCraft AI is an AI-powered social media content strategist delivered as a full-stack web application. It provides a chat interface for users to interact with an AI assistant for content brainstorming, platform-specific advice, and strategic planning. The project aims to streamline social media presence and enhance content creation efficiency for content creators and marketers.
 
 ## User Preferences
-
 Preferred communication style: Simple, everyday language.
 
 ### Agent policy for the project
-
 <?xml version="1.0" encoding="UTF-8"?>
 <development-workflow-policy>
   <title>Development Workflow Policies &amp; Guidelines</title>
