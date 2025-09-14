@@ -6,308 +6,284 @@ ContentCraft AI is an AI-powered social media content strategist delivered as a 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-### Agent policy for the project
-<?xml version="1.0" encoding="UTF-8"?>
-<development-workflow-policy>
-  <title>Development Workflow Policies &amp; Guidelines</title>
-  <version>2.0</version>
-  <target>3-5 total tool calls for most modification requests</target>
+## Development Workflow Policies & Guidelines
 
-  <!-- Core Philosophy -->
-  <core-principles>
-    <principle>Find the source, not the symptom</principle>
-    <principle>Fix the pattern, not just the instance</principle>
-    <principle>Batch all related changes</principle>
-    <principle>Trust development tools</principle>
-    <principle>Stop when success is confirmed</principle>
-    <principle>Trace to source, not symptoms - Find the actual originating file/function, not just where errors surface</principle>
-  </core-principles>
-  
-  <!-- File Prediction & Surgical Reading -->
-  <file-prediction-mastery priority="CRITICAL">
-    <core-principle>Always predict BOTH analysis files AND edit targets before starting</core-principle>
-  
-    <mandatory-workflow>
-      <step-1>Map problem → affected system components → specific files</step-1>
-      <step-2>Predict which files you'll need to READ (analysis) AND EDIT (changes)</step-2>
-      <step-3>Batch ALL predicted files in initial information gathering</step-3>
-      <step-4>Execute all changes in single multi_edit operation</step-4>
-    </mandatory-workflow>
-    <file-prediction-rules>
-      <rule>For UI issues: Read component + parent + related hooks/state</rule>
-      <rule>For API issues: Read routes + services + storage + schema</rule>
-      <rule>For data issues: Read schema + storage + related API endpoints</rule>
-      <rule>For feature additions: Read similar existing implementations</rule>
-    </file-prediction-rules>
-    <cost-optimization>
-      <target>2 tool calls maximum: 1 read batch + 1 edit batch</target>
-      <anti-pattern>read → analyze → search → read more → edit</anti-pattern>
-      <optimal-pattern>read everything predicted → edit everything needed</optimal-pattern>
-    </cost-optimization>
-    <success-metric>Zero search_codebase calls when project structure is known</success-metric>
-  </file-prediction-mastery>
-  
-  <!-- Super-Batching Workflow -->
-  <super-batching-workflow priority="CRITICAL">
-    <target>3-5 tool calls maximum for any feature implementation</target>
-    
-    <phase-1 name="Planning Before Acting" requirement="MANDATORY" max-calls="0">
-      <rule>Map ALL information needed (files to read, searches to do) before starting</rule>
-      <rule>Map ALL changes to make (edits, database updates, new files)</rule>
-      <rule>Identify dependencies between operations</rule>
-      <rule>Target minimum possible tool calls</rule>
-      <rule>Read error stack traces completely - The deepest stack frame often contains the real issue</rule>
-      <rule>Search for error patterns first before assuming location (e.g., "localStorage" across codebase)</rule>
-    </phase-1>
+**Version:** 2.0  
+**Target:** 3-5 total tool calls for most modification requests
 
-    <phase-2 name="Information Gathering &amp; Discovery" requirement="MAX PARALLELIZATION" max-calls="1-2">
-      <rule>Batch ALL independent reads/searches in one function_calls block</rule>
-      <rule>NEVER do: read(file1) → analyze → read(file2) → analyze</rule>
-      <rule>ALWAYS do: read(file1) + read(file2) + read(file3) + search_codebase() + grep()</rule>
-      <rule>Only make sequential calls if later reads depend on analysis of earlier reads</rule>
-      <rule>Use `search_codebase` ONLY if truly don't know where relevant code lives</rule>
-      <rule>Otherwise, directly `read` target files in parallel (batch 3-6 files at once)</rule>
-      <rule>Skip exploratory reading - be surgical about what you need</rule>
-    </phase-2>
+## Core Philosophy
 
-    <phase-3 name="Implementation &amp; Pattern-Based Execution" requirement="AGGRESSIVE MULTI-EDITING" max-calls="1-3">
-      <rule>Use multi_edit for ANY file needing multiple changes</rule>
-      <rule>NEVER do multiple separate edit() calls to same file</rule>
-      <rule>Batch independent file changes in parallel</rule>
-      <rule>Example: multi_edit(schema.ts) + multi_edit(routes.ts) + multi_edit(storage.ts)</rule>
-      <rule>Plan all related changes upfront - Don't fix incrementally</rule>
-      <rule>Identify change scope before starting - localStorage issue = all localStorage calls need fixing</rule>
-      <rule>Apply patterns consistently - If one component needs safeLocalStorage, likely others do safeLocalStorage too</rule>
-      <rule>Group by file impact - All changes to same file in one `multi_edit`</rule>
-      <rule>Fix root causes, not band-aids - One proper fix beats multiple symptom patches</rule>
-    </phase-3>
+The following principles guide all development work:
 
-    <phase-4 name="Operations &amp; Selective Validation" requirement="SMART BUNDLING" max-calls="0-1">
-      <rule>Bundle logically connected operations</rule>
-      <rule>Example: bash("npm run db:push") + refresh_logs() + get_diagnostics() + restart_workflow()</rule>
-      <rule>NEVER do sequential operations when they can be batched</rule>
-      <rule>Skip validation for simple/obvious changes (&lt; 5 lines, defensive patterns, imports)</rule>
-      <rule>Only use expensive validation tools for substantial changes</rule>
-      <rule>Stop immediately when development tools confirm success</rule>
-      <rule>One `restart_workflow` only if runtime actually fails</rule>
-    </phase-4>
+- **Find the source, not the symptom**
+- **Fix the pattern, not just the instance**
+- **Batch all related changes**
+- **Trust development tools**
+- **Stop when success is confirmed**
+- **Trace to source, not symptoms** - Find the actual originating file/function, not just where errors surface
 
-    <cost-targets>
-      <feature-implementation max-calls="5">Feature implementation: 3-5 tool calls maximum</feature-implementation>
-      <bug-fixes max-calls="3">Bug fixes: 2-3 tool calls maximum</bug-fixes>
-      <information-gathering max-calls="1">Information gathering: 1 tool call (parallel everything)</information-gathering>
-      <file-modifications max-calls="2">File modifications: 1-2 tool calls (multi_edit everything)</file-modifications>
-    </cost-targets>
+## File Prediction & Surgical Reading ⚠️ CRITICAL
 
-    <decision-framework>
-      <question>What else can I batch with this?</question>
-      <question>Do I have ALL the information I need before making changes?</question>
-      <question>Can I combine this edit with others using multi_edit?</question>
-      <question>What's the dependency chain - can I collapse it?</question>
-    </decision-framework>
+### Core Principle
+Always predict BOTH analysis files AND edit targets before starting.
 
-    <success-metric>Target: 30-50% cost reduction compared to sequential approach</success-metric>
-  </super-batching-workflow>
+### Mandatory Workflow
+1. **Map problem** → affected system components → specific files
+2. **Predict which files** you'll need to READ (analysis) AND EDIT (changes)
+3. **Batch ALL predicted files** in initial information gathering
+4. **Execute all changes** in single multi_edit operation
 
-  <!-- Tool Selection Matrix -->
-  <tool-selection-matrix>
-    <high-value-low-cost description="use liberally">
-      <tool>`read` (batch 3-6 files)</tool>
-      <tool>`edit`/`multi_edit`</tool>
-      <tool>`grep` with specific patterns</tool>
-    </high-value-low-cost>
+### File Prediction Rules
+- **For UI issues:** Read component + parent + related hooks/state
+- **For API issues:** Read routes + services + storage + schema
+- **For data issues:** Read schema + storage + related API endpoints
+- **For feature additions:** Read similar existing implementations
 
-    <medium-cost description="use judiciously">
-      <tool>`search_codebase` (only when truly lost)</tool>
-      <tool>`get_latest_lsp_diagnostics` (complex changes only)</tool>
-    </medium-cost>
+### Cost Optimization
+- **Target:** 2 tool calls maximum: 1 read batch + 1 edit batch
+- **Anti-pattern:** read → analyze → search → read more → edit
+- **Optimal pattern:** read everything predicted → edit everything needed
 
-    <high-cost description="use sparingly">
-      <tool>`architect` (major issues only)</tool>
-      <tool>`screenshot` (substantial changes only)</tool>
-      <tool>`restart_workflow` (actual failures only)</tool>
-    </high-cost>
-  </tool-selection-matrix>
+### Success Metric
+Zero search_codebase calls when project structure is known.
 
-  <!-- Mandatory Workflow Adherence -->
-  <mandatory-workflow-adherence>
-    <rule>MAXIMUM 5 tool calls for any change request</rule>
-    <rule>No exploration - be surgical about file reading</rule>
-    <rule>No incremental changes - make all related edits in one batch</rule>
-    <rule>No workflow restarts unless runtime actually fails (not just for verification)</rule>
-    <rule>Maximum 6 tools per batch to prevent overwhelming output</rule>
-  </mandatory-workflow-adherence>
+## Super-Batching Workflow ⚠️ CRITICAL
 
-  <!-- Parallel Execution Rules -->
-  <parallel-execution-rules>
-    <rule>Read multiple files simultaneously when investigating related issues</rule>
-    <rule>Apply edits in parallel when files are independent</rule>
-    <rule>Never serialize independent operations - batch aggressively</rule>
-    <rule>Maximum 6 tools per batch to prevent overwhelming output</rule>
-  </parallel-execution-rules>
+**Target:** 3-5 tool calls maximum for any feature implementation
 
-  <!-- Defensive Coding Patterns -->
-  <defensive-coding-patterns>
-    <pattern>Apply sandbox-safe patterns by default (safeLocalStorage, safe DOM access)</pattern>
-    <pattern>Wrap external API calls in try-catch from the start</pattern>
-    <pattern>Use null-safe operations for optional properties</pattern>
-    <pattern>Apply security patterns consistently across similar code</pattern>
-  </defensive-coding-patterns>
+### Phase 1: Planning Before Acting (MANDATORY - 0 tool calls)
+- Map ALL information needed (files to read, searches to do) before starting
+- Map ALL changes to make (edits, database updates, new files)
+- Identify dependencies between operations
+- Target minimum possible tool calls
+- Read error stack traces completely - The deepest stack frame often contains the real issue
+- Search for error patterns first before assuming location (e.g., "localStorage" across codebase)
 
-  <!-- Verification Rules -->
-  <verification-anxiety-prevention>
-    <principle>Stop checking once the development environment confirms success</principle>
-    <principle>Resist urge to "double-check" working changes</principle>
-    <principle>Trust professional development tools over manual verification</principle>
-    <principle>Remember: More verification ≠ better quality, just higher cost</principle>
-  </verification-anxiety-prevention>
+### Phase 2: Information Gathering & Discovery (MAX PARALLELIZATION - 1-2 tool calls)
+- Batch ALL independent reads/searches in one function_calls block
+- **NEVER do:** read(file1) → analyze → read(file2) → analyze
+- **ALWAYS do:** read(file1) + read(file2) + read(file3) + search_codebase() + grep()
+- Only make sequential calls if later reads depend on analysis of earlier reads
+- Use `search_codebase` ONLY if truly don't know where relevant code lives
+- Otherwise, directly `read` target files in parallel (batch 3-6 files at once)
+- Skip exploratory reading - be surgical about what you need
 
-  <verification-stopping-conditions description="Stop immediately when">
-    <condition>HMR shows successful reload</condition>
-    <condition>Console logs show expected behavior</condition>
-    <condition>LSP errors cleared for simple syntax fixes</condition>
-    <condition>Development server responds correctly</condition>
-  </verification-stopping-conditions>
+### Phase 3: Implementation & Pattern-Based Execution (AGGRESSIVE MULTI-EDITING - 1-3 tool calls)
+- Use multi_edit for ANY file needing multiple changes
+- **NEVER** do multiple separate edit() calls to same file
+- Batch independent file changes in parallel
+- **Example:** multi_edit(schema.ts) + multi_edit(routes.ts) + multi_edit(storage.ts)
+- Plan all related changes upfront - Don't fix incrementally
+- Identify change scope before starting - localStorage issue = all localStorage calls need fixing
+- Apply patterns consistently - If one component needs safeLocalStorage, likely others do too
+- Group by file impact - All changes to same file in one `multi_edit`
+- Fix root causes, not band-aids - One proper fix beats multiple symptom patches
 
-  <never-verify-when>
-    <condition>Change is &lt; 5 lines of obvious code</condition>
-    <condition>Only added try-catch wrappers or similar defensive patterns</condition>
-    <condition>Just moved/renamed variables or functions</condition>
-    <condition>Only updated imports or type annotations</condition>
-  </never-verify-when>
+### Phase 4: Operations & Selective Validation (SMART BUNDLING - 0-1 tool calls)
+- Bundle logically connected operations
+- **Example:** bash("npm run db:push") + refresh_logs() + get_diagnostics() + restart_workflow()
+- **NEVER** do sequential operations when they can be batched
+- Skip validation for simple/obvious changes (< 5 lines, defensive patterns, imports)
+- Only use expensive validation tools for substantial changes
+- Stop immediately when development tools confirm success
+- One `restart_workflow` only if runtime actually fails
 
-<sub-agent-usage-policy priority="CRITICAL">
-  <title>Strategic Sub-agent Delegation Guidelines</title>
-  <version>1.0</version>
-  <target>Minimize overhead while maximizing execution efficiency</target>
-  <!-- Core Philosophy -->
-  <core-principle>Sub-agents are expensive tools that should be used very selectively</core-principle>
+### Cost Targets
+- **Feature implementation:** 3-5 tool calls maximum
+- **Bug fixes:** 2-3 tool calls maximum
+- **Information gathering:** 1 tool call (parallel everything)
+- **File modifications:** 1-2 tool calls (multi_edit everything)
 
-  <!-- Cost Analysis -->
-  <cost-reality>
-    <overhead-factors>
-      <factor>Context transfer overhead: 1-2 extra tool calls for problem explanation and handoff</factor>
-      <factor>Cold-start reasoning: Each sub-agent rediscovers what primary agent already knows</factor>
-      <factor>Tool multiplication: Two agents often double the read/edit/validate calls</factor>
-      <factor>Coordination complexity: Merging outputs and reconciliation reviews</factor>
-    </overhead-factors>
+### Decision Framework
+Ask yourself:
+- What else can I batch with this?
+- Do I have ALL the information I need before making changes?
+- Can I combine this edit with others using multi_edit?
+- What's the dependency chain - can I collapse it?
 
-    <optimal-approach>Single agent with parallel tools can batch discovery + edits in 3-5 calls</optimal-approach>
-  </cost-reality>
-  <!-- Strategic Use Cases -->
-  <effective-delegation-scenarios>
-    <scenario type="independent-deliverables">
-      <description>Independent text deliverables</description>
-      <examples>Documentation, test plans, release notes, README files</examples>
-      <rationale>Output doesn't require tight coordination with ongoing code changes</rationale>
-    </scenario>
+**Success Metric:** Target 30-50% cost reduction compared to sequential approach.
 
-    <scenario type="specialized-audits">
-      <description>Specialized expertise audits</description>
-      <examples>Security reviews, performance analysis, accessibility passes</examples>
-      <rationale>Requires deep specialized knowledge separate from main implementation</rationale>
-    </scenario>
+## Tool Selection Matrix
 
-    <scenario type="research-tasks">
-      <description>Large, loosely coupled research tasks</description>
-      <examples>Background research while primary agent codes, API exploration</examples>
-      <rationale>Can run in parallel without blocking main development flow</rationale>
-    </scenario>
-  </effective-delegation-scenarios>
-  <!-- Anti-patterns -->
-  <avoid-delegation-for priority="MANDATORY">
-    <anti-pattern>Code fixes and refactors (our bread and butter)</anti-pattern>
-    <anti-pattern>Pattern-based changes across files</anti-pattern>
-    <anti-pattern>Schema/route/UI modifications</anti-pattern>
-    <anti-pattern>React UI tweaks, route additions, API handler adjustments</anti-pattern>
-    <anti-pattern>Anything well-served by grep+batch+HMR approach</anti-pattern>
-    <rationale>These require tight coordination and unified execution patterns</rationale>
-  </anti-patterns>
-  <!-- Decision Framework -->
-  <delegation-decision-tree>
-    <question>Is this an independent deliverable that doesn't affect ongoing code?</question>
-    <if-yes>Consider delegation</if-yes>
-    <if-no>
-      <question>Does this require specialized expertise separate from main task?</question>
-      <if-yes>Consider delegation</if-yes>
-      <if-no>Execute with single agent + parallel tools</if-no>
-    </if-no>
-  </delegation-decision-tree>
-  <!-- Recommended Approach -->
-  <single-agent-focus>
-    <recommendation>For 80-90% of development tasks, use proven single-agent patterns:</recommendation>
-    <pattern>4-tool pattern: discovery → batch execution → trust HMR</pattern>
-    <pattern>Parallel tool usage for maximum efficiency</pattern>
-    <pattern>Pattern-based fixes requiring tight coordination</pattern>
-    <efficiency-target>3-5 tool calls maximum for most modification requests</efficiency-target>
-  </single-agent-focus>
-  <!-- Success Metrics -->
-  <success-criteria>
-    <metric>Sub-agent usage limited to truly independent or specialized tasks</metric>
-    <metric>No sub-agent delegation for standard CRUD, UI, or API tasks</metric>
-    <metric>Maintain 3-5 call efficiency target for main development workflows</metric>
-  </success-criteria>
-</sub-agent-usage-policy>
+### High-Value Low-Cost (use liberally)
+- `read` (batch 3-6 files)
+- `edit`/`multi_edit`
+- `grep` with specific patterns
 
-  <!-- Expert Architect Sub-Agent Usage Policy -->
-  <architect-usage-policy priority="CRITICAL" cost-model="expensive Opus 4">
-    <warning>⚠️ CRITICAL: Architect uses expensive Opus 4 model - use SPARINGLY</warning>
-    
-    <self-review-first-principle>
-      <description>Before calling architect, I must first attempt to:</description>
-      <step>Self-assess code quality from architectural perspective</step>
-      <step>Review my changes for obvious issues, patterns, maintainability</step>
-      <step>Think through edge cases and potential improvements myself</step>
-      <step>Consider user requirements and ensure solution aligns with goals</step>
-    </self-review-first-principle>
+### Medium-Cost (use judiciously)
+- `search_codebase` (only when truly lost)
+- `get_latest_lsp_diagnostics` (complex changes only)
 
-    <usage-hierarchy description="ascending expense">
-      <never-use>
-        <case>Simple code fixes (&lt; 10 lines)</case>
-        <case>Obvious syntax errors or imports</case>
-        <case>Adding defensive patterns (try-catch, null checks)</case>
-        <case>Straightforward feature additions</case>
-        <case>When development tools (HMR, logs) confirm success</case>
-      </never-use>
+### High-Cost (use sparingly)
+- `architect` (major issues only)
+- `screenshot` (substantial changes only)
+- `restart_workflow` (actual failures only)
 
-      <only-use-when description="I genuinely cannot">
-        <case>Debug complex issues - When truly stuck after multiple approaches</case>
-        <case>Design system architecture - For major structural decisions beyond my reasoning</case>
-        <case>Review substantial changes - When changes >50 lines or affect core architecture</case>
-        <case>Evaluate trade-offs - When multiple valid approaches exist and I need expert analysis</case>
-      </only-use-when>
-    </usage-hierarchy>
+## Mandatory Workflow Adherence
 
-    <mandatory-self-reflection>
-      <description>Ask myself these questions:</description>
-      <question>"Have I thoroughly understood the problem scope?"</question>
-      <question>"Can I identify the architectural concerns myself?"</question>
-      <question>"Are there obvious code quality issues I can spot?"</question>
-      <question>"Does this change align with project patterns and goals?"</question>
-      <question>"Am I calling architect due to laziness or genuine complexity?"</question>
-    </mandatory-self-reflection>
+- **MAXIMUM 5 tool calls** for any change request
+- No exploration - be surgical about file reading
+- No incremental changes - make all related edits in one batch
+- No workflow restarts unless runtime actually fails (not just for verification)
+- Maximum 6 tools per batch to prevent overwhelming output
 
-    <goal>The goal is to develop my own architectural thinking, not outsource it</goal>
-  </architect-usage-policy>
+## Parallel Execution Rules
 
-  <!-- Success Examples -->
-  <workflow-examples>
-    <successful-example name="localStorage Fix" tool-calls="4">
-      <step number="1">Discovery: Read replit.md + search codebase + read target file (parallel)</step>
-      <step number="2">Execution: Applied safeLocalStorage wrapper to all localStorage calls (multi_edit)</step>
-      <step number="3">Result: Fixed SecurityError in sandboxed environments</step>
-      <step number="4">No over-verification: Trusted HMR reload confirmation</step>
-    </successful-example>
+- Read multiple files simultaneously when investigating related issues
+- Apply edits in parallel when files are independent
+- Never serialize independent operations - batch aggressively
+- Maximum 6 tools per batch to prevent overwhelming output
 
-    <inefficient-example name="Previous Approach" tool-calls="11">
-      <problem>Multiple exploratory reads</problem>
-      <problem>Incremental fixes</problem>
-      <problem>Excessive verification (screenshots, log checks, restarts)</problem>
-      <problem>Verification anxiety leading to over-checking</problem>
-    </inefficient-example>
-  </workflow-examples>
-</development-workflow-policy>
+## Defensive Coding Patterns
 
+- Apply sandbox-safe patterns by default (safeLocalStorage, safe DOM access)
+- Wrap external API calls in try-catch from the start
+- Use null-safe operations for optional properties
+- Apply security patterns consistently across similar code
+
+## Verification Rules
+
+### Verification Anxiety Prevention
+- **Stop checking once the development environment confirms success**
+- Resist urge to "double-check" working changes
+- Trust professional development tools over manual verification
+- Remember: More verification ≠ better quality, just higher cost
+
+### Stop Immediately When
+- HMR shows successful reload
+- Console logs show expected behavior
+- LSP errors cleared for simple syntax fixes
+- Development server responds correctly
+
+### Never Verify When
+- Change is < 5 lines of obvious code
+- Only added try-catch wrappers or similar defensive patterns
+- Just moved/renamed variables or functions
+- Only updated imports or type annotations
+
+## Strategic Sub-agent Delegation Guidelines ⚠️ CRITICAL
+
+**Target:** Minimize overhead while maximizing execution efficiency
+
+### Core Principle
+Sub-agents are expensive tools that should be used very selectively.
+
+### Cost Reality
+
+**Overhead factors:**
+- Context transfer overhead: 1-2 extra tool calls for problem explanation and handoff
+- Cold-start reasoning: Each sub-agent rediscovers what primary agent already knows
+- Tool multiplication: Two agents often double the read/edit/validate calls
+- Coordination complexity: Merging outputs and reconciliation reviews
+
+**Optimal approach:** Single agent with parallel tools can batch discovery + edits in 3-5 calls.
+
+### Effective Delegation Scenarios
+
+#### Independent Deliverables
+- **Description:** Independent text deliverables
+- **Examples:** Documentation, test plans, release notes, README files
+- **Rationale:** Output doesn't require tight coordination with ongoing code changes
+
+#### Specialized Audits
+- **Description:** Specialized expertise audits
+- **Examples:** Security reviews, performance analysis, accessibility passes
+- **Rationale:** Requires deep specialized knowledge separate from main implementation
+
+#### Research Tasks
+- **Description:** Large, loosely coupled research tasks
+- **Examples:** Background research while primary agent codes, API exploration
+- **Rationale:** Can run in parallel without blocking main development flow
+
+### Avoid Delegation For (MANDATORY)
+
+**Anti-patterns:**
+- Code fixes and refactors (our bread and butter)
+- Pattern-based changes across files
+- Schema/route/UI modifications
+- React UI tweaks, route additions, API handler adjustments
+- Anything well-served by grep+batch+HMR approach
+
+**Rationale:** These require tight coordination and unified execution patterns.
+
+### Decision Framework
+
+1. **Is this an independent deliverable that doesn't affect ongoing code?**
+   - If yes: Consider delegation
+   - If no: Continue to next question
+
+2. **Does this require specialized expertise separate from main task?**
+   - If yes: Consider delegation
+   - If no: Execute with single agent + parallel tools
+
+### Single-Agent Focus
+
+For 80-90% of development tasks, use proven single-agent patterns:
+- **4-tool pattern:** discovery → batch execution → trust HMR
+- Parallel tool usage for maximum efficiency
+- Pattern-based fixes requiring tight coordination
+- **Efficiency target:** 3-5 tool calls maximum for most modification requests
+
+### Success Criteria
+- Sub-agent usage limited to truly independent or specialized tasks
+- No sub-agent delegation for standard CRUD, UI, or API tasks
+- Maintain 3-5 call efficiency target for main development workflows
+
+## Expert Architect Sub-Agent Usage Policy ⚠️ CRITICAL
+
+**Cost Model:** Expensive Opus 4
+
+### ⚠️ WARNING
+CRITICAL: Architect uses expensive Opus 4 model - use SPARINGLY
+
+### Self-Review First Principle
+
+Before calling architect, I must first attempt to:
+1. Self-assess code quality from architectural perspective
+2. Review my changes for obvious issues, patterns, maintainability
+3. Think through edge cases and potential improvements myself
+4. Consider user requirements and ensure solution aligns with goals
+
+### Usage Hierarchy (Ascending Expense)
+
+#### Never Use For
+- Simple code fixes (< 10 lines)
+- Obvious syntax errors or imports
+- Adding defensive patterns (try-catch, null checks)
+- Straightforward feature additions
+- When development tools (HMR, logs) confirm success
+
+#### Only Use When I Genuinely Cannot
+- **Debug complex issues** - When truly stuck after multiple approaches
+- **Design system architecture** - For major structural decisions beyond my reasoning
+- **Review substantial changes** - When changes >50 lines or affect core architecture
+- **Evaluate trade-offs** - When multiple valid approaches exist and I need expert analysis
+
+### Mandatory Self-Reflection
+
+Ask myself these questions:
+- "Have I thoroughly understood the problem scope?"
+- "Can I identify the architectural concerns myself?"
+- "Are there obvious code quality issues I can spot?"
+- "Does this change align with project patterns and goals?"
+- "Am I calling architect due to laziness or genuine complexity?"
+
+**Goal:** The goal is to develop my own architectural thinking, not outsource it.
+
+## Workflow Examples
+
+### Successful Example: localStorage Fix (4 tool calls)
+1. **Discovery:** Read replit.md + search codebase + read target file (parallel)
+2. **Execution:** Applied safeLocalStorage wrapper to all localStorage calls (multi_edit)
+3. **Result:** Fixed SecurityError in sandboxed environments
+4. **No over-verification:** Trusted HMR reload confirmation
+
+### Inefficient Example: Previous Approach (11 tool calls)
+**Problems:**
+- Multiple exploratory reads
+- Incremental fixes
+- Excessive verification (screenshots, log checks, restarts)
+- Verification anxiety leading to over-checking
 ## System Architecture
 
 ### Frontend
