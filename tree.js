@@ -1,3 +1,4 @@
+
 import ts from "typescript";
 import fs from "fs";
 import path from "path";
@@ -15,6 +16,7 @@ class SourceCodeTreeGenerator {
       strict: true,
       esModuleInterop: true,
       skipLibCheck: true,
+      allowJs: true, // Allow JavaScript files
       ...compilerOptions,
     });
     this.checker = this.program.getTypeChecker();
@@ -359,18 +361,26 @@ class SourceCodeTreeGenerator {
   }
 }
 
-// Example usage function
+// Example usage function - now returns the tree data
 function generateSourceCodeTree(filePaths) {
   const generator = new SourceCodeTreeGenerator(filePaths);
   const tree = generator.generateTree();
+  const treeOutput = generator.printTree(tree);
 
   console.log("Source Code Tree:");
   console.log("=".repeat(50));
-  console.log(generator.printTree(tree));
+  console.log(treeOutput);
+  
+  return {
+    tree,
+    output: treeOutput
+  };
 }
 
-// CLI interface
-if (import.meta.url === `file://${process.argv[1]}`) {
+// CLI interface - Fixed detection
+const isMainModule = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+
+if (isMainModule) {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
