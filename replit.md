@@ -325,209 +325,30 @@ Source Code Tree with Directory Structure:
 │       ├── 📁 components/
 │       │   ├── 📄 MemoryTester.tsx
 │       │   │   ⚡ export MemoryTester(): Element
-│       │   ├── 📁 chat/
-│       │   │   ├── 📄 message-input.tsx
-│       │   │   │   ⚡ export MessageInput({ onSendMessage, isLoading, disabled }: MessageInputProps): Element
-│       │   │   │   📋 MessageInputProps
-│       │   │   ├── 📄 message-list.tsx
-│       │   │   │   ⚡ export MessageList({ 
+│       │   └── 📁 chat/
+│       │       ├── 📄 message-input.tsx
+│       │       │   ⚡ export MessageInput({ onSendMessage, isLoading, disabled }: MessageInputProps): Element
+│       │       │   📋 MessageInputProps
+│       │       ├── 📄 message-list.tsx
+│       │       │   ⚡ export MessageList({ 
   messages, 
   streamingMessage, 
   isStreaming, 
   user,
   conversationId 
 }: MessageListProps): Element
-│       │   │   │   📋 MessageListProps
-│       │   │   ├── 📄 sidebar.tsx
-│       │   │   │   ⚡ export Sidebar({ 
+│       │       │   📋 MessageListProps
+│       │       ├── 📄 sidebar.tsx
+│       │       │   ⚡ export Sidebar({ 
   conversations, 
   currentConversationId, 
   user, 
   onNewConversation, 
   onClose 
 }: SidebarProps): Element
-│       │   │   │   📋 SidebarProps
-│       │   │   └── 📄 typing-indicator.tsx
-│       │   │       ⚡ export TypingIndicator(): Element
-│       │   └── 📁 ui/
-│       │       ├── 📄 accordion.tsx
-│       │       ├── 📄 alert-dialog.tsx
-│       │       │   ➡️ AlertDialogHeader({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>): Element
-│       │       │   ➡️ AlertDialogFooter({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>): Element
-│       │       ├── 📄 alert.tsx
-│       │       ├── 📄 aspect-ratio.tsx
-│       │       ├── 📄 avatar.tsx
-│       │       ├── 📄 badge.tsx
-│       │       │   ⚡ Badge({ className, variant, ...props }: BadgeProps): Element
-│       │       │   📋 BadgeProps
-│       │       ├── 📄 breadcrumb.tsx
-│       │       │   ➡️ BreadcrumbSeparator({
-  children,
-  className,
-  ...props
-}: React.ComponentProps<"li">): Element
-│       │       │   ➡️ BreadcrumbEllipsis({
-  className,
-  ...props
-}: React.ComponentProps<"span">): Element
-│       │       ├── 📄 button.tsx
-│       │       │   📋 ButtonProps
-│       │       ├── 📄 calendar.tsx
-│       │       │   ⚡ Calendar({
-  className,
-  classNames,
-  showOutsideDays = true,
-  ...props
-}: CalendarProps): Element
-│       │       ├── 📄 card.tsx
-│       │       ├── 📄 carousel.tsx
-│       │       │   ⚡ useCarousel(): CarouselContextProps
-│       │       ├── 📄 chart.tsx
-│       │       │   ⚡ useChart(): ChartContextProps
-│       │       │   ➡️ ChartStyle({ id, config }: { id: string; config: ChartConfig }): Element | null
-│       │       │   ⚡ getPayloadConfigFromPayload(config: ChartConfig, payload: unknown, key: string): ({ label?: ReactNode; icon?: ComponentType<{}> | undefined; } & ({ color?: string | undefined; theme?: undefined; } | { color?: undefined; theme: Record<"light" | "dark", string>; })) | undefined
-│       │       ├── 📄 checkbox.tsx
-│       │       ├── 📄 collapsible.tsx
-│       │       ├── 📄 command.tsx
-│       │       │   ➡️ CommandDialog({ children, ...props }: DialogProps): Element
-│       │       │   ➡️ CommandShortcut({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLSpanElement>): Element
-│       │       ├── 📄 context-menu.tsx
-│       │       │   ➡️ ContextMenuShortcut({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLSpanElement>): Element
-│       │       ├── 📄 dialog.tsx
-│       │       │   ➡️ DialogHeader({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>): Element
-│       │       │   ➡️ DialogFooter({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>): Element
-│       │       ├── 📄 drawer.tsx
-│       │       │   ➡️ Drawer({
-  shouldScaleBackground = true,
-  ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Root>): Element
-│       │       │   ➡️ DrawerHeader({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>): Element
-│       │       │   ➡️ DrawerFooter({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>): Element
-│       │       ├── 📄 dropdown-menu.tsx
-│       │       │   ➡️ DropdownMenuShortcut({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLSpanElement>): Element
-│       │       ├── 📄 form.tsx
-│       │       │   ➡️ FormField({
-  ...props
-}: ControllerProps<TFieldValues, TName>): Element
-│       │       │   ➡️ useFormField(): { invalid: boolean; isDirty: boolean; isTouched: boolean; isValidating: boolean; error?: FieldError | undefined; id: string; name: string; formItemId: string; formDescriptionId: string; formMessageId: string; }
-│       │       ├── 📄 hover-card.tsx
-│       │       ├── 📄 input-otp.tsx
-│       │       ├── 📄 input.tsx
-│       │       ├── 📄 label.tsx
-│       │       ├── 📄 menubar.tsx
-│       │       │   ⚡ MenubarMenu({
-  ...props
-}: React.ComponentProps<typeof MenubarPrimitive.Menu>): Element
-│       │       │   ⚡ MenubarGroup({
-  ...props
-}: React.ComponentProps<typeof MenubarPrimitive.Group>): Element
-│       │       │   ⚡ MenubarPortal({
-  ...props
-}: React.ComponentProps<typeof MenubarPrimitive.Portal>): Element
-│       │       │   ⚡ MenubarRadioGroup({
-  ...props
-}: React.ComponentProps<typeof MenubarPrimitive.RadioGroup>): Element
-│       │       │   ⚡ MenubarSub({
-  ...props
-}: React.ComponentProps<typeof MenubarPrimitive.Sub>): Element
-│       │       │   ➡️ MenubarShortcut({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLSpanElement>): Element
-│       │       ├── 📄 navigation-menu.tsx
-│       │       ├── 📄 pagination.tsx
-│       │       │   ➡️ Pagination({ className, ...props }: React.ComponentProps<"nav">): Element
-│       │       │   ➡️ PaginationLink({
-  className,
-  isActive,
-  size = "icon",
-  ...props
-}: PaginationLinkProps): Element
-│       │       │   ➡️ PaginationPrevious({
-  className,
-  ...props
-}: React.ComponentProps<typeof PaginationLink>): Element
-│       │       │   ➡️ PaginationNext({
-  className,
-  ...props
-}: React.ComponentProps<typeof PaginationLink>): Element
-│       │       │   ➡️ PaginationEllipsis({
-  className,
-  ...props
-}: React.ComponentProps<"span">): Element
-│       │       ├── 📄 popover.tsx
-│       │       ├── 📄 progress.tsx
-│       │       ├── 📄 radio-group.tsx
-│       │       ├── 📄 resizable.tsx
-│       │       │   ➡️ ResizablePanelGroup({
-  className,
-  ...props
-}: React.ComponentProps<typeof ResizablePrimitive.PanelGroup>): Element
-│       │       │   ➡️ ResizableHandle({
-  withHandle,
-  className,
-  ...props
-}: React.ComponentProps<typeof ResizablePrimitive.PanelResizeHandle> & {
-  withHandle?: boolean
-}): Element
-│       │       ├── 📄 scroll-area.tsx
-│       │       ├── 📄 select.tsx
-│       │       ├── 📄 separator.tsx
-│       │       ├── 📄 sheet.tsx
-│       │       │   ➡️ SheetHeader({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>): Element
-│       │       │   ➡️ SheetFooter({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>): Element
-│       │       │   📋 SheetContentProps
-│       │       ├── 📄 sidebar.tsx
-│       │       │   ⚡ useSidebar(): SidebarContextProps
-│       │       ├── 📄 skeleton.tsx
-│       │       │   ⚡ Skeleton({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>): Element
-│       │       ├── 📄 slider.tsx
-│       │       ├── 📄 switch.tsx
-│       │       ├── 📄 table.tsx
-│       │       ├── 📄 tabs.tsx
-│       │       ├── 📄 textarea.tsx
-│       │       ├── 📄 toast.tsx
-│       │       ├── 📄 toaster.tsx
-│       │       │   ⚡ export Toaster(): Element
-│       │       ├── 📄 toggle-group.tsx
-│       │       ├── 📄 toggle.tsx
-│       │       └── 📄 tooltip.tsx
+│       │       │   📋 SidebarProps
+│       │       └── 📄 typing-indicator.tsx
+│       │           ⚡ export TypingIndicator(): Element
 │       ├── 📁 hooks/
 │       │   ├── 📄 use-mobile.tsx
 │       │   │   ⚡ export useIsMobile(): boolean
