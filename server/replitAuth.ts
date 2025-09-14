@@ -66,6 +66,24 @@ async function upsertUser(
   });
 }
 
+function resolveDomain(host: string): string {
+  const domains = process.env.REPLIT_DOMAINS!.split(',').map(d => d.trim().toLowerCase());
+  const h = host.toLowerCase();
+  
+  // Check for exact match first
+  if (domains.includes(h)) return h;
+  
+  // Check for suffix match (for ephemeral subdomains)
+  const match = domains.find(d => h === d || h.endsWith(`.${d}`));
+  if (!match) {
+    console.error(`Unrecognized host: ${host}, available domains: ${domains.join(', ')}`);
+    throw new Error(`Unrecognized host: ${host}`);
+  }
+  
+  console.log(`Resolved host ${host} to domain ${match}`);
+  return match;
+}
+
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
   app.use(getSession());
@@ -102,17 +120,29 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      prompt: "login consent",
-      scope: ["openid", "email", "profile", "offline_access"],
-    })(req, res, next);
+    try {
+      const domain = resolveDomain(req.hostname);
+      passport.authenticate(`replitauth:${domain}`, {
+        prompt: "login consent",
+        scope: ["openid", "email", "profile", "offline_access"],
+      })(req, res, next);
+    } catch (error) {
+      console.error('Login domain resolution error:', error);
+      res.status(400).json({ message: "Invalid domain" });
+    }
   });
 
   app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
-    })(req, res, next);
+    try {
+      const domain = resolveDomain(req.hostname);
+      passport.authenticate(`replitauth:${domain}`, {
+        successReturnToOrRedirect: "/",
+        failureRedirect: "/api/login",
+      })(req, res, next);
+    } catch (error) {
+      console.error('Callback domain resolution error:', error);
+      res.status(400).json({ message: "Invalid domain" });
+    }
   });
 
   app.get("/api/logout", (req, res) => {
