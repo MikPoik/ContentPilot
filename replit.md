@@ -25,7 +25,31 @@ Preferred communication style: Simple, everyday language.
     <principle>Stop when success is confirmed</principle>
     <principle>Trace to source, not symptoms - Find the actual originating file/function, not just where errors surface</principle>
   </core-principles>
-
+  
+  <!-- File Prediction & Surgical Reading -->
+  <file-prediction-mastery priority="CRITICAL">
+    <core-principle>Always predict BOTH analysis files AND edit targets before starting</core-principle>
+  
+    <mandatory-workflow>
+      <step-1>Map problem → affected system components → specific files</step-1>
+      <step-2>Predict which files you'll need to READ (analysis) AND EDIT (changes)</step-2>
+      <step-3>Batch ALL predicted files in initial information gathering</step-3>
+      <step-4>Execute all changes in single multi_edit operation</step-4>
+    </mandatory-workflow>
+    <file-prediction-rules>
+      <rule>For UI issues: Read component + parent + related hooks/state</rule>
+      <rule>For API issues: Read routes + services + storage + schema</rule>
+      <rule>For data issues: Read schema + storage + related API endpoints</rule>
+      <rule>For feature additions: Read similar existing implementations</rule>
+    </file-prediction-rules>
+    <cost-optimization>
+      <target>2 tool calls maximum: 1 read batch + 1 edit batch</target>
+      <anti-pattern>read → analyze → search → read more → edit</anti-pattern>
+      <optimal-pattern>read everything predicted → edit everything needed</optimal-pattern>
+    </cost-optimization>
+    <success-metric>Zero search_codebase calls when project structure is known</success-metric>
+  </file-prediction-mastery>
+  
   <!-- Super-Batching Workflow -->
   <super-batching-workflow priority="CRITICAL">
     <target>3-5 tool calls maximum for any feature implementation</target>
@@ -215,17 +239,123 @@ Preferred communication style: Simple, everyday language.
 </development-workflow-policy>
 
 
-## Recent Changes
+## Project Structure
 
-### January 30, 2025
-- **Authentication Implementation**: Added complete Replit Auth integration with OpenID Connect
-- **Database Migration**: Migrated from memory storage to PostgreSQL with proper user associations
-- **Schema Updates**: Added users and sessions tables, updated conversations to include userId
-- **Access Control**: Implemented ownership verification for all user resources
-- **Frontend Updates**: Added landing page for logged-out users and authentication flows
-- **Error Handling**: Added comprehensive unauthorized error handling with automatic login redirects
-- **User Interface**: Updated sidebar and message components to use Replit user profiles
-- **Session Management**: Implemented secure session storage with PostgreSQL backend
+A full-stack TypeScript app: React + Vite + Tailwind (client), Express + Drizzle ORM + Neon Postgres (server), OpenAI GPT-4o integration, and Replit OIDC auth. Built as a single process that serves both API and SPA.
+
+- `/` (root)
+  - `package.json` — Project metadata, scripts (`dev`, `build`, `start`, `db:push`), dependencies.
+  - `package-lock.json` — Locked dependency versions.
+  - `tsconfig.json` — TypeScript config with path aliases (`@`, `@shared`).
+  - `vite.config.ts` — Vite config for client build/dev, aliases, Replit plugins.
+  - `tailwind.config.ts` — Tailwind theme, content paths, plugins.
+  - `postcss.config.js` — PostCSS plugins (Tailwind, Autoprefixer).
+  - `drizzle.config.ts` — Drizzle Kit config (schema path, migrations dir, DATABASE_URL).
+  - `components.json` — shadcn/ui generator configuration and path aliases.
+  - `replit.md` — Project overview and development workflow policies.
+  - `attached_assets/` — Static assets used by the app.
+    - `image_1753874927528.png` — Image asset.
+  - `shared/` — Code shared across server and client.
+    - `schema.ts` — Drizzle schema and Zod helpers for `sessions`, `users`, `conversations`, `messages`; exported types and insert/update schemas.
+
+- `server/` — Express API + auth + persistence + dev server wiring
+  - `index.ts` — Bootstraps Express, JSON parsing, request logging for `/api/*`, registers routes, global error handler, mounts Vite dev middleware (dev) or static files (prod), starts HTTP server on `PORT`.
+  - `routes.ts` — REST API routes secured by auth:
+    - `GET /api/auth/user` — Current user profile.
+    - Conversation CRUD: list, get, create, delete.
+    - Messages: list for conversation; `POST` streams assistant response, persists both user and AI messages, updates title and profile.
+    - Returns the created `http.Server` for Vite HMR.
+  - `storage.ts` — Data access layer using Drizzle. `IStorage` interface and `DatabaseStorage` implementation for users (get/upsert/updateProfile), conversations (CRUD), and messages (CRUD, ordered); keeps conversation `updatedAt` fresh.
+  - `db.ts` — Neon serverless Postgres pool + Drizzle client, loads `@shared/schema`; requires `DATABASE_URL`.
+  - `services/openai.ts` — OpenAI client and chat domain logic:
+    - Builds personalized system prompt from user profile.
+    - `generateChatResponse` — Streams GPT-4o completions via Web API `ReadableStream<string>`.
+    - `generateConversationTitle` — Short title from recent turns.
+    - `extractProfileInfo` — LLM-assisted extraction of profile fields from a turn; computes completeness.
+  - `replitAuth.ts` — Replit OIDC auth with Passport/OpenID:
+    - Session storage via `connect-pg-simple` (table `sessions`).
+    - Multi-domain strategy setup from `REPLIT_DOMAINS`; login, callback, logout routes.
+    - `isAuthenticated` middleware with token refresh flow; user upsert on login.
+  - `vite.ts` — Dev tooling integration and static serving:
+    - `setupVite` mounts Vite middleware and transforms `index.html` with a cache-busting query.
+    - `serveStatic` serves built SPA from `dist/public` in production.
+    - `log` helper for formatted console logs.
+
+- `client/` — React SPA (Vite)
+  - `index.html` — SPA shell mounting `#root`, loads `/src/main.tsx`.
+  - `src/main.tsx` — React root renderer.
+  - `src/App.tsx` — App providers (React Query, Tooltip, Toaster) and routes (Wouter): Landing for unauthenticated, Chat for `/` and `/chat/:id?` when authenticated.
+  - `src/index.css` — Tailwind layers, design tokens (CSS variables), and keyframe utilities (fade, typing, bounce).
+  - `src/pages/`
+    - `landing.tsx` — Marketing/entry page with CTA to `/api/login` and feature highlights.
+    - `chat.tsx` — Chat experience: loads conversations/messages, optimistic user/assistant messages, streaming via `fetch` reader, mobile sidebar, logout button.
+    - `not-found.tsx` — Simple 404 screen.
+  - `src/components/chat/`
+    - `sidebar.tsx` — Left sidebar: new conversation, list with relative times, delete action, user mini-profile; mobile close behavior.
+    - `message-list.tsx` — Scrollable thread with Markdown rendering for assistant, welcome message for empty/new chats, inline streaming placeholder.
+    - `message-input.tsx` — Textarea with Enter-to-send, char limit, and send button.
+    - `typing-indicator.tsx` — Animated three-dot typing indicator.
+  - `src/components/ui/` — shadcn/ui primitives and wrappers used across the app.
+    - `accordion.tsx` — Collapsible content sections.
+    - `alert-dialog.tsx` — Modal confirmation dialogs.
+    - `alert.tsx` — Inline alert styles.
+    - `aspect-ratio.tsx` — Box maintaining aspect ratio.
+    - `avatar.tsx` — User avatar primitive.
+    - `badge.tsx` — Status/label chips.
+    - `breadcrumb.tsx` — Breadcrumb navigation.
+    - `button.tsx` — Button variants.
+    - `calendar.tsx` — Date picker component.
+    - `card.tsx` — Card layout container.
+    - `carousel.tsx` — Carousel wrapper around Embla.
+    - `chart.tsx` — Chart container/styles for Recharts.
+    - `checkbox.tsx` — Checkbox control.
+    - `collapsible.tsx` — Show/hide wrapper.
+    - `command.tsx` — Command palette primitives (cmdk).
+    - `context-menu.tsx` — Context menu wrapper.
+    - `dialog.tsx` — Dialog/modal primitive.
+    - `drawer.tsx` — Drawer/sheet UI.
+    - `dropdown-menu.tsx` — Dropdown menu.
+    - `form.tsx` — Form field helpers with React Hook Form.
+    - `hover-card.tsx` — Hover-activated info card.
+    - `input-otp.tsx` — OTP input field group.
+    - `input.tsx` — Text input.
+    - `label.tsx` — Form label.
+    - `menubar.tsx` — Menu bar components.
+    - `navigation-menu.tsx` — Top navigation menu.
+    - `pagination.tsx` — Pagination controls.
+    - `popover.tsx` — Popover wrapper.
+    - `progress.tsx` — Progress bar.
+    - `radio-group.tsx` — Radio inputs.
+    - `resizable.tsx` — Resizable panels.
+    - `scroll-area.tsx` — Scrollable container.
+    - `select.tsx` — Select dropdown.
+    - `separator.tsx` — Horizontal/vertical separators.
+    - `sheet.tsx` — Sheet/side panel.
+    - `sidebar.tsx` — Advanced responsive sidebar system with offcanvas/icon modes and keyboard toggle.
+    - `skeleton.tsx` — Loading skeletons.
+    - `slider.tsx` — Slider input.
+    - `switch.tsx` — Toggle switch.
+    - `table.tsx` — Table primitives.
+    - `tabs.tsx` — Tabs UI.
+    - `textarea.tsx` — Textarea input.
+    - `toast.tsx` — Toast primitives; used by `Toaster`.
+    - `toaster.tsx` — Toast container component.
+    - `toggle-group.tsx` — Toggle button group.
+    - `toggle.tsx` — Toggle button.
+    - `tooltip.tsx` — Tooltip primitives.
+  - `src/hooks/`
+    - `useAuth.ts` — React Query hook to fetch `/api/auth/user`; returns auth state.
+    - `use-mobile.tsx` — Media-query-based mobile breakpoint detection.
+    - `use-toast.ts` — Client-side toast store/utilities (imperative API and hook).
+  - `src/lib/`
+    - `queryClient.ts` — Configured React Query client, default `queryFn`, and `apiRequest` helper with credentials and error handling.
+    - `authUtils.ts` — Helpers to detect `401 Unauthorized` errors.
+    - `utils.ts` — `cn` className utility using `clsx` and `tailwind-merge`.
+
+## Notes
+- Environment variables: `DATABASE_URL`, `OPENAI_API_KEY`, `REPLIT_DOMAINS`, `SESSION_SECRET`, `ISSUER_URL`, `REPL_ID`, `PORT` are used across server/auth/DB.
+- Build outputs: Client builds to `dist/public`; server bundles to `dist/index.js` via esbuild.
+- Data model: Users own Conversations, which have Messages; sessions table supports Replit auth sessions.
 
 ## System Architecture
 
