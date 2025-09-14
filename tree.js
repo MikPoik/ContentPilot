@@ -1,4 +1,3 @@
-
 import ts from "typescript";
 import fs from "fs";
 import path from "path";
@@ -344,12 +343,12 @@ class SourceCodeTreeGenerator {
   printDirectoryTree(tree, indent = "", isLast = true) {
     let result = "";
     const entries = Object.entries(tree);
-    
+
     entries.forEach(([name, item], index) => {
       const isLastEntry = index === entries.length - 1;
       const prefix = isLast ? (isLastEntry ? "└── " : "├── ") : (isLastEntry ? "└── " : "├── ");
       const nextIndent = indent + (isLast ? (isLastEntry ? "    " : "│   ") : (isLastEntry ? "    " : "│   "));
-      
+
       if (item.type === 'directory') {
         result += `${indent}${prefix}📁 ${name}/\n`;
         if (Object.keys(item.children).length > 0) {
@@ -360,7 +359,7 @@ class SourceCodeTreeGenerator {
         const fileNode = this.findFileInTree(this.analysisTree, item.path);
         if (fileNode) {
           result += `${indent}${prefix}📄 ${name}\n`;
-          
+
           // Print functions for this file
           for (const func of fileNode.functions) {
             const asyncPrefix = func.isAsync ? "async " : "";
@@ -370,7 +369,7 @@ class SourceCodeTreeGenerator {
               .map((p) => `${p.name}${p.optional ? "?" : ""}: ${p.type}`)
               .join(", ")}): ${func.returnType}\n`;
           }
-          
+
           // Print children (classes, interfaces, etc.)
           if (fileNode.children.length > 0) {
             result += this.printTree(fileNode.children, nextIndent);
@@ -378,7 +377,7 @@ class SourceCodeTreeGenerator {
         }
       }
     });
-    
+
     return result;
   }
 
@@ -416,6 +415,44 @@ class SourceCodeTreeGenerator {
   }
 }
 
+// Function to recursively find TypeScript and JavaScript files
+function findSourceFiles(dir, extensions = ['.ts', '.tsx', '.js', '.jsx'], ignoreFolders = []) {
+  const files = [];
+
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        // Skip common directories that don't contain source code
+        const skipDirs = ['node_modules', '.git', 'dist', 'build', '.next', 'coverage', '.nyc_output'];
+
+        // Check if this directory should be ignored based on relative path
+        const relativePath = path.relative(process.cwd(), fullPath);
+        const shouldIgnore = ignoreFolders.some(ignorePattern => {
+          return relativePath === ignorePattern || relativePath.startsWith(ignorePattern + path.sep);
+        });
+
+        if (!skipDirs.includes(entry.name) && !shouldIgnore) {
+          files.push(...findSourceFiles(fullPath, extensions, ignoreFolders));
+        }
+      } else if (entry.isFile()) {
+        const ext = path.extname(entry.name);
+        if (extensions.includes(ext)) {
+          files.push(fullPath);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn(`Warning: Cannot read directory ${dir}: ${error.message}`);
+  }
+
+  return files;
+}
+
+
 // Example usage function - now returns the tree data
 function generateSourceCodeTree(filePaths) {
   const generator = new SourceCodeTreeGenerator(filePaths);
@@ -425,7 +462,7 @@ function generateSourceCodeTree(filePaths) {
   console.log("Source Code Tree:");
   console.log("=".repeat(50));
   console.log(treeOutput);
-  
+
   return {
     tree,
     output: treeOutput
@@ -441,7 +478,7 @@ function generateSourceCodeTreeWithDirectory(filePaths, directoryTree) {
   console.log("Source Code Tree with Directory Structure:");
   console.log("=".repeat(60));
   console.log(treeOutput);
-  
+
   return {
     tree,
     directoryTree,
@@ -450,26 +487,32 @@ function generateSourceCodeTreeWithDirectory(filePaths, directoryTree) {
 }
 
 // Function to build directory tree structure with source files
-function buildDirectoryTree(dir, extensions = ['.ts', '.tsx', '.js', '.jsx'], rootDir = dir) {
+function buildDirectoryTree(dir, extensions = ['.ts', '.tsx', '.js', '.jsx'], rootDir = dir, ignoreFolders = []) {
   const tree = {};
-  
+
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
       const relativePath = path.relative(rootDir, fullPath);
-      
+
       // Skip the tree.js file itself
       if (entry.name === 'tree.js' && dir === rootDir) {
         continue;
       }
-      
+
       if (entry.isDirectory()) {
         // Skip common directories that don't contain source code
         const skipDirs = ['node_modules', '.git', 'dist', 'build', '.next', 'coverage', '.nyc_output'];
-        if (!skipDirs.includes(entry.name)) {
-          const subtree = buildDirectoryTree(fullPath, extensions, rootDir);
+
+        // Check if this directory should be ignored based on relative path
+        const shouldIgnore = ignoreFolders.some(ignorePattern => {
+          return relativePath === ignorePattern || relativePath.startsWith(ignorePattern + path.sep);
+        });
+
+        if (!skipDirs.includes(entry.name) && !shouldIgnore) {
+          const subtree = buildDirectoryTree(fullPath, extensions, rootDir, ignoreFolders);
           if (Object.keys(subtree).length > 0) {
             tree[entry.name] = { type: 'directory', children: subtree };
           }
@@ -484,14 +527,14 @@ function buildDirectoryTree(dir, extensions = ['.ts', '.tsx', '.js', '.jsx'], ro
   } catch (error) {
     console.warn(`Warning: Cannot read directory ${dir}: ${error.message}`);
   }
-  
+
   return tree;
 }
 
 // Function to extract all file paths from directory tree
 function extractFilePaths(tree) {
   const files = [];
-  
+
   function traverse(node, basePath = '') {
     for (const [name, item] of Object.entries(node)) {
       if (item.type === 'file') {
@@ -501,7 +544,7 @@ function extractFilePaths(tree) {
       }
     }
   }
-  
+
   traverse(tree);
   return files;
 }
@@ -511,36 +554,44 @@ const isMainModule = process.argv[1] && fileURLToPath(import.meta.url) === proce
 
 if (isMainModule) {
   const args = process.argv.slice(2);
+  let ignoreFolders = [];
+
+  // Check for --ignore flag
+  const ignoreIndex = args.indexOf('--ignore');
+  if (ignoreIndex !== -1) {
+    ignoreFolders = args.slice(ignoreIndex + 1).filter(arg => !arg.startsWith('--'));
+    args.splice(ignoreIndex, ignoreFolders.length + 1);
+  }
 
   if (args.length === 0) {
     // If no arguments, scan the current directory
     console.log("No files specified. Scanning current directory for TypeScript/JavaScript files...");
     const currentDir = process.cwd();
-    const directoryTree = buildDirectoryTree(currentDir);
+    const directoryTree = buildDirectoryTree(currentDir, ['.ts', '.tsx', '.js', '.jsx'], currentDir, ignoreFolders);
     const foundFiles = extractFilePaths(directoryTree);
-    
+
     if (foundFiles.length === 0) {
       console.error("No TypeScript or JavaScript files found in current directory.");
       process.exit(1);
     }
-    
+
     console.log(`Found ${foundFiles.length} source files to analyze.\n`);
     generateSourceCodeTreeWithDirectory(foundFiles, directoryTree);
   } else {
     // Process specified files/directories
     let filePaths = [];
     let directoryTree = {};
-    
+
     for (const arg of args) {
       if (!fs.existsSync(arg)) {
         console.warn(`Warning: ${arg} does not exist, skipping.`);
         continue;
       }
-      
+
       const stat = fs.statSync(arg);
       if (stat.isDirectory()) {
         // If directory, build tree and find all source files in it
-        const argTree = buildDirectoryTree(arg);
+        const argTree = buildDirectoryTree(arg, ['.ts', '.tsx', '.js', '.jsx'], arg, ignoreFolders);
         const dirFiles = extractFilePaths(argTree);
         filePaths.push(...dirFiles);
         directoryTree[path.basename(arg)] = { type: 'directory', children: argTree };
