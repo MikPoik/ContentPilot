@@ -179,6 +179,79 @@ Preferred communication style: Simple, everyday language.
     <condition>Only updated imports or type annotations</condition>
   </never-verify-when>
 
+<sub-agent-usage-policy priority="CRITICAL">
+  <title>Strategic Sub-agent Delegation Guidelines</title>
+  <version>1.0</version>
+  <target>Minimize overhead while maximizing execution efficiency</target>
+  <!-- Core Philosophy -->
+  <core-principle>Sub-agents are expensive tools that should be used very selectively</core-principle>
+
+  <!-- Cost Analysis -->
+  <cost-reality>
+    <overhead-factors>
+      <factor>Context transfer overhead: 1-2 extra tool calls for problem explanation and handoff</factor>
+      <factor>Cold-start reasoning: Each sub-agent rediscovers what primary agent already knows</factor>
+      <factor>Tool multiplication: Two agents often double the read/edit/validate calls</factor>
+      <factor>Coordination complexity: Merging outputs and reconciliation reviews</factor>
+    </overhead-factors>
+
+    <optimal-approach>Single agent with parallel tools can batch discovery + edits in 3-5 calls</optimal-approach>
+  </cost-reality>
+  <!-- Strategic Use Cases -->
+  <effective-delegation-scenarios>
+    <scenario type="independent-deliverables">
+      <description>Independent text deliverables</description>
+      <examples>Documentation, test plans, release notes, README files</examples>
+      <rationale>Output doesn't require tight coordination with ongoing code changes</rationale>
+    </scenario>
+
+    <scenario type="specialized-audits">
+      <description>Specialized expertise audits</description>
+      <examples>Security reviews, performance analysis, accessibility passes</examples>
+      <rationale>Requires deep specialized knowledge separate from main implementation</rationale>
+    </scenario>
+
+    <scenario type="research-tasks">
+      <description>Large, loosely coupled research tasks</description>
+      <examples>Background research while primary agent codes, API exploration</examples>
+      <rationale>Can run in parallel without blocking main development flow</rationale>
+    </scenario>
+  </effective-delegation-scenarios>
+  <!-- Anti-patterns -->
+  <avoid-delegation-for priority="MANDATORY">
+    <anti-pattern>Code fixes and refactors (our bread and butter)</anti-pattern>
+    <anti-pattern>Pattern-based changes across files</anti-pattern>
+    <anti-pattern>Schema/route/UI modifications</anti-pattern>
+    <anti-pattern>React UI tweaks, route additions, API handler adjustments</anti-pattern>
+    <anti-pattern>Anything well-served by grep+batch+HMR approach</anti-pattern>
+    <rationale>These require tight coordination and unified execution patterns</rationale>
+  </avoid-delegation-for>
+  <!-- Decision Framework -->
+  <delegation-decision-tree>
+    <question>Is this an independent deliverable that doesn't affect ongoing code?</question>
+    <if-yes>Consider delegation</if-yes>
+    <if-no>
+      <question>Does this require specialized expertise separate from main task?</question>
+      <if-yes>Consider delegation</if-yes>
+      <if-no>Execute with single agent + parallel tools</if-no>
+    </if-no>
+  </delegation-decision-tree>
+  <!-- Recommended Approach -->
+  <single-agent-focus>
+    <recommendation>For 80-90% of development tasks, use proven single-agent patterns:</recommendation>
+    <pattern>4-tool pattern: discovery → batch execution → trust HMR</pattern>
+    <pattern>Parallel tool usage for maximum efficiency</pattern>
+    <pattern>Pattern-based fixes requiring tight coordination</pattern>
+    <efficiency-target>3-5 tool calls maximum for most modification requests</efficiency-target>
+  </single-agent-focus>
+  <!-- Success Metrics -->
+  <success-criteria>
+    <metric>Sub-agent usage limited to truly independent or specialized tasks</metric>
+    <metric>No sub-agent delegation for standard CRUD, UI, or API tasks</metric>
+    <metric>Maintain 3-5 call efficiency target for main development workflows</metric>
+  </success-criteria>
+</sub-agent-usage-policy>
+
   <!-- Expert Architect Sub-Agent Usage Policy -->
   <architect-usage-policy priority="CRITICAL" cost-model="expensive Opus 4">
     <warning>⚠️ CRITICAL: Architect uses expensive Opus 4 model - use SPARINGLY</warning>
