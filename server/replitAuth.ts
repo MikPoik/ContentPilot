@@ -94,6 +94,11 @@ function resolveDomain(host: string): string {
       console.log(`Dev domain match found: ${devMatch}`);
       return devMatch;
     }
+    // Also check if any domain matches our converted hostname
+    if (domains.includes(devHost)) {
+      console.log(`Direct dev domain match: ${devHost}`);
+      return devHost;
+    }
   }
   
   console.error(`Unrecognized host: ${host}, available domains: ${domains.join(', ')}`);
