@@ -22,6 +22,7 @@ export interface IStorage {
   
   // Memories
   getMemories(userId: string): Promise<Memory[]>;
+  getMemory(id: string): Promise<Memory | undefined>;
   createMemory(memory: InsertMemory): Promise<Memory>;
   deleteMemory(id: string): Promise<boolean>;
   searchSimilarMemories(userId: string, embedding: number[], limit?: number): Promise<(Memory & { similarity: number })[]>;
@@ -130,6 +131,11 @@ export class DatabaseStorage implements IStorage {
       .from(memories)
       .where(eq(memories.userId, userId))
       .orderBy(desc(memories.createdAt));
+  }
+
+  async getMemory(id: string): Promise<Memory | undefined> {
+    const [memory] = await db.select().from(memories).where(eq(memories.id, id));
+    return memory;
   }
 
   async createMemory(insertMemory: InsertMemory): Promise<Memory> {
