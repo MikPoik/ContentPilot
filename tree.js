@@ -377,6 +377,36 @@ function generateSourceCodeTree(filePaths) {
   };
 }
 
+// Function to recursively find TypeScript and JavaScript files
+function findSourceFiles(dir, extensions = ['.ts', '.tsx', '.js', '.jsx']) {
+  const files = [];
+  
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      
+      if (entry.isDirectory()) {
+        // Skip common directories that don't contain source code
+        const skipDirs = ['node_modules', '.git', 'dist', 'build', '.next', 'coverage', '.nyc_output'];
+        if (!skipDirs.includes(entry.name)) {
+          files.push(...findSourceFiles(fullPath, extensions));
+        }
+      } else if (entry.isFile()) {
+        const ext = path.extname(entry.name);
+        if (extensions.includes(ext)) {
+          files.push(fullPath);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn(`Warning: Cannot read directory ${dir}: ${error.message}`);
+  }
+  
+  return files;
+}
+
 // CLI interface - Fixed detection
 const isMainModule = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 
@@ -384,20 +414,46 @@ if (isMainModule) {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.log("Usage: node tree.js <file1> [file2] [file3] ...");
-    console.log("Example: node tree.js src/app.ts src/utils.js");
-    process.exit(1);
+    // If no arguments, scan the current directory
+    console.log("No files specified. Scanning current directory for TypeScript/JavaScript files...");
+    const currentDir = process.cwd();
+    const foundFiles = findSourceFiles(currentDir);
+    
+    if (foundFiles.length === 0) {
+      console.error("No TypeScript or JavaScript files found in current directory.");
+      process.exit(1);
+    }
+    
+    console.log(`Found ${foundFiles.length} source files to analyze.\n`);
+    generateSourceCodeTree(foundFiles);
+  } else {
+    // Process specified files/directories
+    let filePaths = [];
+    
+    for (const arg of args) {
+      if (!fs.existsSync(arg)) {
+        console.warn(`Warning: ${arg} does not exist, skipping.`);
+        continue;
+      }
+      
+      const stat = fs.statSync(arg);
+      if (stat.isDirectory()) {
+        // If directory, find all source files in it
+        const dirFiles = findSourceFiles(arg);
+        filePaths.push(...dirFiles);
+      } else if (stat.isFile()) {
+        // If file, add it directly
+        filePaths.push(arg);
+      }
+    }
+
+    if (filePaths.length === 0) {
+      console.error("No valid files found.");
+      process.exit(1);
+    }
+
+    generateSourceCodeTree(filePaths);
   }
-
-  // Filter existing files
-  const filePaths = args.filter((arg) => fs.existsSync(arg));
-
-  if (filePaths.length === 0) {
-    console.error("No valid files found.");
-    process.exit(1);
-  }
-
-  generateSourceCodeTree(filePaths);
 }
 
 export { SourceCodeTreeGenerator, generateSourceCodeTree };
