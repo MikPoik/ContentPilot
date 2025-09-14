@@ -14,22 +14,29 @@ export interface ChatMessage {
 function buildPersonalizedSystemPrompt(user?: User): string {
   const basePrompt = `You are ContentCraft AI, a friendly and expert social media content strategist. Your role is to:
 
-1. Help users discover their content niche and focus areas through thoughtful questions
-2. Brainstorm creative social media content ideas tailored to their brand
-3. Provide actionable strategies for Instagram, TikTok, LinkedIn, and other platforms
-4. Suggest trending topics, hashtags, and engagement tactics
-5. Guide users through content planning and creation processes
+1. Get to know the user personally - ask for their name if you don't know it yet
+2. Help users discover their content niche and focus areas through thoughtful questions
+3. Brainstorm creative social media content ideas tailored to their brand
+4. Provide actionable strategies for Instagram, TikTok, LinkedIn, and other platforms
+5. Suggest trending topics, hashtags, and engagement tactics
+6. Guide users through content planning and creation processes
 
-Always be conversational, enthusiastic, and provide specific, actionable advice. Use emojis appropriately to make conversations engaging.`;
+Always be conversational, enthusiastic, and provide specific, actionable advice. Use emojis appropriately to make conversations engaging. Make sure to learn their name early in the conversation so you can personalize your responses.`;
 
-  if (!user || (!user.contentNiche?.length && !user.primaryPlatform && !user.profileData)) {
-    return basePrompt + `\n\nIf this is a new conversation, start by getting to know the user's content focus areas and interests.`;
+  if (!user || (!user.firstName && !user.contentNiche?.length && !user.primaryPlatform && !user.profileData)) {
+    return basePrompt + `\n\nIf this is a new conversation, start by getting to know the user personally - ask for their name and then explore their content focus areas and interests.`;
   }
 
   let personalizedPrompt = basePrompt;
   
+  if (user.firstName) {
+    personalizedPrompt += `\n\nUser's name: ${user.firstName}${user.lastName ? ' ' + user.lastName : ''}`;
+  } else {
+    personalizedPrompt += `\n\nUser's name: Not yet provided - ask for their name to personalize the conversation`;
+  }
+  
   if (user.contentNiche?.length) {
-    personalizedPrompt += `\n\nUser's content niche: ${user.contentNiche.join(', ')}`;
+    personalizedPrompt += `\nUser's content niche: ${user.contentNiche.join(', ')}`;
   }
   
   if (user.primaryPlatform) {
@@ -44,7 +51,7 @@ Always be conversational, enthusiastic, and provide specific, actionable advice.
     if (data.contentGoals?.length) personalizedPrompt += `\nContent goals: ${data.contentGoals.join(', ')}`;
   }
   
-  personalizedPrompt += `\n\nTailor your advice to their specific situation and ask relevant follow-up questions to fill in any missing profile information.`;
+  personalizedPrompt += `\n\nTailor your advice to their specific situation and ask relevant follow-up questions to fill in any missing profile information, especially their name if not yet known.`;
   
   return personalizedPrompt;
 }
@@ -115,6 +122,8 @@ export async function extractProfileInfo(userMessage: string, aiResponse: string
         {
           role: 'system',
           content: `Analyze the conversation between a user and ContentCraft AI to extract profile information. Return ONLY valid JSON with these fields if mentioned:
+- firstName: string (user's first name)
+- lastName: string (user's last name)
 - contentNiche: array of strings (e.g. ["fitness", "business"])
 - primaryPlatform: string (e.g. "instagram", "tiktok", "linkedin")
 - profileData: object with fields like targetAudience, brandVoice, businessType, contentGoals (array)
@@ -124,6 +133,8 @@ Only include fields that are explicitly mentioned or clearly implied. Return emp
         {
           role: 'user',
           content: `Current user profile: ${JSON.stringify({
+            firstName: currentUser.firstName,
+            lastName: currentUser.lastName,
             contentNiche: currentUser.contentNiche,
             primaryPlatform: currentUser.primaryPlatform,
             profileData: currentUser.profileData
@@ -146,7 +157,7 @@ Extract any NEW profile information:`
     if (Object.keys(profileData).length === 0) return null;
 
     // Calculate profile completeness
-    const fields = ['contentNiche', 'primaryPlatform', 'targetAudience', 'brandVoice', 'businessType'];
+    const fields = ['firstName', 'contentNiche', 'primaryPlatform', 'targetAudience', 'brandVoice', 'businessType'];
     const currentData = {
       ...currentUser,
       ...currentUser.profileData as any,
