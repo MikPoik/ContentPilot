@@ -66,13 +66,22 @@ Always be conversational, enthusiastic, and provide specific, actionable advice.
 }
 
 export async function generateChatResponse(messages: ChatMessage[], user?: User, memories?: any[]): Promise<ReadableStream<string>> {
+  const startTime = Date.now();
+  console.log(`🤖 [AI_SERVICE] Building system prompt...`);
+  
+  const promptBuildStart = Date.now();
   const systemPrompt = buildPersonalizedSystemPrompt(user, memories);
+  console.log(`🤖 [AI_SERVICE] System prompt built: ${Date.now() - promptBuildStart}ms (length: ${systemPrompt.length} chars)`);
 
   const chatMessages: ChatMessage[] = [
     { role: 'system', content: systemPrompt },
     ...messages
   ];
+  
+  console.log(`🤖 [AI_SERVICE] Total messages: ${chatMessages.length}, Total tokens estimate: ${Math.ceil(chatMessages.reduce((acc, msg) => acc + msg.content.length, 0) / 4)}`);
 
+  const openaiRequestStart = Date.now();
+  console.log(`🤖 [AI_SERVICE] Sending request to OpenAI...`);
   const stream = await openai.chat.completions.create({
     model: 'gpt-4o',
     messages: chatMessages,
@@ -80,18 +89,32 @@ export async function generateChatResponse(messages: ChatMessage[], user?: User,
     temperature: 0.7,
     max_tokens: 1000,
   });
+  console.log(`🤖 [AI_SERVICE] OpenAI stream initialized: ${Date.now() - openaiRequestStart}ms`);
 
   return new ReadableStream({
     async start(controller) {
+      let chunkCount = 0;
+      let totalContentLength = 0;
+      const firstChunkStart = Date.now();
+      let firstChunkReceived = false;
+      
       try {
         for await (const chunk of stream) {
           const content = chunk.choices[0]?.delta?.content || '';
           if (content) {
+            if (!firstChunkReceived) {
+              console.log(`🤖 [AI_SERVICE] First chunk received: ${Date.now() - firstChunkStart}ms (TTFB)`);
+              firstChunkReceived = true;
+            }
+            chunkCount++;
+            totalContentLength += content.length;
             controller.enqueue(content);
           }
         }
+        console.log(`🤖 [AI_SERVICE] Stream completed: ${chunkCount} chunks, ${totalContentLength} chars, total: ${Date.now() - startTime}ms`);
         controller.close();
       } catch (error) {
+        console.log(`❌ [AI_SERVICE] Stream error after ${Date.now() - startTime}ms:`, error);
         controller.error(error);
       }
     },
@@ -99,7 +122,9 @@ export async function generateChatResponse(messages: ChatMessage[], user?: User,
 }
 
 export async function generateConversationTitle(messages: ChatMessage[]): Promise<string> {
+  const startTime = Date.now();
   try {
+    console.log(`📝 [AI_SERVICE] Generating conversation title...`);
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -115,16 +140,20 @@ export async function generateConversationTitle(messages: ChatMessage[]): Promis
       max_tokens: 20,
       temperature: 0.3,
     });
-
-    return response.choices[0]?.message?.content?.trim() || 'New Conversation';
+    
+    const title = response.choices[0]?.message?.content?.trim() || 'New Conversation';
+    console.log(`📝 [AI_SERVICE] Title generated: ${Date.now() - startTime}ms ("${title}")`);
+    return title;
   } catch (error) {
-    console.error('Error generating title:', error);
+    console.error(`❌ [AI_SERVICE] Error generating title after ${Date.now() - startTime}ms:`, error);
     return 'New Conversation';
   }
 }
 
 export async function extractProfileInfo(userMessage: string, aiResponse: string, currentUser: User): Promise<Partial<UpdateUserProfile> | null> {
+  const startTime = Date.now();
   try {
+    console.log(`👤 [AI_SERVICE] Extracting profile info...`);
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -163,7 +192,10 @@ Extract any NEW profile information:`
     if (!result) return null;
 
     const profileData = JSON.parse(result);
-    if (Object.keys(profileData).length === 0) return null;
+    if (Object.keys(profileData).length === 0) {
+      console.log(`👤 [AI_SERVICE] No profile updates found: ${Date.now() - startTime}ms`);
+      return null;
+    }
 
     // Calculate profile completeness
     const fields = ['firstName', 'contentNiche', 'primaryPlatform', 'targetAudience', 'brandVoice', 'businessType'];
@@ -181,33 +213,41 @@ Extract any NEW profile information:`
     
     const completeness = Math.round((completedFields / fields.length) * 100);
     
-    return {
+    const finalProfileData = {
       ...profileData,
       profileCompleteness: completeness.toString()
     };
+    
+    console.log(`👤 [AI_SERVICE] Profile extracted: ${Date.now() - startTime}ms (${Object.keys(profileData).length} fields)`);
+    return finalProfileData;
   } catch (error) {
-    console.error('Profile extraction error:', error);
+    console.error(`❌ [AI_SERVICE] Profile extraction error after ${Date.now() - startTime}ms:`, error);
     return null;
   }
 }
 
 export async function generateEmbedding(text: string): Promise<number[]> {
+  const startTime = Date.now();
   try {
+    console.log(`🧠 [AI_SERVICE] Generating embedding for ${text.length} chars...`);
     const response = await openai.embeddings.create({
       model: 'text-embedding-3-small',
       input: text.trim(),
       encoding_format: 'float',
     });
-
+    
+    console.log(`🧠 [AI_SERVICE] Embedding generated: ${Date.now() - startTime}ms (${response.data[0].embedding.length} dimensions)`);
     return response.data[0].embedding;
   } catch (error) {
-    console.error('Embedding generation error:', error);
+    console.error(`❌ [AI_SERVICE] Embedding generation error after ${Date.now() - startTime}ms:`, error);
     throw new Error('Failed to generate embedding');
   }
 }
 
 export async function extractMemoriesFromConversation(userMessage: string, aiResponse: string): Promise<string[]> {
+  const startTime = Date.now();
   try {
+    console.log(`🧠 [AI_SERVICE] Extracting memories from conversation...`);
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -238,9 +278,11 @@ Example: ["User is launching a fitness coaching business targeting busy professi
     if (!result) return [];
 
     const memories = JSON.parse(result);
-    return Array.isArray(memories) ? memories.filter(m => typeof m === 'string' && m.length > 0) : [];
+    const validMemories = Array.isArray(memories) ? memories.filter(m => typeof m === 'string' && m.length > 0) : [];
+    console.log(`🧠 [AI_SERVICE] Memories extracted: ${Date.now() - startTime}ms (${validMemories.length} memories)`);
+    return validMemories;
   } catch (error) {
-    console.error('Memory extraction error:', error);
+    console.error(`❌ [AI_SERVICE] Memory extraction error after ${Date.now() - startTime}ms:`, error);
     return [];
   }
 }

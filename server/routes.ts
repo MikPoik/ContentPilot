@@ -110,6 +110,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Send a message and get AI response (streaming)
   app.post("/api/conversations/:id/messages", isAuthenticated, async (req: any, res) => {
+    const requestStartTime = Date.now();
+    console.log(`\n🚀 [CHAT_FLOW] Starting message processing at ${new Date().toISOString()}`);
+    
     try {
       const { content } = req.body;
       if (!content || typeof content !== 'string') {
@@ -118,8 +121,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const conversationId = req.params.id;
       const userId = req.user.claims.sub;
+      console.log(`📝 [CHAT_FLOW] Processing message for user: ${userId}, conversation: ${conversationId}`);
       
       // Verify conversation exists and user owns it
+      const verificationStartTime = Date.now();
       const conversation = await storage.getConversation(conversationId);
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
@@ -127,29 +132,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (conversation.userId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
+      console.log(`✅ [CHAT_FLOW] Conversation verification: ${Date.now() - verificationStartTime}ms`);
 
       // Save user message
+      const saveUserMessageStart = Date.now();
       await storage.createMessage({
         conversationId,
         role: 'user',
         content,
       });
+      console.log(`💾 [CHAT_FLOW] User message saved: ${Date.now() - saveUserMessageStart}ms`);
 
       // Get conversation history and user profile
+      const dataFetchStart = Date.now();
       const messages = await storage.getMessages(conversationId);
       const user = await storage.getUser(userId);
       const chatHistory = messages.map(m => ({
         role: m.role as 'user' | 'assistant' | 'system',
         content: m.content
       }));
+      console.log(`📚 [CHAT_FLOW] Data fetch (messages + user): ${Date.now() - dataFetchStart}ms`);
 
       // Search for relevant memories using user message
+      const memorySearchStart = Date.now();
       let relevantMemories: any[] = [];
       try {
+        const embeddingStart = Date.now();
         const queryEmbedding = await generateEmbedding(content);
+        console.log(`🧠 [CHAT_FLOW] Embedding generation: ${Date.now() - embeddingStart}ms`);
+        
+        const similaritySearchStart = Date.now();
         relevantMemories = await storage.searchSimilarMemories(userId, queryEmbedding, 5);
+        console.log(`🔍 [CHAT_FLOW] Vector similarity search: ${Date.now() - similaritySearchStart}ms`);
+        console.log(`🎯 [CHAT_FLOW] Total memory search: ${Date.now() - memorySearchStart}ms (found ${relevantMemories.length} memories)`);
       } catch (error) {
-        console.log('Memory search error:', error);
+        console.log('❌ [CHAT_FLOW] Memory search error:', error);
+        console.log(`🎯 [CHAT_FLOW] Memory search failed: ${Date.now() - memorySearchStart}ms`);
       }
 
       // Set up streaming response
@@ -158,6 +176,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Connection', 'keep-alive');
 
       // Generate AI response stream with user profile and memories
+      const aiResponseStart = Date.now();
+      console.log(`🤖 [CHAT_FLOW] Starting AI response generation...`);
       const responseStream = await generateChatResponse(chatHistory, user, relevantMemories);
       let fullResponse = '';
 
@@ -172,55 +192,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
           res.write(value);
         }
         
+        console.log(`🤖 [CHAT_FLOW] AI response generation completed: ${Date.now() - aiResponseStart}ms`);
+        console.log(`📏 [CHAT_FLOW] AI response length: ${fullResponse.length} characters`);
+        
         // Save AI response
+        const saveAiResponseStart = Date.now();
         await storage.createMessage({
           conversationId,
           role: 'assistant',
           content: fullResponse,
         });
+        console.log(`💾 [CHAT_FLOW] AI response saved: ${Date.now() - saveAiResponseStart}ms`);
 
         // Extract and update user profile from conversation
+        const profileUpdateStart = Date.now();
         try {
+          const profileExtractionStart = Date.now();
           const profileUpdates = await extractProfileInfo(content, fullResponse, user!);
+          console.log(`👤 [CHAT_FLOW] Profile extraction: ${Date.now() - profileExtractionStart}ms`);
+          
           if (profileUpdates && Object.keys(profileUpdates).length > 0) {
+            const profileSaveStart = Date.now();
             await storage.updateUserProfile(userId, profileUpdates);
+            console.log(`👤 [CHAT_FLOW] Profile update saved: ${Date.now() - profileSaveStart}ms`);
+            console.log(`👤 [CHAT_FLOW] Profile updates:`, Object.keys(profileUpdates));
+          } else {
+            console.log(`👤 [CHAT_FLOW] No profile updates found`);
           }
+          console.log(`👤 [CHAT_FLOW] Total profile processing: ${Date.now() - profileUpdateStart}ms`);
         } catch (error) {
-          console.log('Profile extraction error:', error);
+          console.log('❌ [CHAT_FLOW] Profile extraction error:', error);
+          console.log(`👤 [CHAT_FLOW] Profile processing failed: ${Date.now() - profileUpdateStart}ms`);
         }
 
         // Extract and save new memories from conversation
+        const memorySaveStart = Date.now();
         try {
+          const memoryExtractionStart = Date.now();
           const newMemories = await extractMemoriesFromConversation(content, fullResponse);
+          console.log(`🧠 [CHAT_FLOW] Memory extraction: ${Date.now() - memoryExtractionStart}ms (found ${newMemories.length} memories)`);
+          
           for (const memoryContent of newMemories) {
+            const memoryEmbeddingStart = Date.now();
             const embedding = await generateEmbedding(memoryContent);
+            console.log(`🧠 [CHAT_FLOW] Memory embedding: ${Date.now() - memoryEmbeddingStart}ms`);
+            
+            const memorySaveOneStart = Date.now();
             await storage.createMemory({
               userId,
               content: memoryContent,
               embedding,
               metadata: { source: 'conversation', conversationId }
             });
+            console.log(`🧠 [CHAT_FLOW] Memory saved: ${Date.now() - memorySaveOneStart}ms`);
           }
+          console.log(`🧠 [CHAT_FLOW] Total memory processing: ${Date.now() - memorySaveStart}ms`);
         } catch (error) {
-          console.log('Memory extraction error:', error);
+          console.log('❌ [CHAT_FLOW] Memory extraction error:', error);
+          console.log(`🧠 [CHAT_FLOW] Memory processing failed: ${Date.now() - memorySaveStart}ms`);
         }
 
         // Update conversation title if it's the first exchange
         if (messages.length <= 2 && conversation.title === 'New Conversation') {
+          const titleGenerationStart = Date.now();
           const newTitle = await generateConversationTitle([
             ...chatHistory,
             { role: 'assistant', content: fullResponse }
           ]);
           await storage.updateConversation(conversationId, { title: newTitle });
+          console.log(`📝 [CHAT_FLOW] Title generation and save: ${Date.now() - titleGenerationStart}ms`);
         }
 
+        const totalDuration = Date.now() - requestStartTime;
+        console.log(`🏁 [CHAT_FLOW] Total request processing: ${totalDuration}ms`);
+        console.log(`🏁 [CHAT_FLOW] Request completed at ${new Date().toISOString()}\n`);
+        
         res.end();
       } catch (error) {
-        console.error('Streaming error:', error);
+        console.error('❌ [CHAT_FLOW] Streaming error:', error);
         res.end();
       }
     } catch (error) {
-      console.error('Message error:', error);
+      const totalDuration = Date.now() - requestStartTime;
+      console.error('❌ [CHAT_FLOW] Message error:', error);
+      console.log(`🏁 [CHAT_FLOW] Request failed after: ${totalDuration}ms\n`);
       res.status(500).json({ message: "Failed to process message" });
     }
   });
