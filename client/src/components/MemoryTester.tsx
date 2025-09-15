@@ -25,7 +25,7 @@ export default function MemoryTester() {
     mutationFn: async (content: string) => {
       const response = await apiRequest("POST", "/api/memories", { 
         content,
-        metadata: { source: "memory_tester" }
+        metadata: { source: "memory_tester" } as Record<string, any>
       });
       return response.json();
     },
