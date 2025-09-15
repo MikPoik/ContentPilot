@@ -54,6 +54,7 @@ export default function Chat() {
 
   // Streaming function outside mutation context
   const streamResponse = async (targetConversationId: string, content: string) => {
+    console.log('🚀 Starting stream response');
     setIsStreaming(true);
     setStreamingMessage("");
 
@@ -72,18 +73,30 @@ export default function Chat() {
 
     const decoder = new TextDecoder();
     let accumulated = "";
+    let chunkCount = 0;
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      const chunk = decoder.decode(value, { stream: true });
-      accumulated += chunk;
-      
-      // Force immediate UI update using flushSync outside mutation
-      flushSync(() => {
+        const chunk = decoder.decode(value, { stream: true });
+        accumulated += chunk;
+        chunkCount++;
+        
+        console.log(`📦 Chunk ${chunkCount}: "${chunk}" (accumulated: ${accumulated.length} chars)`);
+        
+        // Update state immediately for each chunk
         setStreamingMessage(accumulated);
-      });
+        
+        // Force React to process this update immediately
+        await new Promise(resolve => setTimeout(resolve, 1));
+      }
+      
+      console.log(`✅ Stream complete: ${chunkCount} chunks, ${accumulated.length} chars`);
+    } catch (error) {
+      console.error('❌ Stream error:', error);
+      throw error;
     }
 
     // Final state updates
@@ -97,6 +110,7 @@ export default function Chat() {
         createdAt: new Date(),
       };
       
+      console.log('💾 Adding final message to optimistic state');
       setOptimisticMessages(current => [...current, assistantMessage]);
       setIsStreaming(false);
       setStreamingMessage("");
