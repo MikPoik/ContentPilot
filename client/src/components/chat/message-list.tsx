@@ -156,19 +156,27 @@ What type of content creator are you? Are you focused on a specific niche like f
           <div className="flex-1 max-w-3xl">
             <div className="bg-gray-100 rounded-2xl rounded-tl-md px-4 py-3">
               {(() => {
-                console.log('💬 MessageList render - isStreaming:', isStreaming, 'streamingMessage length:', streamingMessage?.length || 0, 'content preview:', streamingMessage?.substring(0, 50));
-                return streamingMessage ? (
-                  <div className="text-gray-900 text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-p:leading-relaxed prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0">
-                    <ReactMarkdown>{streamingMessage}</ReactMarkdown>
-                    <span className="inline-block w-2 h-4 bg-gray-400 ml-1 animate-pulse" />
-                  </div>
-                ) : (
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  </div>
-                );
+                console.log('💬 MessageList render - isStreaming:', isStreaming, 'streamingMessage length:', streamingMessage?.length || 0, 'streamingMessage exists:', !!streamingMessage, 'content preview:', streamingMessage?.substring(0, 50));
+                
+                // Force show streaming content if we have any streamingMessage
+                if (streamingMessage && streamingMessage.length > 0) {
+                  console.log('🎯 Rendering streaming content:', streamingMessage.length, 'chars');
+                  return (
+                    <div className="text-gray-900 text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-p:leading-relaxed prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0">
+                      <ReactMarkdown>{streamingMessage}</ReactMarkdown>
+                      <span className="inline-block w-2 h-4 bg-gray-400 ml-1 animate-pulse" />
+                    </div>
+                  );
+                } else {
+                  console.log('🔄 Rendering typing indicator');
+                  return (
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    </div>
+                  );
+                }
               })()}
             </div>
             <div className="text-xs text-gray-500 mt-1 px-1">Just now</div>
