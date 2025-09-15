@@ -470,7 +470,7 @@ function generateSourceCodeTree(filePaths) {
 }
 
 // Enhanced function that shows directory structure with source analysis
-function generateSourceCodeTreeWithDirectory(filePaths, directoryTree) {
+function generateSourceCodeTreeWithDirectory(filePaths, directoryTree, exportToFile = false) {
   const generator = new SourceCodeTreeGenerator(filePaths, {}, directoryTree);
   const tree = generator.generateTree();
   const treeOutput = generator.printDirectoryTree(directoryTree);
@@ -478,6 +478,25 @@ function generateSourceCodeTreeWithDirectory(filePaths, directoryTree) {
   console.log("Source Code Tree with Directory Structure:");
   console.log("=".repeat(60));
   console.log(treeOutput);
+
+  // Export to file if requested
+  if (exportToFile) {
+    const markdownContent = `# Source Code Tree
+
+Generated on: ${new Date().toISOString()}
+
+\`\`\`
+${treeOutput}
+\`\`\`
+`;
+    
+    try {
+      fs.writeFileSync('tree.md', markdownContent, 'utf8');
+      console.log("\n✅ Tree exported to tree.md");
+    } catch (error) {
+      console.error("\n❌ Failed to export tree:", error.message);
+    }
+  }
 
   return {
     tree,
@@ -555,6 +574,14 @@ const isMainModule = process.argv[1] && fileURLToPath(import.meta.url) === proce
 if (isMainModule) {
   const args = process.argv.slice(2);
   let ignoreFolders = [];
+  let exportToFile = false;
+
+  // Check for --export flag
+  const exportIndex = args.indexOf('--export');
+  if (exportIndex !== -1) {
+    exportToFile = true;
+    args.splice(exportIndex, 1);
+  }
 
   // Check for --ignore flag
   const ignoreIndex = args.indexOf('--ignore');
@@ -566,6 +593,9 @@ if (isMainModule) {
   if (args.length === 0) {
     // If no arguments, scan the current directory
     console.log("No files specified. Scanning current directory for TypeScript/JavaScript files...");
+    if (exportToFile) {
+      console.log("Export flag detected. Tree will be saved to tree.md");
+    }
     const currentDir = process.cwd();
     const directoryTree = buildDirectoryTree(currentDir, ['.ts', '.tsx', '.js', '.jsx'], currentDir, ignoreFolders);
     const foundFiles = extractFilePaths(directoryTree);
@@ -576,7 +606,7 @@ if (isMainModule) {
     }
 
     console.log(`Found ${foundFiles.length} source files to analyze.\n`);
-    generateSourceCodeTreeWithDirectory(foundFiles, directoryTree);
+    generateSourceCodeTreeWithDirectory(foundFiles, directoryTree, exportToFile);
   } else {
     // Process specified files/directories
     let filePaths = [];
@@ -607,7 +637,7 @@ if (isMainModule) {
       process.exit(1);
     }
 
-    generateSourceCodeTreeWithDirectory(filePaths, directoryTree);
+    generateSourceCodeTreeWithDirectory(filePaths, directoryTree, exportToFile);
   }
 }
 
