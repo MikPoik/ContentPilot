@@ -340,7 +340,7 @@ class SourceCodeTreeGenerator {
   }
 
   // New method to print directory tree structure
-  printDirectoryTree(tree, indent = "", isLast = true) {
+  printDirectoryTree(tree, indent = "", isLast = true, simpleMode = false) {
     let result = "";
     const entries = Object.entries(tree);
 
@@ -352,27 +352,30 @@ class SourceCodeTreeGenerator {
       if (item.type === 'directory') {
         result += `${indent}${prefix}📁 ${name}/\n`;
         if (Object.keys(item.children).length > 0) {
-          result += this.printDirectoryTree(item.children, nextIndent, isLastEntry);
+          result += this.printDirectoryTree(item.children, nextIndent, isLastEntry, simpleMode);
         }
       } else if (item.type === 'file') {
-        // Find the analyzed file data for this path
-        const fileNode = this.findFileInTree(this.analysisTree, item.path);
-        if (fileNode) {
-          result += `${indent}${prefix}📄 ${name}\n`;
+        result += `${indent}${prefix}📄 ${name}\n`;
+        
+        // Skip detailed analysis in simple mode
+        if (!simpleMode) {
+          // Find the analyzed file data for this path
+          const fileNode = this.findFileInTree(this.analysisTree, item.path);
+          if (fileNode) {
+            // Print functions for this file
+            for (const func of fileNode.functions) {
+              const asyncPrefix = func.isAsync ? "async " : "";
+              const exportPrefix = func.isExported ? "export " : "";
+              const kindIcon = this.getFunctionIcon(func.kind);
+              result += `${nextIndent}${kindIcon} ${exportPrefix}${asyncPrefix}${func.name}(${func.parameters
+                .map((p) => `${p.name}${p.optional ? "?" : ""}: ${p.type}`)
+                .join(", ")}): ${func.returnType}\n`;
+            }
 
-          // Print functions for this file
-          for (const func of fileNode.functions) {
-            const asyncPrefix = func.isAsync ? "async " : "";
-            const exportPrefix = func.isExported ? "export " : "";
-            const kindIcon = this.getFunctionIcon(func.kind);
-            result += `${nextIndent}${kindIcon} ${exportPrefix}${asyncPrefix}${func.name}(${func.parameters
-              .map((p) => `${p.name}${p.optional ? "?" : ""}: ${p.type}`)
-              .join(", ")}): ${func.returnType}\n`;
-          }
-
-          // Print children (classes, interfaces, etc.)
-          if (fileNode.children.length > 0) {
-            result += this.printTree(fileNode.children, nextIndent);
+            // Print children (classes, interfaces, etc.)
+            if (fileNode.children.length > 0) {
+              result += this.printTree(fileNode.children, nextIndent);
+            }
           }
         }
       }
@@ -470,20 +473,29 @@ function generateSourceCodeTree(filePaths) {
 }
 
 // Enhanced function that shows directory structure with source analysis
-function generateSourceCodeTreeWithDirectory(filePaths, directoryTree, exportToFile = false) {
+function generateSourceCodeTreeWithDirectory(filePaths, directoryTree, exportToFile = false, simpleMode = false) {
   const generator = new SourceCodeTreeGenerator(filePaths, {}, directoryTree);
-  const tree = generator.generateTree();
-  const treeOutput = generator.printDirectoryTree(directoryTree);
+  
+  // Skip analysis entirely in simple mode for better performance
+  let tree = null;
+  if (!simpleMode) {
+    tree = generator.generateTree();
+  }
+  
+  const treeOutput = generator.printDirectoryTree(directoryTree, "", true, simpleMode);
 
-  console.log("Source Code Tree with Directory Structure:");
+  const title = simpleMode ? "Directory Tree Structure:" : "Source Code Tree with Directory Structure:";
+  console.log(title);
   console.log("=".repeat(60));
   console.log(treeOutput);
 
   // Export to file if requested
   if (exportToFile) {
-    const markdownContent = `# Source Code Tree
+    const title = simpleMode ? "Directory Tree" : "Source Code Tree";
+    const markdownContent = `# ${title}
 
 Generated on: ${new Date().toISOString()}
+${simpleMode ? "\n*Simple mode: Directory structure only*" : ""}
 
 \`\`\`
 ${treeOutput}
@@ -575,6 +587,14 @@ if (isMainModule) {
   const args = process.argv.slice(2);
   let ignoreFolders = [];
   let exportToFile = false;
+  let simpleMode = false;
+
+  // Check for --simple flag
+  const simpleIndex = args.indexOf('--simple');
+  if (simpleIndex !== -1) {
+    simpleMode = true;
+    args.splice(simpleIndex, 1);
+  }
 
   // Check for --export flag
   const exportIndex = args.indexOf('--export');
@@ -592,7 +612,11 @@ if (isMainModule) {
 
   if (args.length === 0) {
     // If no arguments, scan the current directory
-    console.log("No files specified. Scanning current directory for TypeScript/JavaScript files...");
+    if (simpleMode) {
+      console.log("Simple mode: Generating directory tree structure only...");
+    } else {
+      console.log("No files specified. Scanning current directory for TypeScript/JavaScript files...");
+    }
     if (exportToFile) {
       console.log("Export flag detected. Tree will be saved to tree.md");
     }
@@ -600,13 +624,15 @@ if (isMainModule) {
     const directoryTree = buildDirectoryTree(currentDir, ['.ts', '.tsx', '.js', '.jsx'], currentDir, ignoreFolders);
     const foundFiles = extractFilePaths(directoryTree);
 
-    if (foundFiles.length === 0) {
+    if (foundFiles.length === 0 && !simpleMode) {
       console.error("No TypeScript or JavaScript files found in current directory.");
       process.exit(1);
     }
 
-    console.log(`Found ${foundFiles.length} source files to analyze.\n`);
-    generateSourceCodeTreeWithDirectory(foundFiles, directoryTree, exportToFile);
+    if (!simpleMode) {
+      console.log(`Found ${foundFiles.length} source files to analyze.\n`);
+    }
+    generateSourceCodeTreeWithDirectory(foundFiles, directoryTree, exportToFile, simpleMode);
   } else {
     // Process specified files/directories
     let filePaths = [];
@@ -632,12 +658,12 @@ if (isMainModule) {
       }
     }
 
-    if (filePaths.length === 0) {
+    if (filePaths.length === 0 && !simpleMode) {
       console.error("No valid files found.");
       process.exit(1);
     }
 
-    generateSourceCodeTreeWithDirectory(filePaths, directoryTree, exportToFile);
+    generateSourceCodeTreeWithDirectory(filePaths, directoryTree, exportToFile, simpleMode);
   }
 }
 
