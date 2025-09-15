@@ -171,9 +171,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Set up streaming response
-      res.setHeader('Content-Type', 'text/plain');
-      res.setHeader('Cache-Control', 'no-cache');
+      // Important: prevent any intermediary (proxies) from buffering so chunks reach client immediately
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
       res.setHeader('Connection', 'keep-alive');
+      // Disable nginx-style proxy buffering if present
+      res.setHeader('X-Accel-Buffering', 'no');
+      // Flush headers so the client begins processing the stream ASAP
+      if (typeof (res as any).flushHeaders === 'function') {
+        (res as any).flushHeaders();
+      }
 
       // Generate AI response stream with user profile and memories
       const aiResponseStart = Date.now();
@@ -190,6 +197,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           fullResponse += value;
           res.write(value);
+          // Hint to flush on each chunk if supported by the underlying impl
+          if (typeof (res as any).flush === 'function') {
+            try { (res as any).flush(); } catch {}
+          }
         }
         
         console.log(`🤖 [CHAT_FLOW] AI response generation completed: ${Date.now() - aiResponseStart}ms`);
