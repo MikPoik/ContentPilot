@@ -1,12 +1,29 @@
 /*
-Generate and export tree to tree.md:
+Usage examples:
+
+Basic directory scan (with function analysis):
+node tree.js
+
+Simple directory tree only (no function analysis):
+node tree.js --simple
+
+Export tree to tree.md file:
+node tree.js --export
+
+Export simple tree to tree.md:
 node tree.js --export --simple
 
-With ignore folders and export:
-node tree.js --export --ignore client/src/components/ui
+Ignore specific folders:
+node tree.js --ignore client/src/components/ui
 
-Specific directories with export:
-node tree.js client server --export
+Multiple ignore patterns:
+node tree.js --ignore node_modules dist build
+
+Scan specific directories:
+node tree.js client server
+
+Combined options:
+node tree.js client server --export --simple --ignore dist build
 */
 import ts from "typescript";
 import fs from "fs";
