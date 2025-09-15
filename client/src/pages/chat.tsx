@@ -1,4 +1,4 @@
-import { useState, useEffect, startTransition } from "react";
+import { useState, useEffect, startTransition, flushSync } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -99,7 +99,11 @@ export default function Chat() {
 
         const chunk = decoder.decode(value, { stream: true });
         accumulated += chunk;
-        setStreamingMessage(accumulated);
+        
+        // Force immediate UI update using flushSync
+        flushSync(() => {
+          setStreamingMessage(accumulated);
+        });
       }
 
       // Use startTransition to ensure all state updates are batched into single render
