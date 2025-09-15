@@ -1,4 +1,5 @@
-import { useState, useEffect, startTransition, flushSync } from "react";
+import { useState, useEffect, startTransition } from "react";
+import { flushSync } from "react-dom";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -51,7 +52,58 @@ export default function Chat() {
     },
   });
 
-  // Send message mutation
+  // Streaming function outside mutation context
+  const streamResponse = async (targetConversationId: string, content: string) => {
+    setIsStreaming(true);
+    setStreamingMessage("");
+
+    const response = await fetch(`/api/conversations/${targetConversationId}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to send message");
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("No response stream");
+
+    const decoder = new TextDecoder();
+    let accumulated = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      accumulated += chunk;
+      
+      // Force immediate UI update using flushSync outside mutation
+      flushSync(() => {
+        setStreamingMessage(accumulated);
+      });
+    }
+
+    // Final state updates
+    startTransition(() => {
+      const assistantMessage: Message = {
+        id: `${Date.now()}-assistant`,
+        conversationId: targetConversationId,
+        role: 'assistant',
+        content: accumulated,
+        metadata: null,
+        createdAt: new Date(),
+      };
+      
+      setOptimisticMessages(current => [...current, assistantMessage]);
+      setIsStreaming(false);
+      setStreamingMessage("");
+    });
+  };
+
+  // Send message mutation - simplified
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
       let targetConversationId = conversationId;
@@ -74,56 +126,11 @@ export default function Chat() {
       };
       setOptimisticMessages(prev => [...prev, userMessage]);
 
-      setIsStreaming(true);
-      setStreamingMessage("");
-
-      const response = await fetch(`/api/conversations/${targetConversationId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to send message");
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("No response stream");
-
-      const decoder = new TextDecoder();
-      let accumulated = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        accumulated += chunk;
-        
-        // Force immediate UI update using flushSync
-        flushSync(() => {
-          setStreamingMessage(accumulated);
-        });
-      }
-
-      // Use startTransition to ensure all state updates are batched into single render
-      startTransition(() => {
-        const assistantMessage: Message = {
-          id: `${Date.now()}-assistant`,
-          conversationId: targetConversationId!,
-          role: 'assistant',
-          content: accumulated,
-          metadata: null,
-          createdAt: new Date(),
-        };
-        
-        // All state updates happen atomically in this transition
-        setOptimisticMessages(current => [...current, assistantMessage]);
-        setIsStreaming(false);
-        setStreamingMessage("");
-      });
+      // Stream response outside mutation context
+      await streamResponse(targetConversationId!, content);
     },
     onError: (error) => {
+      console.error('Send message error:', error);
       setIsStreaming(false);
       setStreamingMessage("");
       setOptimisticMessages([]);
