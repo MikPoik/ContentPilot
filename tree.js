@@ -1,3 +1,13 @@
+/*
+Generate and export tree to tree.md:
+node tree.js --export --simple
+
+With ignore folders and export:
+node tree.js --export --ignore client/src/components/ui
+
+Specific directories with export:
+node tree.js client server --export
+*/
 import ts from "typescript";
 import fs from "fs";
 import path from "path";
