@@ -21,6 +21,9 @@ export default function Chat() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState<string | undefined>();
+  const [searchCitations, setSearchCitations] = useState<string[]>([]);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const [showMemoryTester, setShowMemoryTester] = useState(false);
   const isMobile = useIsMobile();
@@ -56,7 +59,10 @@ export default function Chat() {
   const streamResponse = async (targetConversationId: string, content: string) => {
     console.log('🚀 Starting stream response');
     setIsStreaming(true);
+    setIsSearching(true);
     setStreamingMessage("");
+    setSearchCitations([]);
+    setSearchQuery(content);
 
     const response = await fetch(`/api/conversations/${targetConversationId}/messages`, {
       method: "POST",
@@ -73,6 +79,7 @@ export default function Chat() {
 
     const decoder = new TextDecoder();
     let accumulated = "";
+    let actualContentStarted = false;
     let chunkCount = 0;
 
     try {
@@ -81,10 +88,40 @@ export default function Chat() {
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        accumulated += chunk;
         chunkCount++;
         
-        console.log(`📦 Chunk ${chunkCount}: "${chunk}" (accumulated: ${accumulated.length} chars)`);
+        console.log(`📦 Chunk ${chunkCount}: "${chunk}"`);
+        
+        // Check for search metadata
+        if (chunk.includes('[SEARCH_META]') && chunk.includes('[/SEARCH_META]')) {
+          const metaMatch = chunk.match(/\[SEARCH_META\](.*?)\[\/SEARCH_META\]/);
+          if (metaMatch) {
+            try {
+              const searchMeta = JSON.parse(metaMatch[1]);
+              console.log('🔍 Search metadata received:', searchMeta);
+              
+              if (searchMeta.searchPerformed) {
+                setSearchCitations(searchMeta.citations || []);
+                setSearchQuery(searchMeta.searchQuery || content);
+              }
+              setIsSearching(false);
+            } catch (e) {
+              console.error('Failed to parse search metadata:', e);
+              setIsSearching(false);
+            }
+          }
+          // Don't add metadata to accumulated content
+          continue;
+        }
+        
+        // Once we get actual content, stop showing search indicator
+        if (!actualContentStarted && chunk.trim() && !chunk.includes('[SEARCH_META]')) {
+          actualContentStarted = true;
+          setIsSearching(false);
+        }
+        
+        // Add to accumulated content
+        accumulated += chunk;
         
         // Update state immediately for each chunk
         setStreamingMessage(accumulated);
@@ -96,6 +133,7 @@ export default function Chat() {
       console.log(`✅ Stream complete: ${chunkCount} chunks, ${accumulated.length} chars`);
     } catch (error) {
       console.error('❌ Stream error:', error);
+      setIsSearching(false);
       throw error;
     }
 
@@ -106,13 +144,14 @@ export default function Chat() {
         conversationId: targetConversationId,
         role: 'assistant',
         content: accumulated,
-        metadata: null,
+        metadata: searchCitations.length > 0 ? { citations: searchCitations } : null,
         createdAt: new Date(),
       };
       
       console.log('💾 Adding final message to optimistic state');
       setOptimisticMessages(current => [...current, assistantMessage]);
       setIsStreaming(false);
+      setIsSearching(false);
       setStreamingMessage("");
     });
   };
@@ -146,7 +185,9 @@ export default function Chat() {
     onError: (error) => {
       console.error('Send message error:', error);
       setIsStreaming(false);
+      setIsSearching(false);
       setStreamingMessage("");
+      setSearchCitations([]);
       setOptimisticMessages([]);
       
       if (isUnauthorizedError(error)) {
@@ -196,6 +237,9 @@ export default function Chat() {
     setOptimisticMessages([]);
     setStreamingMessage("");
     setIsStreaming(false);
+    setIsSearching(false);
+    setSearchCitations([]);
+    setSearchQuery(undefined);
   }, [conversationId, isMobile]);
 
   return (
@@ -279,6 +323,9 @@ export default function Chat() {
               messages={allMessages}
               streamingMessage={streamingMessage}
               isStreaming={isStreaming}
+              isSearching={isSearching}
+              searchQuery={searchQuery}
+              searchCitations={searchCitations}
               user={user}
               conversationId={conversationId}
             />

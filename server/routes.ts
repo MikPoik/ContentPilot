@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertConversationSchema, insertMessageSchema, updateUserProfileSchema, insertMemorySchema } from "@shared/schema";
-import { generateChatResponse, generateConversationTitle, extractProfileInfo, generateEmbedding, extractMemoriesFromConversation } from "./services/openai";
+import { generateChatResponse, generateConversationTitle, extractProfileInfo, generateEmbedding, extractMemoriesFromConversation, type ChatResponseWithMetadata } from "./services/openai";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -185,10 +185,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate AI response stream with user profile and memories
       const aiResponseStart = Date.now();
       console.log(`🤖 [CHAT_FLOW] Starting AI response generation...`);
-      const responseStream = await generateChatResponse(chatHistory, user, relevantMemories);
+      const responseWithMetadata: ChatResponseWithMetadata = await generateChatResponse(chatHistory, user, relevantMemories);
       let fullResponse = '';
 
-      const reader = responseStream.getReader();
+      // Send search metadata first if search was performed
+      if (responseWithMetadata.searchPerformed) {
+        const searchMetadata = JSON.stringify({
+          type: 'search_metadata',
+          searchPerformed: true,
+          citations: responseWithMetadata.citations,
+          searchQuery: responseWithMetadata.searchQuery
+        });
+        res.write(`[SEARCH_META]${searchMetadata}[/SEARCH_META]\n`);
+        if (typeof (res as any).flush === 'function') {
+          try { (res as any).flush(); } catch {}
+        }
+        console.log(`🔍 [CHAT_FLOW] Search metadata sent: ${responseWithMetadata.citations.length} citations`);
+      }
+
+      const reader = responseWithMetadata.stream.getReader();
       
       try {
         while (true) {

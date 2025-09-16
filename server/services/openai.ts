@@ -76,18 +76,29 @@ Always be conversational, enthusiastic, and provide specific, actionable advice.
   return personalizedPrompt;
 }
 
-export async function generateChatResponse(messages: ChatMessage[], user?: User, memories?: any[]): Promise<ReadableStream<string>> {
+export interface ChatResponseWithMetadata {
+  stream: ReadableStream<string>;
+  searchPerformed: boolean;
+  citations: string[];
+  searchQuery?: string;
+}
+
+export async function generateChatResponse(messages: ChatMessage[], user?: User, memories?: any[]): Promise<ChatResponseWithMetadata> {
   const startTime = Date.now();
   console.log(`🤖 [AI_SERVICE] Building system prompt...`);
   
   // Check if the latest user message needs web search
   const latestUserMessage = messages.filter(m => m.role === 'user').slice(-1)[0]?.content || '';
   let webSearchContext: { context: string; citations: string[] } | undefined = undefined;
+  let searchPerformed = false;
+  let searchQuery: string | undefined = undefined;
 
   if (perplexityService.isConfigured() && perplexityService.shouldUseWebSearch(latestUserMessage)) {
     try {
       console.log(`🔍 [AI_SERVICE] Performing web search for: "${latestUserMessage.substring(0, 100)}..."`);
       const searchStart = Date.now();
+      searchPerformed = true;
+      searchQuery = latestUserMessage;
       webSearchContext = await perplexityService.searchForChatContext(
         latestUserMessage,
         "Provide current, relevant information that would help a social media content strategist give accurate advice. Focus on recent trends, current events, or factual data mentioned in the query."
@@ -95,6 +106,7 @@ export async function generateChatResponse(messages: ChatMessage[], user?: User,
       console.log(`🔍 [AI_SERVICE] Web search completed: ${Date.now() - searchStart}ms (${webSearchContext.citations.length} sources)`);
     } catch (error) {
       console.log(`❌ [AI_SERVICE] Web search failed, continuing without search context:`, error);
+      searchPerformed = false;
     }
   }
   
@@ -120,7 +132,7 @@ export async function generateChatResponse(messages: ChatMessage[], user?: User,
   });
   console.log(`🤖 [AI_SERVICE] OpenAI stream initialized: ${Date.now() - openaiRequestStart}ms`);
 
-  return new ReadableStream({
+  const responseStream = new ReadableStream({
     async start(controller) {
       let chunkCount = 0;
       let totalContentLength = 0;
@@ -148,6 +160,13 @@ export async function generateChatResponse(messages: ChatMessage[], user?: User,
       }
     },
   });
+
+  return {
+    stream: responseStream,
+    searchPerformed,
+    citations: webSearchContext?.citations || [],
+    searchQuery: searchPerformed ? searchQuery : undefined
+  };
 }
 
 export async function generateConversationTitle(messages: ChatMessage[]): Promise<string> {

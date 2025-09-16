@@ -1,11 +1,16 @@
 import { useEffect, useRef } from "react";
 import { type Message, type User } from "@shared/schema";
 import ReactMarkdown from "react-markdown";
+import SearchIndicator from "./search-indicator";
+import SearchCitations from "./search-citations";
 
 interface MessageListProps {
   messages: Message[];
   streamingMessage: string;
   isStreaming: boolean;
+  isSearching?: boolean;
+  searchQuery?: string;
+  searchCitations?: string[];
   user?: User;
   conversationId?: string;
 }
@@ -14,6 +19,9 @@ export default function MessageList({
   messages, 
   streamingMessage, 
   isStreaming, 
+  isSearching = false,
+  searchQuery,
+  searchCitations = [],
   user,
   conversationId 
 }: MessageListProps) {
@@ -118,6 +126,14 @@ What type of content creator are you? Are you focused on a specific niche like f
                 </div>
               )}
             </div>
+            
+            {/* Show citations for assistant messages if available */}
+            {message.role === 'assistant' && message.metadata?.citations && (
+              <SearchCitations 
+                citations={message.metadata.citations as string[]} 
+                searchQuery={message.metadata.searchQuery as string}
+              />
+            )}
             <div className={`text-xs text-gray-500 mt-1 px-1 ${
               message.role === 'user' ? 'text-right' : ''
             }`}>
@@ -154,9 +170,17 @@ What type of content creator are you? Are you focused on a specific niche like f
             <span className="text-white text-sm">🤖</span>
           </div>
           <div className="flex-1 max-w-3xl">
+            {/* Show search indicator while searching */}
+            {isSearching && (
+              <SearchIndicator 
+                isSearching={true} 
+                searchQuery={searchQuery} 
+              />
+            )}
+            
             <div className="bg-gray-100 rounded-2xl rounded-tl-md px-4 py-3">
               {(() => {
-                console.log('💬 MessageList render - isStreaming:', isStreaming, 'streamingMessage length:', streamingMessage?.length || 0, 'streamingMessage exists:', !!streamingMessage, 'content preview:', streamingMessage?.substring(0, 50));
+                console.log('💬 MessageList render - isStreaming:', isStreaming, 'isSearching:', isSearching, 'streamingMessage length:', streamingMessage?.length || 0, 'streamingMessage exists:', !!streamingMessage, 'content preview:', streamingMessage?.substring(0, 50));
                 
                 // Force show streaming content if we have any streamingMessage
                 if (streamingMessage && streamingMessage.length > 0) {
@@ -179,6 +203,15 @@ What type of content creator are you? Are you focused on a specific niche like f
                 }
               })()}
             </div>
+            
+            {/* Show citations for streaming response if available */}
+            {searchCitations.length > 0 && !isSearching && streamingMessage && (
+              <SearchCitations 
+                citations={searchCitations} 
+                searchQuery={searchQuery}
+              />
+            )}
+            
             <div className="text-xs text-gray-500 mt-1 px-1">Just now</div>
           </div>
         </div>

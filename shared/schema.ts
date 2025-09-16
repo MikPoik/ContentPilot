@@ -82,10 +82,26 @@ export const insertMemorySchema = createInsertSchema(memories).pick({
   metadata: true,
 });
 
+// Search metadata interface for messages
+export interface SearchMessageMetadata {
+  citations?: string[];
+  searchQuery?: string;
+  source?: 'web_search';
+}
+
+// General message metadata interface
+export interface MessageMetadata extends Record<string, any> {
+  citations?: string[];
+  searchQuery?: string;
+  source?: string;
+}
+
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type Conversation = typeof conversations.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
-export type Message = typeof messages.$inferSelect;
+export type Message = typeof messages.$inferSelect & {
+  metadata?: MessageMetadata | null;
+};
 export type InsertMemory = z.infer<typeof insertMemorySchema>;
 export type Memory = typeof memories.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
