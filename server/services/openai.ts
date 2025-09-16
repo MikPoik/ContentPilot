@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { type User, type UpdateUserProfile } from "@shared/schema";
+import { perplexityService } from "./perplexity";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ 
@@ -11,7 +12,7 @@ export interface ChatMessage {
   content: string;
 }
 
-function buildPersonalizedSystemPrompt(user?: User, memories?: any[]): string {
+function buildPersonalizedSystemPrompt(user?: User, memories?: any[], webSearchContext?: { context: string; citations: string[] }): string {
   const basePrompt = `You are ContentCraft AI, a friendly and expert social media content strategist. Your role is to:
 
 1. Get to know the user personally - ask for their name if you don't know it yet
@@ -61,6 +62,16 @@ Always be conversational, enthusiastic, and provide specific, actionable advice.
     });
     personalizedPrompt += `\n\nReference these memories naturally when relevant to provide continuity and personalized advice.`;
   }
+
+  // Add web search context if available
+  if (webSearchContext && webSearchContext.context) {
+    personalizedPrompt += `\n\nCURRENT WEB SEARCH RESULTS (use this up-to-date information to provide accurate, current advice):`;
+    personalizedPrompt += `\n${webSearchContext.context}`;
+    if (webSearchContext.citations.length > 0) {
+      personalizedPrompt += `\n\nSOURCES: ${webSearchContext.citations.slice(0, 3).join(', ')}`;
+      personalizedPrompt += `\n\nWhen referencing this information, naturally mention it's current/recent information and cite sources when helpful.`;
+    }
+  }
   
   return personalizedPrompt;
 }
@@ -69,8 +80,26 @@ export async function generateChatResponse(messages: ChatMessage[], user?: User,
   const startTime = Date.now();
   console.log(`🤖 [AI_SERVICE] Building system prompt...`);
   
+  // Check if the latest user message needs web search
+  const latestUserMessage = messages.filter(m => m.role === 'user').slice(-1)[0]?.content || '';
+  let webSearchContext: { context: string; citations: string[] } | undefined = undefined;
+
+  if (perplexityService.isConfigured() && perplexityService.shouldUseWebSearch(latestUserMessage)) {
+    try {
+      console.log(`🔍 [AI_SERVICE] Performing web search for: "${latestUserMessage.substring(0, 100)}..."`);
+      const searchStart = Date.now();
+      webSearchContext = await perplexityService.searchForChatContext(
+        latestUserMessage,
+        "Provide current, relevant information that would help a social media content strategist give accurate advice. Focus on recent trends, current events, or factual data mentioned in the query."
+      );
+      console.log(`🔍 [AI_SERVICE] Web search completed: ${Date.now() - searchStart}ms (${webSearchContext.citations.length} sources)`);
+    } catch (error) {
+      console.log(`❌ [AI_SERVICE] Web search failed, continuing without search context:`, error);
+    }
+  }
+  
   const promptBuildStart = Date.now();
-  const systemPrompt = buildPersonalizedSystemPrompt(user, memories);
+  const systemPrompt = buildPersonalizedSystemPrompt(user, memories, webSearchContext);
   console.log(`🤖 [AI_SERVICE] System prompt built: ${Date.now() - promptBuildStart}ms (length: ${systemPrompt.length} chars)`);
 
   const chatMessages: ChatMessage[] = [

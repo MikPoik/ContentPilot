@@ -80,9 +80,33 @@ Preferred communication style: Simple, everyday language.
 - **@neondatabase/serverless**: PostgreSQL database connectivity.
 - **drizzle-orm**: Type-safe ORM.
 - **openai**: OpenAI's GPT-4o integration.
+- **Perplexity API**: Web search capabilities for real-time information retrieval.
 - **@tanstack/react-query**: Server state management.
 - **@radix-ui/***: UI component library.
 - **tailwindcss**: CSS framework.
+
+### Perplexity Integration
+
+The application includes a Perplexity service for web search capabilities that enhances AI responses with real-time information.
+
+**Configuration:**
+- Requires `PERPLEXITY_API_KEY` environment variable
+- Automatically integrates with the chat service when configured
+- Gracefully degrades when API key is not available
+
+**Features:**
+- Automatic detection of queries that would benefit from web search
+- Real-time information retrieval for current events, trends, and facts
+- Citation tracking for source attribution
+- Configurable search parameters (recency, domains, etc.)
+
+**Usage:**
+The service is automatically used by the chat system when:
+- User queries contain time-sensitive keywords (today, current, latest, etc.)
+- Questions involve factual data, statistics, or current events
+- Business/product-specific inquiries are detected
+
+**Service Location:** `server/services/perplexity.ts`
 
 ## Source tree
 
@@ -121,7 +145,8 @@ Source Code Tree with Directory Structure:
 │   ├── 📄 replitAuth.ts
 │   ├── 📄 routes.ts
 │   ├── 📁 services/
-│   │   └── 📄 openai.ts
+│   │   ├── 📄 openai.ts
+│   │   └── 📄 perplexity.ts
 │   ├── 📄 storage.ts
 │   └── 📄 vite.ts
 ├── 📁 shared/
