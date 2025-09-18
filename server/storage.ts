@@ -156,6 +156,32 @@ export class DatabaseStorage implements IStorage {
       mergedProfileData.contentNiche = Array.from(normalized.values());
     }
 
+    // Handle profileData merging - merge nested object fields instead of replacing
+    if (profileData.profileData && typeof profileData.profileData === 'object' && profileData.profileData !== null) {
+      const existingProfileData = currentUser.profileData as any || {};
+      const newProfileData = profileData.profileData as any;
+      
+      // Merge the profileData objects, preserving existing fields
+      const mergedNestedProfileData = { ...existingProfileData };
+      
+      Object.keys(newProfileData).forEach(key => {
+        const newValue = newProfileData[key];
+        
+        // Handle array fields (like contentGoals) - merge arrays instead of replacing
+        if (Array.isArray(newValue) && Array.isArray(mergedNestedProfileData[key])) {
+          // Merge arrays and remove duplicates
+          const combined = [...(mergedNestedProfileData[key] || []), ...newValue];
+          mergedNestedProfileData[key] = [...new Set(combined.filter(item => item != null && item !== ''))];
+        } else if (newValue !== null && newValue !== undefined && newValue !== '') {
+          // For non-array fields, update only if new value is meaningful
+          mergedNestedProfileData[key] = newValue;
+        }
+        // If newValue is null/undefined/empty, keep existing value (don't overwrite)
+      });
+      
+      mergedProfileData.profileData = mergedNestedProfileData;
+    }
+
     const [user] = await db
       .update(users)
       .set({ ...mergedProfileData, updatedAt: new Date() })

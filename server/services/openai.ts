@@ -607,17 +607,25 @@ export async function extractProfileInfo(userMessage: string, aiResponse: string
           role: 'system',
           content: `Analyze the conversation between a user and ContentCraft AI to extract profile information. Return ONLY valid JSON with these fields if mentioned:
 - firstName: string (user's first name)
-- lastName: string (user's last name)
-- contentNiche: array of strings (e.g. ["fitness", "business"]) - CRITICAL: ALWAYS include existing content niches from the current profile plus any new ones mentioned. Never replace existing niches unless user explicitly says they want to stop focusing on something. Use consistent lowercase casing.
+- lastName: string (user's last name)  
+- contentNiche: array of strings (e.g. ["fitness", "business"]) - CRITICAL: Only include NEW content niches mentioned. Never include existing ones unless user explicitly says they stopped focusing on something. Use consistent lowercase casing.
 - primaryPlatform: string (e.g. "instagram", "tiktok", "linkedin")
 - profileData: object with fields like targetAudience, brandVoice, businessType, contentGoals (array)
 
-Only include fields that are explicitly mentioned or clearly implied. Return empty object {} if no new profile info found.
+CRITICAL MERGING RULES:
+- For contentNiche: Only include NEW niches to ADD to existing ones, never return existing niches unless user explicitly says they stopped something
+- For profileData fields: Only include NEW or ADDITIONAL information, never repeat existing values unless user explicitly corrects them
+- For array fields in profileData (like contentGoals): Only include new items to ADD to existing arrays
+- Return empty object {} if no genuinely NEW profile info found
 
-For contentNiche: If user mentions expanding, adding, or also doing content in new areas, combine ALL existing niches with the new ones. Examples:
-- Current: ["therapy"] + User says "expanded to AI consulting" → Return: ["therapy", "ai consulting"]
-- Current: ["fitness", "nutrition"] + User says "also do business coaching" → Return: ["fitness", "nutrition", "business coaching"]
-Only exclude existing niches if user explicitly says they stopped or no longer focus on them.`
+Examples for contentNiche:
+- Current: ["therapy"] + User says "expanded to AI consulting" → Return: ["ai consulting"] (will be merged with existing)
+- Current: ["fitness", "nutrition"] + User says "also do business coaching" → Return: ["business coaching"] (will be merged)
+- Only exclude existing niches if user explicitly says they stopped or no longer focus on them
+
+Examples for profileData:
+- If user already has targetAudience: "busy professionals" and mentions "working moms", return targetAudience that includes both
+- If user already has contentGoals: ["engagement"] and mentions education, return contentGoals: ["education"] (will be merged)`
         },
         {
           role: 'user',
