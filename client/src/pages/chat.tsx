@@ -291,7 +291,7 @@ export default function Chat() {
               <Menu className="h-4 w-4" />
             </Button>
             <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce-subtle flex-shrink-0"></div>
-            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate overflow-hidden whitespace-nowrap text-ellipsis max-w-0 flex-1">
+            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate min-w-0 flex-1">
               {currentConversation?.title || "ContentCraft AI"}
             </h2>
           </div>
