@@ -13,7 +13,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Share, MoreVertical, LogOut, TestTube } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Menu, X, Share, MoreVertical, LogOut, TestTube, Download } from "lucide-react";
 import MemoryTester from "../components/MemoryTester";
 
 export default function Chat() {
@@ -273,24 +280,26 @@ export default function Chat() {
       <div className="flex-1 flex flex-col h-full bg-white">
         {/* Header */}
         <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm min-w-0">
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 min-w-0 flex-1">
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden p-2 text-gray-500 hover:text-gray-700"
+              className="lg:hidden p-2 text-gray-500 hover:text-gray-700 flex-shrink-0"
               onClick={() => setSidebarOpen(true)}
               data-testid="button-toggle-sidebar"
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <div className="flex items-center space-x-2 min-w-0 flex-1 max-w-0">
+            <div className="flex items-center space-x-2 min-w-0 flex-1">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce-subtle flex-shrink-0"></div>
-              <h2 className="text-lg font-semibold text-gray-900 truncate overflow-hidden text-ellipsis whitespace-nowrap">
+              <h2 className="text-lg font-semibold text-gray-900 truncate">
                 {currentConversation?.title || "ContentCraft AI"}
               </h2>
             </div>
           </div>
-          <div className="flex items-center space-x-1 flex-shrink-0">
+          
+          {/* Desktop Action Buttons */}
+          <div className="hidden md:flex items-center space-x-1 flex-shrink-0">
             <Button 
               variant="ghost" 
               size="sm" 
@@ -308,9 +317,6 @@ export default function Chat() {
             <Button variant="ghost" size="sm" className="p-2 text-gray-500 hover:text-gray-700">
               <Share className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="p-2 text-gray-500 hover:text-gray-700">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
             <Button 
               variant="ghost" 
               size="sm" 
@@ -320,6 +326,37 @@ export default function Chat() {
             >
               <LogOut className="h-4 w-4" />
             </Button>
+          </div>
+
+          {/* Mobile Dropdown Menu */}
+          <div className="md:hidden flex-shrink-0">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="p-2 text-gray-500 hover:text-gray-700">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => setShowMemoryTester(!showMemoryTester)}>
+                  <TestTube className="h-4 w-4 mr-2" />
+                  {showMemoryTester ? 'Hide' : 'Show'} Memory Tester
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem disabled={!conversationId || allMessages.length === 0}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Chat
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Share className="h-4 w-4 mr-2" />
+                  Share
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => window.location.href = "/api/logout"}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
