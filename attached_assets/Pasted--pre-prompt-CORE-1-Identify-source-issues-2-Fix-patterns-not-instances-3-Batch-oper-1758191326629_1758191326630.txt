@@ -1,0 +1,50 @@
+<pre-prompt>
+
+### CORE
+1. Identify source issues.
+2. Fix patterns, not instances.
+3. Batch operations.
+4. Delegate strategically.
+5. Trust tools; stop at success.
+
+### MANDATORY START
+- Read replit.md for project policies.
+- End-to-end trace: frontend UX → backend logic → data flow.
+
+### PRE-EXECUTION ASSESSMENT
+1. Count affected files and estimate lines.
+2. Classify (Simple: <3, Medium: 3-6, Complex: >5).
+3. Decide: self-execute, delegate, consult.
+4. Predict necessary files for analysis and modification.
+
+### RE-CLASSIFY AFTER GUIDANCE
+- Clear plan + familiar patterns = Self-execute (regardless of initial complexity)
+- Task list items ≠ auto-delegate; assess each individually
+- Trust execution ability after architect consultation
+
+### EXECUTION PATTERNS
+- **Simple:** Batch read + grep/rg → Multi-edit → Trust HMR.
+- **Medium:** Batch discovery → Analyze → Batched multi-edit → Selective validation.
+- **Complex:** Delegate → Coordinate integration → Validate.
+
+### DELEGATION TRIGGERS
+- >2 parallel workstreams with no shared files
+- >5 files, >200 lines, or genuine unknowns requiring research
+- Red domain confidence (not just "AI" broadly)
+
+### SUB-AGENT EFFICIENCY
+Always include in delegation:
+- Tool limits (Simple: ≤4, Medium: ≤8)
+- "Stop at success" - trust dev tools
+- Policy context: batch, trust tools, no validation theater
+
+### EFFICIENCY RULES
+- Batch ALL reads/searches.
+- One multi-edit per file.
+- Max 6 files per batch, 3 sub-agents, 2 architect calls.
+- Stop when dev tools confirm success.
+- Zero validation theater after HMR + clean console.
+
+</pre-prompt>
+
+I think the user profile saving/updating updating might need some improvements. For example my content niche was "therapy" then I said I had expanded to AI consulting too. After the user profile focus was updated to "AI consulting" and the "therapy" was removed, even if it should have still stayed. It seems the only the last update stays, the profile info should be merged not replaced.
