@@ -279,8 +279,8 @@ export default function Chat() {
       {/* Main chat area */}
       <div className="flex-1 flex flex-col h-full bg-white">
         {/* Header */}
-        <header className="flex items-center bg-white border-b border-gray-200 px-3 py-3 shadow-sm min-w-0">
-          <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+        <header className="flex items-center bg-white border-b border-gray-200 px-2 py-2 shadow-sm">
+          <div className="flex items-center gap-1 min-w-0 flex-1 overflow-hidden pr-2">
             <Button
               variant="ghost"
               size="sm"
@@ -290,8 +290,8 @@ export default function Chat() {
             >
               <Menu className="h-4 w-4" />
             </Button>
-            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce-subtle flex-shrink-0"></div>
-            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate min-w-0 flex-1">
+            <div className="w-1 h-1 bg-emerald-500 rounded-full flex-shrink-0"></div>
+            <h2 className="text-xs font-medium text-gray-800 dark:text-gray-100 truncate min-w-0">
               {currentConversation?.title || "ContentCraft AI"}
             </h2>
           </div>
