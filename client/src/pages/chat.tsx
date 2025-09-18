@@ -91,24 +91,21 @@ export default function Chat() {
         const chunk = decoder.decode(value, { stream: true });
         chunkCount++;
         
-        console.log(`📦 Chunk ${chunkCount}: "${chunk}"`);
+        // Simple, direct metadata filtering - apply to each chunk immediately
+        let chunkContent = chunk;
         
-        // Simple and robust metadata filtering
-        rawBuffer += chunk;
+        // Filter out workflow metadata blocks directly from this chunk
+        chunkContent = chunkContent.replace(/\[WORKFLOW_META\][\s\S]*?\[\/WORKFLOW_META\]/g, '');
         
-        // Filter out complete metadata blocks using regex
-        let filteredContent = rawBuffer;
-        
-        // Remove all complete [SEARCH_META]...[/SEARCH_META] blocks (with newline support)
+        // Filter out search metadata blocks and process them
         const searchMetaRegex = /\[SEARCH_META\][\s\S]*?\[\/SEARCH_META\]/g;
-        const searchMatches = filteredContent.match(searchMetaRegex);
+        const searchMatches = chunkContent.match(searchMetaRegex);
         if (searchMatches) {
           searchMatches.forEach(match => {
             try {
               const metaContent = match.match(/\[SEARCH_META\]([\s\S]*?)\[\/SEARCH_META\]/);
               if (metaContent) {
                 const searchMeta = JSON.parse(metaContent[1]);
-                console.log('🔍 Search metadata received:', searchMeta);
                 if (searchMeta.searchPerformed) {
                   setSearchCitations(searchMeta.citations || []);
                   setSearchQuery(searchMeta.searchQuery || content);
@@ -122,50 +119,11 @@ export default function Chat() {
               setIsSearching(false);
             }
           });
-          filteredContent = filteredContent.replace(searchMetaRegex, '');
         }
+        chunkContent = chunkContent.replace(searchMetaRegex, '');
         
-        // Remove all complete [WORKFLOW_META]...[/WORKFLOW_META] blocks (with newline support)
-        const workflowMetaRegex = /\[WORKFLOW_META\][\s\S]*?\[\/WORKFLOW_META\]/g;
-        const workflowMatches = filteredContent.match(workflowMetaRegex);
-        if (workflowMatches) {
-          workflowMatches.forEach(match => {
-            try {
-              const metaContent = match.match(/\[WORKFLOW_META\]([\s\S]*?)\[\/WORKFLOW_META\]/);
-              if (metaContent) {
-                const workflowMeta = JSON.parse(metaContent[1]);
-                console.log('🔄 Workflow metadata received and FILTERED OUT:', workflowMeta);
-              }
-            } catch (e) {
-              console.error('Failed to parse workflow metadata:', e);
-            }
-          });
-          filteredContent = filteredContent.replace(workflowMetaRegex, '');
-        }
-        
-        // Check if we have incomplete metadata that needs to be buffered
-        const hasIncompleteSearchMeta = filteredContent.includes('[SEARCH_META]') && !filteredContent.includes('[/SEARCH_META]');
-        const hasIncompleteWorkflowMeta = filteredContent.includes('[WORKFLOW_META]') && !filteredContent.includes('[/WORKFLOW_META]');
-        
-        if (hasIncompleteSearchMeta || hasIncompleteWorkflowMeta) {
-          // Keep incomplete metadata in buffer for next chunk
-          let splitIndex = filteredContent.length;
-          if (hasIncompleteSearchMeta) {
-            splitIndex = Math.min(splitIndex, filteredContent.lastIndexOf('[SEARCH_META]'));
-          }
-          if (hasIncompleteWorkflowMeta) {
-            splitIndex = Math.min(splitIndex, filteredContent.lastIndexOf('[WORKFLOW_META]'));
-          }
-          
-          const displayContent = filteredContent.substring(0, splitIndex);
-          rawBuffer = filteredContent.substring(splitIndex);
-          
-          accumulated += displayContent;
-        } else {
-          // No incomplete metadata, display all filtered content
-          accumulated += filteredContent;
-          rawBuffer = "";
-        }
+        // Add filtered chunk to accumulated content
+        accumulated += chunkContent;
         
         // Once we get actual content, stop showing search indicator
         if (!actualContentStarted && accumulated.trim()) {
