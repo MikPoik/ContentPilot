@@ -125,11 +125,10 @@ export default function Chat() {
         // Add to accumulated content
         accumulated += chunk;
         
-        // Update state immediately for each chunk
-        setStreamingMessage(accumulated);
-        
-        // Force React to process this update immediately
-        await new Promise(resolve => setTimeout(resolve, 1));
+        // Force immediate React update using flushSync for real-time streaming
+        flushSync(() => {
+          setStreamingMessage(accumulated);
+        });
       }
       
       console.log(`✅ Stream complete: ${chunkCount} chunks, ${accumulated.length} chars`);
