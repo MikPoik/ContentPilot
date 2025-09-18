@@ -279,19 +279,19 @@ export default function Chat() {
       {/* Main chat area */}
       <div className="flex-1 flex flex-col h-full bg-white">
         {/* Header */}
-        <header className="flex items-center bg-white border-b border-gray-200 px-4 py-3 shadow-sm min-w-0">
-          <div className="flex items-center gap-2 basis-0 flex-1 min-w-0">
+        <header className="flex items-center bg-white border-b border-gray-200 px-3 py-3 shadow-sm min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden p-2 text-gray-500 hover:text-gray-700 flex-none"
+              className="lg:hidden p-1 text-gray-500 hover:text-gray-700 flex-shrink-0"
               onClick={() => setSidebarOpen(true)}
               data-testid="button-toggle-sidebar"
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-4 w-4" />
             </Button>
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce-subtle flex-none"></div>
-            <h2 className="text-lg font-semibold text-gray-900 truncate flex-1 min-w-0 max-w-full">
+            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce-subtle flex-shrink-0"></div>
+            <h2 className="text-sm font-semibold text-gray-900 truncate overflow-hidden whitespace-nowrap text-ellipsis max-w-0 flex-1">
               {currentConversation?.title || "ContentCraft AI"}
             </h2>
           </div>
