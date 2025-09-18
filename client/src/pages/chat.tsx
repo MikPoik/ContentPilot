@@ -7,6 +7,7 @@ import { apiRequest } from "@/lib/queryClient";
 import Sidebar from "../components/chat/sidebar";
 import MessageList from "../components/chat/message-list";
 import MessageInput from "../components/chat/message-input";
+import ExportMenu from "../components/chat/export-menu";
 import { type Conversation, type Message, type User } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -299,6 +300,11 @@ export default function Chat() {
             >
               <TestTube className="h-4 w-4" />
             </Button>
+            <ExportMenu 
+              messages={allMessages}
+              conversation={currentConversation}
+              disabled={!conversationId || allMessages.length === 0}
+            />
             <Button variant="ghost" size="sm" className="p-2 text-gray-500 hover:text-gray-700">
               <Share className="h-4 w-4" />
             </Button>
