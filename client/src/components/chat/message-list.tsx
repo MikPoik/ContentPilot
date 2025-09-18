@@ -180,11 +180,11 @@ What type of content creator are you? Are you focused on a specific niche like f
             
             <div className="bg-gray-100 rounded-2xl rounded-tl-md px-4 py-3">
               {(() => {
-                console.log('💬 MessageList render - isStreaming:', isStreaming, 'isSearching:', isSearching, 'streamingMessage length:', streamingMessage?.length || 0, 'streamingMessage exists:', !!streamingMessage, 'content preview:', streamingMessage?.substring(0, 50));
+                //console.log('💬 MessageList render - isStreaming:', isStreaming, 'isSearching:', isSearching, 'streamingMessage length:', streamingMessage?.length || 0, 'streamingMessage exists:', !!streamingMessage, 'content preview:', streamingMessage?.substring(0, 50));
                 
                 // Force show streaming content if we have any streamingMessage
                 if (streamingMessage && streamingMessage.length > 0) {
-                  console.log('🎯 Rendering streaming content:', streamingMessage.length, 'chars');
+                  //console.log('🎯 Rendering streaming content:', streamingMessage.length, 'chars');
                   return (
                     <div className="text-gray-900 text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-p:leading-relaxed prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0">
                       <ReactMarkdown>{streamingMessage}</ReactMarkdown>
