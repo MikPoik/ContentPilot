@@ -6,7 +6,7 @@ ContentCraft AI is an AI-powered social media content strategist delivered as a 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-<policy>
+
     
 # Dynamic Development Workflow Policy v5.0
 
