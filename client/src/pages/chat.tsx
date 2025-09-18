@@ -93,115 +93,90 @@ export default function Chat() {
         
         console.log(`📦 Chunk ${chunkCount}: "${chunk}"`);
         
-        // Add chunk to raw buffer for metadata processing
+        // Simple and robust metadata filtering
         rawBuffer += chunk;
         
-        // Process and filter out complete metadata blocks
-        let processedContent = "";
-        let remainingBuffer = rawBuffer;
+        // Filter out complete metadata blocks using regex
+        let filteredContent = rawBuffer;
         
-        // Handle search metadata
-        while (remainingBuffer.includes('[SEARCH_META]') && remainingBuffer.includes('[/SEARCH_META]')) {
-          const startIndex = remainingBuffer.indexOf('[SEARCH_META]');
-          const endIndex = remainingBuffer.indexOf('[/SEARCH_META]') + '[/SEARCH_META]'.length;
-          
-          // Add content before metadata to processed content
-          processedContent += remainingBuffer.substring(0, startIndex);
-          
-          // Extract and process metadata
-          const metaMatch = remainingBuffer.substring(startIndex, endIndex).match(/\[SEARCH_META\](.*?)\[\/SEARCH_META\]/);
-          if (metaMatch) {
+        // Remove all complete [SEARCH_META]...[/SEARCH_META] blocks
+        const searchMetaRegex = /\[SEARCH_META\].*?\[\/SEARCH_META\]/g;
+        const searchMatches = filteredContent.match(searchMetaRegex);
+        if (searchMatches) {
+          searchMatches.forEach(match => {
             try {
-              const searchMeta = JSON.parse(metaMatch[1]);
-              console.log('🔍 Search metadata received:', searchMeta);
-              
-              if (searchMeta.searchPerformed) {
-                setSearchCitations(searchMeta.citations || []);
-                setSearchQuery(searchMeta.searchQuery || content);
-                setIsSearching(true);
-              } else {
-                setIsSearching(false);
+              const metaContent = match.match(/\[SEARCH_META\](.*?)\[\/SEARCH_META\]/);
+              if (metaContent) {
+                const searchMeta = JSON.parse(metaContent[1]);
+                console.log('🔍 Search metadata received:', searchMeta);
+                if (searchMeta.searchPerformed) {
+                  setSearchCitations(searchMeta.citations || []);
+                  setSearchQuery(searchMeta.searchQuery || content);
+                  setIsSearching(true);
+                } else {
+                  setIsSearching(false);
+                }
               }
             } catch (e) {
               console.error('Failed to parse search metadata:', e);
               setIsSearching(false);
             }
-          }
-          
-          // Continue processing remaining buffer
-          remainingBuffer = remainingBuffer.substring(endIndex);
+          });
+          filteredContent = filteredContent.replace(searchMetaRegex, '');
         }
         
-        // Handle workflow metadata
-        while (remainingBuffer.includes('[WORKFLOW_META]') && remainingBuffer.includes('[/WORKFLOW_META]')) {
-          const startIndex = remainingBuffer.indexOf('[WORKFLOW_META]');
-          const endIndex = remainingBuffer.indexOf('[/WORKFLOW_META]') + '[/WORKFLOW_META]'.length;
-          
-          // Add content before metadata to processed content
-          processedContent += remainingBuffer.substring(0, startIndex);
-          
-          // Extract and process metadata
-          const metaMatch = remainingBuffer.substring(startIndex, endIndex).match(/\[WORKFLOW_META\](.*?)\[\/WORKFLOW_META\]/);
-          if (metaMatch) {
+        // Remove all complete [WORKFLOW_META]...[/WORKFLOW_META] blocks
+        const workflowMetaRegex = /\[WORKFLOW_META\].*?\[\/WORKFLOW_META\]/g;
+        const workflowMatches = filteredContent.match(workflowMetaRegex);
+        if (workflowMatches) {
+          workflowMatches.forEach(match => {
             try {
-              const workflowMeta = JSON.parse(metaMatch[1]);
-              console.log('🔄 Workflow metadata received:', workflowMeta);
-              
-              // Workflow metadata is stored and processed but not displayed in UI
-              // This maintains the conversational flow while capturing workflow state
+              const metaContent = match.match(/\[WORKFLOW_META\](.*?)\[\/WORKFLOW_META\]/);
+              if (metaContent) {
+                const workflowMeta = JSON.parse(metaContent[1]);
+                console.log('🔄 Workflow metadata received and FILTERED OUT:', workflowMeta);
+              }
             } catch (e) {
               console.error('Failed to parse workflow metadata:', e);
             }
-          }
-          
-          // Continue processing remaining buffer
-          remainingBuffer = remainingBuffer.substring(endIndex);
+          });
+          filteredContent = filteredContent.replace(workflowMetaRegex, '');
         }
         
-        // Check for incomplete metadata tags in remaining buffer
-        const hasIncompleteSearchMeta = remainingBuffer.includes('[SEARCH_META]') && !remainingBuffer.includes('[/SEARCH_META]');
-        const hasIncompleteWorkflowMeta = remainingBuffer.includes('[WORKFLOW_META]') && !remainingBuffer.includes('[/WORKFLOW_META]');
+        // Check if we have incomplete metadata that needs to be buffered
+        const hasIncompleteSearchMeta = filteredContent.includes('[SEARCH_META]') && !filteredContent.includes('[/SEARCH_META]');
+        const hasIncompleteWorkflowMeta = filteredContent.includes('[WORKFLOW_META]') && !filteredContent.includes('[/WORKFLOW_META]');
         
         if (hasIncompleteSearchMeta || hasIncompleteWorkflowMeta) {
-          // Keep only the incomplete metadata tag and everything after it in buffer
-          let keepFromIndex = remainingBuffer.length;
-          
+          // Keep incomplete metadata in buffer for next chunk
+          let splitIndex = filteredContent.length;
           if (hasIncompleteSearchMeta) {
-            keepFromIndex = Math.min(keepFromIndex, remainingBuffer.lastIndexOf('[SEARCH_META]'));
+            splitIndex = Math.min(splitIndex, filteredContent.lastIndexOf('[SEARCH_META]'));
           }
           if (hasIncompleteWorkflowMeta) {
-            keepFromIndex = Math.min(keepFromIndex, remainingBuffer.lastIndexOf('[WORKFLOW_META]'));
+            splitIndex = Math.min(splitIndex, filteredContent.lastIndexOf('[WORKFLOW_META]'));
           }
           
-          // Add content before incomplete tag to processed content
-          processedContent += remainingBuffer.substring(0, keepFromIndex);
+          const displayContent = filteredContent.substring(0, splitIndex);
+          rawBuffer = filteredContent.substring(splitIndex);
           
-          // Keep only the incomplete tag fragment in buffer
-          rawBuffer = remainingBuffer.substring(keepFromIndex);
+          accumulated += displayContent;
         } else {
-          // No incomplete metadata, add all remaining content and clear buffer
-          processedContent += remainingBuffer;
+          // No incomplete metadata, display all filtered content
+          accumulated += filteredContent;
           rawBuffer = "";
         }
         
-        // Update accumulated content with only the NEW filtered content from this chunk
-        const newAccumulated = accumulated + processedContent;
-        
         // Once we get actual content, stop showing search indicator
-        if (!actualContentStarted && processedContent.trim()) {
+        if (!actualContentStarted && accumulated.trim()) {
           actualContentStarted = true;
           setIsSearching(false);
         }
         
-        // Only update if there's new content to show
-        if (newAccumulated !== accumulated) {
-          accumulated = newAccumulated;
-          
-          // Force immediate React update using flushSync for real-time streaming
-          flushSync(() => {
-            setStreamingMessage(accumulated);
-          });
-        }
+        // Force immediate React update using flushSync for real-time streaming
+        flushSync(() => {
+          setStreamingMessage(accumulated);
+        });
       }
       
       console.log(`✅ Stream complete: ${chunkCount} chunks, ${accumulated.length} chars`);
