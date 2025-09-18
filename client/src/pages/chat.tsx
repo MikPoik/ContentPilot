@@ -91,13 +91,9 @@ export default function Chat() {
         const chunk = decoder.decode(value, { stream: true });
         chunkCount++;
         
-        // Simple, direct metadata filtering - apply to each chunk immediately
+        // Process search metadata if present, then filter it out
         let chunkContent = chunk;
         
-        // Filter out workflow metadata blocks directly from this chunk
-        chunkContent = chunkContent.replace(/\[WORKFLOW_META\][\s\S]*?\[\/WORKFLOW_META\]/g, '');
-        
-        // Filter out search metadata blocks and process them
         const searchMetaRegex = /\[SEARCH_META\][\s\S]*?\[\/SEARCH_META\]/g;
         const searchMatches = chunkContent.match(searchMetaRegex);
         if (searchMatches) {
@@ -119,10 +115,10 @@ export default function Chat() {
               setIsSearching(false);
             }
           });
+          chunkContent = chunkContent.replace(searchMetaRegex, '');
         }
-        chunkContent = chunkContent.replace(searchMetaRegex, '');
         
-        // Add filtered chunk to accumulated content
+        // Add clean content to accumulated display
         accumulated += chunkContent;
         
         // Once we get actual content, stop showing search indicator
