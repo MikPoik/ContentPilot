@@ -6,53 +6,149 @@ ContentCraft AI is an AI-powered social media content strategist delivered as a 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Cost-Effective Development Workflow
+# Dynamic Development Workflow Policy v4.2
 
-**Target: 3-5 tool calls maximum**
+## Core Philosophy
+**Find source, not symptom → Fix pattern, not instance → Batch operations → Delegate strategically → Trust tools → Stop at success**
 
-## Core Rules
+## Pre-Execution Assessment (MANDATORY)
+1. **Classify complexity:** Count affected files + estimated lines + domain knowledge required
+2. **Validate domain confidence:** Green (familiar patterns) / Yellow (some unknowns) / Red (unfamiliar) → Any Red = delegate
+3. **Assess integration risk:** Shared state + interface conflicts + timing dependencies → High risk = sequential not parallel
+4. **Predict tools needed:** Analysis files + edit targets + searches before starting
+5. **Decision point:** Self-execute vs delegate vs architect consultation
 
-**Before Acting:** Plan ALL reads + edits mentally first
-**Information:** Batch all file reads in 1 call (predict what you need)
-**Changes:** Use multi_edit for everything, batch parallel edits
-**Verification:** Trust dev tools, stop when they confirm success
+## Delegation Decision Matrix
 
-## Critical Batching
+### Execute Self When:
+- **Simple:** <3 files, <50 lines, familiar patterns (Green domain knowledge)
+- **Sequential dependencies:** Changes must coordinate tightly (schema→API→UI)
+- **Single domain:** All changes within known expertise area
 
-**Phase 1:** read(file1) + read(file2) + grep(pattern) + diagnostics() [1 call]
-**Phase 2:** multi_edit(file1) + multi_edit(file2) + bash() [1-2 calls]
-**Phase 3:** restart_workflow() only if runtime fails [0-1 call]
+### Delegate When:
+- **Parallel workstreams:** >2 independent features that can run simultaneously (Low integration risk)
+- **Specialized domains:** ML/AI, advanced algorithms, security analysis, performance optimization (Yellow/Red domains)
+- **Research + implement:** Unknown patterns requiring investigation phase
+- **Large scope:** >5 files OR >200 lines OR multiple system boundaries
 
-## Anti-Patterns ❌
-- Sequential: read → analyze → read more → edit
-- Multiple edits to same file
-- Verification anxiety (checking working changes)
-- Using architect for normal development
+### Consult Architect When:
+- **Design uncertainty:** "How should I structure this integration?"
+- **Performance questions:** "Will this approach scale?"
+- **Pattern validation:** "Is this the right architectural approach?"
+- **Multiple escalations:** Task reclassified twice or integration conflicts
 
-## ZERO DELEGATION RULE 🚫
+## Execution Workflows by Complexity
 
-**NEVER USE:**
-- `start_subagent` - Execute everything yourself
-- `write_task_list` - Plan mentally, act directly  
-- `architect` - Only for genuine 3+ attempt failures
+### Simple Self-Execute Pattern
+**Triggers:** <3 files, <50 lines, known patterns  
+**Flow:** read(predicted files) + grep/rg → multi_edit(all changes) → trust HMR  
+**Tools:** 2-4 total calls  
+**Stop when:** Console confirms success
 
-**WHY:** Sub-agents cost 2x+ tool calls via context transfer + cold starts
+### Medium Coordinated Pattern  
+**Triggers:** 3-6 files, 50-200 lines, some unknowns  
+**Flow:** read(batch) + search_codebase → analyze → multi_edit(batched) → selective validation  
+**Consider delegation:** If >2 independent parallel workstreams identified  
+**Tools:** 4-8 total calls
 
-**ALWAYS:** Direct execution with batched tools = 3-5 calls total
+### Complex Delegation Pattern
+**Triggers:** >5 files, >200 lines, multiple domains  
+**Default:** Delegate specialized components to sub-agents  
+**Coordination:** Define boundaries → parallel execution → batch integration  
+**Tools:** Variable based on delegation scope
 
-## Surgical Precision
-- **UI issues:** component + parent + hooks
-- **API issues:** routes + services + schema  
-- **Data issues:** schema + storage + endpoints
-- **Errors:** Follow stack trace to deepest frame, work bottom-up, try the simplest fix, switch layers when stuck
+## Sub-Agent Handoff Protocol
 
-## Stop Conditions
-- HMR reload success
-- Console shows expected behavior
-- LSP errors cleared
-- Dev server responds correctly
+### Context Package (Enhanced Transfer)
+```
+Problem: [Specific issue in 1-2 sentences]
+Scope: [Exact files/components to modify]
+Success: [Concrete completion criteria]
+Constraints: [API patterns, coding style, dependencies]
+Context Anchors: [3 key architectural decisions that MUST be preserved]
+Integration Points: [Required interfaces/contracts]
+```
 
-**Success metric:** Fix root cause with pattern-based changes in minimum tool calls
+### Delegation Execution
+1. **Launch parallel sub-agents** with isolated scopes (no file overlap)
+2. **Monitor for early failure signals** (confusion, repeated questions)  
+3. **Abort if >3 clarification exchanges** → fallback to self-execute
+4. **Batch integrate outputs** → resolve conflicts → validate integration
+
+### Integration Rules
+- **File conflicts:** Manual review + merge, prefer implementation over config changes
+- **Pattern conflicts:** Apply most restrictive/defensive approach
+- **API conflicts:** Escalate to architect consultation
+- **Validation:** Test integration points, not individual components
+
+## Critical Stop/Continue/Escalate Decisions
+
+### Escalate Immediately When:
+- **4 tools spent without progress** → Mandatory reclassification
+- **"Familiar pattern" breaks** → Unknown APIs/complexity discovered
+- **Sub-agent asks >2 clarifying questions** → Context insufficient
+- **Integration conflicts emerge** → Architectural decisions needed
+
+### Stop Immediately When:
+- HMR reload succeeds + clean console + expected behavior visible
+- Simple change (<10 lines) + LSP errors cleared
+- Defensive patterns applied (try-catch, null checks, validation)
+
+### Continue Only When:
+- Complex business logic changes (validate thoroughly)
+- Security-sensitive modifications (test boundary conditions)  
+- Performance-critical paths (measure impact)
+- Database schema changes (verify migration + rollback)
+
+### Never Verify:
+- Import/export updates, variable renames, formatting changes
+- Adding logging, error messages, or debugging code
+- Configuration file updates with obvious values
+
+## Tool Cost Budget & Efficiency Rules
+
+### Cost Tiers (Use strategically)
+- **Free:** read(batch ≤6), multi_edit, grep/rg with specific patterns
+- **Moderate:** search_codebase, get_diagnostics, single sub-agent  
+- **Expensive:** architect consultation, multiple sub-agents, screenshot, restart_workflow
+
+### Efficiency Maximization
+- **Predict before acting:** All files needed for analysis AND modification
+- **Batch operations:** Never do serial reads when parallel possible
+- **One multi_edit per file:** Combine all changes to same file
+- **Trust first success:** Stop when development tools confirm working state
+- **Sub-agent ROI:** Delegate only if capability gain > coordination cost
+
+### Hard Limits
+- **Max 6 files per read batch** (context window management)
+- **Max 3 sub-agents simultaneously** (coordination complexity)
+- **Max 3 architect consultations per task** (cost control)
+- **Abort delegation if >5 coordination tool calls** (efficiency threshold)
+- **Any Red domain knowledge** → Automatic delegation or architect consult
+
+## Real-World Execution Examples
+
+### Example 1: "Add user authentication"
+**Assessment:** >5 files (routes, middleware, UI, database), multiple domains  
+**Decision:** Delegate - Auth specialist + UI specialist + Database specialist  
+**Expected tools:** 8-12 total (including coordination)
+
+### Example 2: "Fix localStorage error in sandbox"  
+**Assessment:** Pattern fix, <3 files, known solution  
+**Decision:** Self-execute  
+**Expected tools:** 3-4 total (search pattern → read files → multi_edit → trust HMR)
+
+### Example 3: "Optimize slow database queries"
+**Assessment:** Performance domain, unknown bottlenecks, research needed  
+**Decision:** Performance specialist sub-agent + architect consultation  
+**Expected tools:** 6-10 total
+
+**Success Metrics:**
+- **Tool efficiency:** Simple tasks ≤4 calls, Medium ≤8 calls, Complex ≤15 calls
+- **First-time success:** >80% of tasks complete without rework/restart
+- **Accurate classification:** >85% initial assessments correct (with escalation tracking)
+- **Delegation ROI:** Sub-agent tasks deliver >2x capability vs coordination cost
+- **Stop discipline:** Zero unnecessary verification after development tools confirm success
 
 
 ## System Architecture
