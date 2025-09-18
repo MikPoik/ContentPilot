@@ -159,15 +159,20 @@ export class PerplexityService {
    * 
    * @param query - The search query
    * @param contextPrompt - How to format the results for chat context
+   * @param recency - Time recency filter for search results
+   * @param domains - Domain filter for search results
    */
   async searchForChatContext(
     query: string,
-    contextPrompt: string = "Provide a concise summary of the most relevant and current information."
+    contextPrompt: string = "Provide a concise summary of the most relevant and current information.",
+    recency?: 'hour' | 'day' | 'week' | 'month' | 'year',
+    domains?: string[]
   ): Promise<{ context: string; citations: string[] }> {
     const result = await this.search(query, {
       systemPrompt: contextPrompt,
       temperature: 0.1,
-      searchRecencyFilter: 'week'
+      searchRecencyFilter: recency || 'week',
+      searchDomainFilter: domains?.length ? domains : undefined
     });
 
     return {
