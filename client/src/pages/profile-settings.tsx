@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,11 @@ export default function ProfileSettings() {
   const { user, isLoading } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Refetch user data when the page mounts to ensure fresh data
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+  }, [queryClient]);
 
   // Mutation for updating profile data
   const updateProfileMutation = useMutation({
