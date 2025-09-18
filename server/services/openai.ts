@@ -527,8 +527,15 @@ export async function generateChatResponse(messages: ChatMessage[], user?: User,
       let firstChunkReceived = false;
       
       try {
-        // Workflow analysis is complete and applied to system prompt
-        // No need to send workflow metadata to client - keep it server-side only
+        // Send workflow metadata chunk first
+        const workflowMeta = `[WORKFLOW_META]${JSON.stringify({
+          phase: workflowDecision.currentPhase,
+          missingFields: workflowDecision.missingFields,
+          readyToAdvance: workflowDecision.readyToAdvance,
+          shouldBlockContentGeneration: workflowDecision.shouldBlockContentGeneration,
+          profilePatch: workflowDecision.profilePatch
+        })}[/WORKFLOW_META]`;
+        controller.enqueue(workflowMeta);
         
         for await (const chunk of stream) {
           const content = chunk.choices[0]?.delta?.content || '';
