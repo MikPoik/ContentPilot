@@ -11,7 +11,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2024-06-20",
+  apiVersion: "2023-10-16",
 });
 import { setupAuth, isAuthenticated } from "./replitAuth";
 
@@ -145,7 +145,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const messagesUsed = currentUser.messagesUsed || 0;
       const messagesLimit = currentUser.messagesLimit || 10;
 
-      if (messagesUsed >= messagesLimit) {
+      // Check message limits (skip check for unlimited plans where messagesLimit is -1)
+      if (messagesLimit !== -1 && messagesUsed >= messagesLimit) {
         return res.status(429).json({ 
           message: "Message limit reached. Please upgrade your subscription.",
           messagesUsed,
