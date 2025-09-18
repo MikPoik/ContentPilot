@@ -392,11 +392,11 @@ export async function extractProfileInfo(userMessage: string, aiResponse: string
           content: `Analyze the conversation between a user and ContentCraft AI to extract profile information. Return ONLY valid JSON with these fields if mentioned:
 - firstName: string (user's first name)
 - lastName: string (user's last name)
-- contentNiche: array of strings (e.g. ["fitness", "business"])
+- contentNiche: array of strings (e.g. ["fitness", "business"]) - IMPORTANT: If new content niches are mentioned, include BOTH existing and new niches in the array to preserve all values. Use consistent casing and avoid duplicates.
 - primaryPlatform: string (e.g. "instagram", "tiktok", "linkedin")
 - profileData: object with fields like targetAudience, brandVoice, businessType, contentGoals (array)
 
-Only include fields that are explicitly mentioned or clearly implied. Return empty object {} if no new profile info found. DO NOT include existing information already known.`
+Only include fields that are explicitly mentioned or clearly implied. Return empty object {} if no new profile info found. For contentNiche specifically: if the user mentions additional or new content focus areas, combine them with existing ones to avoid data loss.`
         },
         {
           role: 'user',

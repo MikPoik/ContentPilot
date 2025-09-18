@@ -128,11 +128,23 @@ export class DatabaseStorage implements IStorage {
       const existingNiches = currentUser.contentNiche || [];
       const newNiches = profileData.contentNiche;
       
-      // Merge arrays and remove duplicates
+      // Merge arrays with proper normalization and deduplication
       const allNiches = [...existingNiches, ...newNiches];
-      const uniqueNiches = Array.from(new Set(allNiches.filter(niche => niche && niche.trim())));
+      const normalized = new Map<string, string>();
       
-      mergedProfileData.contentNiche = uniqueNiches;
+      allNiches.forEach(niche => {
+        if (niche && typeof niche === 'string') {
+          const trimmed = niche.trim();
+          if (trimmed) {
+            const key = trimmed.toLowerCase();
+            if (!normalized.has(key)) {
+              normalized.set(key, trimmed);
+            }
+          }
+        }
+      });
+      
+      mergedProfileData.contentNiche = Array.from(normalized.values());
     }
 
     const [user] = await db
