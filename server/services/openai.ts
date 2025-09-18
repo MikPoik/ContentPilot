@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { type User, type UpdateUserProfile } from "@shared/schema";
 import { perplexityService } from "./perplexity";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+// the newest OpenAI model is "gpt-4.1" which was released May 13, 2025. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
 });
@@ -95,7 +95,7 @@ export interface ChatResponseWithMetadata {
 export async function decideWebSearch(messages: ChatMessage[], user?: User): Promise<WebSearchDecision> {
   const startTime = Date.now();
   try {
-    console.log(`🧠 [AI_SERVICE] Analyzing search decision with GPT-4o...`);
+    console.log(`🧠 [AI_SERVICE] Analyzing search decision with GPT-4.1-mini...`);
     
     // Get last 5-8 messages for context
     const contextMessages = messages.slice(-8);
@@ -121,7 +121,7 @@ export async function decideWebSearch(messages: ChatMessage[], user?: User): Pro
       .join('\n');
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4.1-mini',
       messages: [
         {
           role: 'system',
@@ -173,7 +173,7 @@ Analyze the LATEST user message and decide if web search is needed.`
 
     const result = response.choices[0]?.message?.content?.trim();
     if (!result) {
-      console.log(`❌ [AI_SERVICE] No response from GPT-4o for search decision after ${Date.now() - startTime}ms`);
+      console.log(`❌ [AI_SERVICE] No response from GPT-4.1 for search decision after ${Date.now() - startTime}ms`);
       return {
         shouldSearch: false,
         confidence: 0.9,
@@ -306,7 +306,7 @@ export async function generateChatResponse(messages: ChatMessage[], user?: User,
   const openaiRequestStart = Date.now();
   console.log(`🤖 [AI_SERVICE] Sending request to OpenAI...`);
   const stream = await openai.chat.completions.create({
-    model: 'gpt-4o',
+    model: 'gpt-4.1',
     messages: chatMessages,
     stream: true,
     temperature: 0.7,
@@ -356,7 +356,7 @@ export async function generateConversationTitle(messages: ChatMessage[]): Promis
   try {
     console.log(`📝 [AI_SERVICE] Generating conversation title...`);
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4.1-mini',
       messages: [
         {
           role: 'system',
@@ -385,7 +385,7 @@ export async function extractProfileInfo(userMessage: string, aiResponse: string
   try {
     console.log(`👤 [AI_SERVICE] Extracting profile info...`);
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4.1-mini',
       messages: [
         {
           role: 'system',
@@ -479,7 +479,7 @@ export async function extractMemoriesFromConversation(userMessage: string, aiRes
   try {
     console.log(`🧠 [AI_SERVICE] Extracting memories from conversation...`);
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4.1-mini',
       messages: [
         {
           role: 'system',

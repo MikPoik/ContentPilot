@@ -6,150 +6,252 @@ ContentCraft AI is an AI-powered social media content strategist delivered as a 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-# Dynamic Development Workflow Policy v4.2
+<policy>
+    
+# Dynamic Development Workflow Policy v5.0
 
 ## Core Philosophy
+
 **Find source, not symptom → Fix pattern, not instance → Batch operations → Delegate strategically → Trust tools → Stop at success**
 
 ## Pre-Execution Assessment (MANDATORY)
-1. **Classify complexity:** Count affected files + estimated lines + domain knowledge required
-2. **Validate domain confidence:** Green (familiar patterns) / Yellow (some unknowns) / Red (unfamiliar) → Any Red = delegate
-3. **Assess integration risk:** Shared state + interface conflicts + timing dependencies → High risk = sequential not parallel
-4. **Predict tools needed:** Analysis files + edit targets + searches before starting
-5. **Decision point:** Self-execute vs delegate vs architect consultation
 
+1. **Classify complexity:** Count affected files + estimated lines + domain knowledge required
+2. **Validate domain confidence:** Green (familiar patterns) / Yellow (some unknowns) / Red (unfamiliar)
+3. **Assess integration risk:** Shared state + interface conflicts + timing dependencies
+4. **Predict tools needed:** Analysis files + edit targets + searches before starting
+5. **End-to-end trace:** Map complete user journey (frontend UX → backend logic → data flow)
+6. **Decision point:** Self-execute vs delegate vs architect consultation
+
+## Mandatory End-to-End Analysis
+
+**Before any changes:**
+- If file tree is unknown use `ls` to get updated list:  `ls -R client server shared | grep -vE "\.config|\.git|attached_assets|node_modules|\.upm|^\.|dist|build"`
+- Trace complete user journey from UI interaction to backend response
+- Identify both frontend and backend components affected
+- Don't assume backend fixes resolve frontend UX issues
+- Test hypothesis across full stack during investigation
+  
 ## Delegation Decision Matrix
 
-### Execute Self When:
-- **Simple:** <3 files, <50 lines, familiar patterns (Green domain knowledge)
+### Self-Execute When:
+
+- **Post-architect clarity:** Clear implementation plan exists, regardless of initial complexity
+- **Familiar patterns:** API calls, CRUD operations, UI changes, caching, form handling
 - **Sequential dependencies:** Changes must coordinate tightly (schema→API→UI)
-- **Single domain:** All changes within known expertise area
-
+- **Single stack layer:** Changes confined to frontend OR backend, not both
+- **Simple scope:** <3 files, <100 lines, Green domain knowledge
+- 
 ### Delegate When:
-- **Parallel workstreams:** >2 independent features that can run simultaneously (Low integration risk)
-- **Specialized domains:** ML/AI, advanced algorithms, security analysis, performance optimization (Yellow/Red domains)
-- **Research + implement:** Unknown patterns requiring investigation phase
-- **Large scope:** >5 files OR >200 lines OR multiple system boundaries
 
-### Consult Architect When:
-- **Design uncertainty:** "How should I structure this integration?"
-- **Performance questions:** "Will this approach scale?"
-- **Pattern validation:** "Is this the right architectural approach?"
-- **Multiple escalations:** Task reclassified twice or integration conflicts
+- **Parallel workstreams:** >2 independent features with no shared files
+- **Genuine unknowns:** Algorithms requiring research + implementation phase
+- **Red domain confidence:** Truly unfamiliar domains (not just "AI" broadly)
+- **Large coordination:** >5 files OR >200 lines OR multiple system boundaries
+- **Performance/Security:** Specialized optimization or security analysis
+-
+### Architect Consultation (Expensive - Use Sparingly)
 
+- **DESIGN PHASE:** Architectural decisions, unknown patterns, system design questions
+- **EXECUTION PHASE:** Only escalate if genuinely stuck, never for validation
+- **NEVER CALL FOR:** Routine bug fixes, UI changes, obvious implementations, confidence building
+**Hard Rule:** Max 2 architect calls per task (design consultation + emergency escalation)
+  
 ## Execution Workflows by Complexity
 
 ### Simple Self-Execute Pattern
-**Triggers:** <3 files, <50 lines, known patterns  
-**Flow:** read(predicted files) + grep/rg → multi_edit(all changes) → trust HMR  
-**Tools:** 2-4 total calls  
-**Stop when:** Console confirms success
+
+**Triggers:** <3 files, <100 lines, familiar patterns, OR clear implementation plan exists
+**Flow:** read(predicted files) + grep → multi_edit(batched) → trust HMR.
+**Tools:** ≤4 total calls
+**Stop:** When console confirms success, no verification needed
 
 ### Medium Coordinated Pattern  
-**Triggers:** 3-6 files, 50-200 lines, some unknowns  
-**Flow:** read(batch) + search_codebase → analyze → multi_edit(batched) → selective validation  
-**Consider delegation:** If >2 independent parallel workstreams identified  
-**Tools:** 4-8 total calls
+
+**Triggers:** 3-6 files, 100-200 lines, some unknowns, end-to-end changes
+**Flow:** read(batch) + search_codebase → analyze → multi_edit(batched) → selective testing
+**Tools:** ≤8 total calls
+**Validate:** Only integration points, trust individual components
 
 ### Complex Delegation Pattern
-**Triggers:** >5 files, >200 lines, multiple domains  
-**Default:** Delegate specialized components to sub-agents  
-**Coordination:** Define boundaries → parallel execution → batch integration  
-**Tools:** Variable based on delegation scope
 
-## Sub-Agent Handoff Protocol
+**Triggers:** >5 files, >200 lines, OR genuine parallel workstreams
+**Flow:** Define boundaries → delegate with isolated scopes → integrate outputs
+**Tools:** Variable, but abort if delegation coordination >5 calls
 
-### Context Package (Enhanced Transfer)
-```
-Problem: [Specific issue in 1-2 sentences]
-Scope: [Exact files/components to modify]
-Success: [Concrete completion criteria]
-Constraints: [API patterns, coding style, dependencies]
-Context Anchors: [3 key architectural decisions that MUST be preserved]
-Integration Points: [Required interfaces/contracts]
-```
+## Critical Decision Points
 
-### Delegation Execution
-1. **Launch parallel sub-agents** with isolated scopes (no file overlap)
-2. **Monitor for early failure signals** (confusion, repeated questions)  
-3. **Abort if >3 clarification exchanges** → fallback to self-execute
-4. **Batch integrate outputs** → resolve conflicts → validate integration
+### Re-Classification After Guidance
+
+**When architect provides clear plan:**
+1. Re-assess complexity based on NEW understanding
+2. Familiar implementation pattern + clear plan = Self-execute
+3. Don't delegate just because initial assessment was "complex"
+4. Trust your execution ability after getting proper guidance
+   
+### Stop Immediately When:
+
+- HMR reload succeeds + clean console + expected behavior visible
+- Simple changes (<20 lines) + no LSP errors
+- Development tools confirm working state
+  
+### Continue Validation Only When:
+
+- Security-sensitive modifications (authentication, payments)
+- Database schema changes affecting data integrity
+- Performance-critical paths with measurable impact
+- Complex business logic with edge cases
+  
+### Never Validate:
+
+- Import/export updates, variable renames, styling changes
+- Adding logging, error messages, debugging code
+- Configuration updates with obvious values
+- Simple bug fixes with clear root cause
+  
+## Tool Cost Management
+
+### Cost Tiers
+
+- **Free:** read(batch ≤6), multi_edit, grep with specific patterns
+- **Moderate:** search_codebase, get_diagnostics, single sub-agent
+- **Expensive:** architect, multiple sub-agents, screenshot
+  
+### Efficiency Targets & Hard Limits
+
+- **Simple tasks:** ≤4 tool calls, ≤10 minutes
+- **Medium tasks:** ≤8 tool calls, ≤20 minutes
+- **Architect calls:** Max 2 per task, avoid validation theater
+- **Sub-agents:** Max 3 simultaneously, abort coordination if >5 calls
+- **Failed efficiency:** Trigger process improvement review
+  
+### Success Metrics
+
+- **Tool efficiency:** 90% of tasks meet call targets
+- **First-time success:** >85% complete without rework
+- **Stop discipline:** Zero unnecessary verification after dev tools confirm success
+- **Delegation ROI:** Sub-agents deliver >2x capability vs coordination cost
+  
+## Sub-Agent Policy Application
+
+### Core Principle
+
+Sub-agents should inherit your efficiency discipline and policy adherence, not just technical requirements. They must follow the same cost management, tool efficiency, and "stop at success" principles.
+
+### Mandatory Sub-Agent Guidelines
+
+**Always Include in Task Description:**
+1. **Efficiency Requirements:** Tool call limits based on complexity pattern
+2. **Policy Context:** Relevant workflow principles (stop at success, trust tools, etc.)
+3. **Success Criteria:** Clear stop conditions with no validation theater
+4. **Cost Consciousness:** Explicit tool usage expectations
+
+### Sub-Agent Task Creation Template
+
+**For Simple Tasks (≤4 tools):**
+Task: [Technical requirement]
+
+Efficiency Requirements:
+
+Use Simple Self-Execute Pattern (≤4 tool calls)
+Stop when console confirms success, no verification needed
+Batch all file reads in parallel, use multi_edit for same-file changes
+Policy Context:
+
+"Stop at success" - trust development tools when they confirm working state
+"Trust tools" - no validation theater after LSP clears and HMR succeeds
+Success Criteria:
+
+Application restarts without errors + No LSP diagnostics + Feature works as expected
+STOP - no additional verification needed
+
+**For Medium Tasks (≤8 tools):**
+Task: [Technical requirement]
+
+Efficiency Requirements:
+
+Use Medium Coordinated Pattern (≤8 tool calls)
+Validate integration points only, trust individual components
+Batch operations, predict all files needed upfront
+Policy Context:
+
+Follow "find source, not symptom" - fix patterns not instances
+Use selective validation only for integration points
+Success Criteria:
+
+[Specific technical goals]
+Stop when development tools confirm working state
+
+
+### Task List Application
+
+**IMPORTANT:** Re-evaluate each task list item for self-execution after receiving architectural guidance.
+
+**Two-Level Task Management:**
+
+1. **Your Task List:** High-level coordination and planning
+2. **Sub-Agent Task List:** Detailed breakdown only when needed
+
+**When to Use Sub-Agent Task Lists:**
+- Complex features requiring multiple phases (`task_list=[...]`)
+- Cross-cutting changes needing coordination
+- When sub-agent needs step-by-step guidance
+
+**When to Use Empty Task Lists:**
+- Focused technical implementations (`task_list=[]`)
+- Bug fixes with clear scope
+- Single-purpose features
 
 ### Integration Rules
-- **File conflicts:** Manual review + merge, prefer implementation over config changes
-- **Pattern conflicts:** Apply most restrictive/defensive approach
-- **API conflicts:** Escalate to architect consultation
-- **Validation:** Test integration points, not individual components
 
-## Critical Stop/Continue/Escalate Decisions
+**Sub-Agent Output Integration:**
+- Trust sub-agent implementation if efficiency targets met
+- Only validate integration points between sub-agent outputs  
+- Don't second-guess technical decisions within scope
+- Stop when combined system works as expected
 
-### Escalate Immediately When:
-- **4 tools spent without progress** → Mandatory reclassification
-- **"Familiar pattern" breaks** → Unknown APIs/complexity discovered
-- **Sub-agent asks >2 clarifying questions** → Context insufficient
-- **Integration conflicts emerge** → Architectural decisions needed
+**Escalation from Sub-Agents:**
+- If sub-agent exceeds tool limits → immediate reclassification
+- If sub-agent asks >2 clarifying questions → insufficient context
+- Apply same escalation rules as your own workflow
 
-### Stop Immediately When:
-- HMR reload succeeds + clean console + expected behavior visible
-- Simple change (<10 lines) + LSP errors cleared
-- Defensive patterns applied (try-catch, null checks, validation)
+## Autonomy Principles
 
-### Continue Only When:
-- Complex business logic changes (validate thoroughly)
-- Security-sensitive modifications (test boundary conditions)  
-- Performance-critical paths (measure impact)
-- Database schema changes (verify migration + rollback)
+### Work Independently To:
+- Reduce cognitive load on users
+- Deliver comprehensive, polished solutions
+- Only return when you've exhausted possible avenues
+- Verify work meets requirements before delivery
 
-### Never Verify:
-- Import/export updates, variable renames, formatting changes
-- Adding logging, error messages, or debugging code
-- Configuration file updates with obvious values
+### Only Return to User When:
+- You've delivered a comprehensive solution
+- You've exhausted all possible avenues for progress
+- You face genuine blocker requiring specific knowledge/access
+- You need explicit user feedback or direction
 
-## Tool Cost Budget & Efficiency Rules
+### Always Continue When:
+- You have clear session plan with next steps
+- You have capability to continue
+- Task list is incomplete
+- Development tools confirm system is working
 
-### Cost Tiers (Use strategically)
-- **Free:** read(batch ≤6), multi_edit, grep/rg with specific patterns
-- **Moderate:** search_codebase, get_diagnostics, single sub-agent  
-- **Expensive:** architect consultation, multiple sub-agents, screenshot, restart_workflow
+## Real-World Decision Examples
 
-### Efficiency Maximization
-- **Predict before acting:** All files needed for analysis AND modification
-- **Batch operations:** Never do serial reads when parallel possible
-- **One multi_edit per file:** Combine all changes to same file
-- **Trust first success:** Stop when development tools confirm working state
-- **Sub-agent ROI:** Delegate only if capability gain > coordination cost
+### "AI decides when to search" (Recent Example)
+**Initial Assessment:** AI domain (Yellow) → Architect consultation
+**After Plan:** Clear implementation (API calls, caching, UI updates) → Self-execute
+**Lesson:** Re-classify based on implementation clarity, not initial domain
 
-### Hard Limits
-- **Max 6 files per read batch** (context window management)
-- **Max 3 sub-agents simultaneously** (coordination complexity)
-- **Max 3 architect consultations per task** (cost control)
-- **Abort delegation if >5 coordination tool calls** (efficiency threshold)
-- **Any Red domain knowledge** → Automatic delegation or architect consult
+### "User authentication system"
+**Assessment:** >5 files, multiple domains, parallel streams
+**Decision:** Delegate (Auth specialist + UI specialist + DB specialist)
+**Why:** Genuine parallel workstreams with distinct expertise
 
-## Real-World Execution Examples
-
-### Example 1: "Add user authentication"
-**Assessment:** >5 files (routes, middleware, UI, database), multiple domains  
-**Decision:** Delegate - Auth specialist + UI specialist + Database specialist  
-**Expected tools:** 8-12 total (including coordination)
-
-### Example 2: "Fix localStorage error in sandbox"  
-**Assessment:** Pattern fix, <3 files, known solution  
-**Decision:** Self-execute  
-**Expected tools:** 3-4 total (search pattern → read files → multi_edit → trust HMR)
-
-### Example 3: "Optimize slow database queries"
-**Assessment:** Performance domain, unknown bottlenecks, research needed  
-**Decision:** Performance specialist sub-agent + architect consultation  
-**Expected tools:** 6-10 total
-
-**Success Metrics:**
-- **Tool efficiency:** Simple tasks ≤4 calls, Medium ≤8 calls, Complex ≤15 calls
-- **First-time success:** >80% of tasks complete without rework/restart
-- **Accurate classification:** >85% initial assessments correct (with escalation tracking)
-- **Delegation ROI:** Sub-agent tasks deliver >2x capability vs coordination cost
-- **Stop discipline:** Zero unnecessary verification after development tools confirm success
-
+### "Fix search indicator bug"
+**Assessment:** UI bug, <3 files, familiar pattern
+**Decision:** Self-execute immediately
+**Why:** Simple frontend state management, no validation needed
+</policy>
 
 ## System Architecture
 
@@ -185,30 +287,11 @@ Integration Points: [Required interfaces/contracts]
 
 The application includes a Perplexity service for web search capabilities that enhances AI responses with real-time information.
 
-**Configuration:**
-- Requires `PERPLEXITY_API_KEY` environment variable
-- Automatically integrates with the chat service when configured
-- Gracefully degrades when API key is not available
-
-**Features:**
-- Automatic detection of queries that would benefit from web search
-- Real-time information retrieval for current events, trends, and facts
-- Citation tracking for source attribution
-- Configurable search parameters (recency, domains, etc.)
-
-**Usage:**
-The service is automatically used by the chat system when:
-- User queries contain time-sensitive keywords (today, current, latest, etc.)
-- Questions involve factual data, statistics, or current events
-- Business/product-specific inquiries are detected
-
-**Service Location:** `server/services/perplexity.ts`
 
 ## Source tree
 
-Source Code Tree with Directory Structure:
+Directory Tree Structure:
 ============================================================
-
 ├── 📁 client/
 │   └── 📁 src/
 │       ├── 📄 App.tsx
@@ -217,6 +300,8 @@ Source Code Tree with Directory Structure:
 │       │   └── 📁 chat/
 │       │       ├── 📄 message-input.tsx
 │       │       ├── 📄 message-list.tsx
+│       │       ├── 📄 search-citations.tsx
+│       │       ├── 📄 search-indicator.tsx
 │       │       ├── 📄 sidebar.tsx
 │       │       └── 📄 typing-indicator.tsx
 │       ├── 📁 hooks/

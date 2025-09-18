@@ -1,6 +1,6 @@
 # Directory Tree
 
-Generated on: 2025-09-15T11:02:32.797Z
+Generated on: 2025-09-18T09:55:36.792Z
 
 *Simple mode: Directory structure only*
 
@@ -13,6 +13,8 @@ Generated on: 2025-09-15T11:02:32.797Z
 │       │   └── 📁 chat/
 │       │       ├── 📄 message-input.tsx
 │       │       ├── 📄 message-list.tsx
+│       │       ├── 📄 search-citations.tsx
+│       │       ├── 📄 search-indicator.tsx
 │       │       ├── 📄 sidebar.tsx
 │       │       └── 📄 typing-indicator.tsx
 │       ├── 📁 hooks/
@@ -37,7 +39,8 @@ Generated on: 2025-09-15T11:02:32.797Z
 │   ├── 📄 replitAuth.ts
 │   ├── 📄 routes.ts
 │   ├── 📁 services/
-│   │   └── 📄 openai.ts
+│   │   ├── 📄 openai.ts
+│   │   └── 📄 perplexity.ts
 │   ├── 📄 storage.ts
 │   └── 📄 vite.ts
 ├── 📁 shared/
