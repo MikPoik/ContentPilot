@@ -116,9 +116,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserProfile(id: string, profileData: Partial<UpdateUserProfile>): Promise<User | undefined> {
+    // First get the current user data to merge array fields properly
+    const currentUser = await this.getUser(id);
+    if (!currentUser) {
+      return undefined;
+    }
+
+    // Handle contentNiche merging - combine existing with new values, removing duplicates
+    let mergedProfileData = { ...profileData };
+    if (profileData.contentNiche && Array.isArray(profileData.contentNiche)) {
+      const existingNiches = currentUser.contentNiche || [];
+      const newNiches = profileData.contentNiche;
+      
+      // Merge arrays and remove duplicates
+      const allNiches = [...existingNiches, ...newNiches];
+      const uniqueNiches = Array.from(new Set(allNiches.filter(niche => niche && niche.trim())));
+      
+      mergedProfileData.contentNiche = uniqueNiches;
+    }
+
     const [user] = await db
       .update(users)
-      .set({ ...profileData, updatedAt: new Date() })
+      .set({ ...mergedProfileData, updatedAt: new Date() })
       .where(eq(users.id, id))
       .returning();
     return user;
