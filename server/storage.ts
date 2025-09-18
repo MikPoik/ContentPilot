@@ -1,4 +1,4 @@
-import { type Conversation, type InsertConversation, type Message, type InsertMessage, type Memory, type InsertMemory, type User, type UpsertUser, type UpdateUserProfile, type MessageMetadata, users, conversations, messages, memories } from "@shared/schema";
+import { type Conversation, type InsertConversation, type Message, type InsertMessage, type Memory, type InsertMemory, type User, type UpsertUser, type UpdateUserProfile, type UpdateUserSubscription, type SubscriptionPlan, type InsertSubscriptionPlan, type MessageMetadata, users, conversations, messages, memories, subscriptionPlans } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
 
@@ -26,6 +26,14 @@ export interface IStorage {
   createMemory(memory: InsertMemory): Promise<Memory>;
   deleteMemory(id: string): Promise<boolean>;
   searchSimilarMemories(userId: string, embedding: number[], limit?: number): Promise<(Memory & { similarity: number })[]>;
+  
+  // Subscription operations
+  updateUserSubscription(id: string, subscriptionData: Partial<UpdateUserSubscription>): Promise<User | undefined>;
+  getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
+  createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan>;
+  getSubscriptionPlan(id: string): Promise<SubscriptionPlan | undefined>;
+  incrementMessageUsage(userId: string): Promise<User | undefined>;
+  resetMessageUsage(userId: string): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -210,6 +218,61 @@ export class DatabaseStorage implements IStorage {
       createdAt: row.created_at,
       similarity: parseFloat(row.similarity)
     }));
+  }
+
+  // Subscription operations
+  async updateUserSubscription(id: string, subscriptionData: Partial<UpdateUserSubscription>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ ...subscriptionData, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    return await db
+      .select()
+      .from(subscriptionPlans)
+      .where(eq(subscriptionPlans.isActive, true))
+      .orderBy(subscriptionPlans.priceAmount);
+  }
+
+  async createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan> {
+    const [subscriptionPlan] = await db
+      .insert(subscriptionPlans)
+      .values(plan)
+      .returning();
+    return subscriptionPlan;
+  }
+
+  async getSubscriptionPlan(id: string): Promise<SubscriptionPlan | undefined> {
+    const [plan] = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.id, id));
+    return plan;
+  }
+
+  async incrementMessageUsage(userId: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        messagesUsed: sql`${users.messagesUsed} + 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async resetMessageUsage(userId: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        messagesUsed: 0,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
   }
 }
 
