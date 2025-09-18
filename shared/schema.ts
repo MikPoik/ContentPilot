@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, jsonb, index, vector } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, jsonb, index, vector, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -26,6 +26,14 @@ export const users = pgTable("users", {
   primaryPlatform: varchar("primary_platform"), // Main social media platform
   profileData: jsonb("profile_data"), // Flexible storage for learned info
   profileCompleteness: varchar("profile_completeness").default("0"), // Percentage as string
+  // Stripe subscription fields
+  stripeCustomerId: varchar("stripe_customer_id"),
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
+  subscriptionPlanId: varchar("subscription_plan_id"),
+  subscriptionStatus: varchar("subscription_status").default("free"),
+  messagesUsed: integer("messages_used").default(0),
+  messagesLimit: integer("messages_limit").default(10),
+  subscriptionStartedAt: timestamp("subscription_started_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -56,6 +64,19 @@ export const memories = pgTable("memories", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Subscription plans table
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  stripePriceId: varchar("stripe_price_id").notNull(),
+  messagesLimit: integer("messages_limit").notNull(),
+  priceAmount: integer("price_amount").notNull(), // in cents
+  priceCurrency: varchar("price_currency").default("usd"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertConversationSchema = createInsertSchema(conversations).pick({
   userId: true,
   title: true,
@@ -82,6 +103,21 @@ export const insertMemorySchema = createInsertSchema(memories).pick({
   metadata: true,
 });
 
+export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const updateUserSubscriptionSchema = createInsertSchema(users).pick({
+  stripeCustomerId: true,
+  stripeSubscriptionId: true,
+  subscriptionPlanId: true,
+  subscriptionStatus: true,
+  messagesUsed: true,
+  messagesLimit: true,
+  subscriptionStartedAt: true,
+}).partial();
+
 // Search metadata interface for messages
 export interface SearchMessageMetadata {
   citations?: string[];
@@ -107,3 +143,6 @@ export type Memory = typeof memories.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
+export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+export type UpdateUserSubscription = z.infer<typeof updateUserSubscriptionSchema>;

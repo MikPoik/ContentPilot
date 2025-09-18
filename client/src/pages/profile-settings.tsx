@@ -271,7 +271,7 @@ export default function ProfileSettings() {
                       </AlertDialog>
                     </div>
                     <div className="flex flex-wrap gap-2" data-testid="content-niche-list">
-                      {user.contentNiche.map((niche, index) => (
+                      {user.contentNiche.map((niche: string, index: number) => (
                         <Badge key={index} variant="secondary" className="text-sm">
                           {niche}
                         </Badge>
