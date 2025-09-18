@@ -133,16 +133,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`📝 [CHAT_FLOW] Processing message for user: ${userId}, conversation: ${conversationId}`);
       
       // Check message usage limits
-      const user = await storage.getUser(userId);
-      if (!user) {
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      if (user.messagesUsed >= user.messagesLimit) {
+      const messagesUsed = currentUser.messagesUsed || 0;
+      const messagesLimit = currentUser.messagesLimit || 10;
+
+      if (messagesUsed >= messagesLimit) {
         return res.status(429).json({ 
           message: "Message limit reached. Please upgrade your subscription.",
-          messagesUsed: user.messagesUsed,
-          messagesLimit: user.messagesLimit
+          messagesUsed,
+          messagesLimit
         });
       }
       

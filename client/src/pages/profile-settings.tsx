@@ -8,7 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Trash2, User as UserIcon, Target, Share2, Database, Shield, ArrowLeft, CheckCircle } from "lucide-react";
+import { Trash2, User as UserIcon, Target, Share2, Database, Shield, ArrowLeft, CheckCircle, CreditCard } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import SubscriptionManagement from "@/components/subscription-management";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
@@ -143,6 +145,20 @@ export default function ProfileSettings() {
           </AlertDescription>
         </Alert>
 
+        {/* Tabbed Interface */}
+        <Tabs defaultValue="profile" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="profile" className="flex items-center space-x-2">
+              <UserIcon className="h-4 w-4" />
+              <span>Profile</span>
+            </TabsTrigger>
+            <TabsTrigger value="subscription" className="flex items-center space-x-2">
+              <CreditCard className="h-4 w-4" />
+              <span>Subscription</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="profile" className="space-y-6">
         {/* Basic Profile Information */}
         <Card>
           <CardHeader>
@@ -436,6 +452,12 @@ export default function ProfileSettings() {
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="subscription">
+            <SubscriptionManagement />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
