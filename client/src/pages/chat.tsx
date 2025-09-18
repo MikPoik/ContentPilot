@@ -116,8 +116,26 @@ export default function Chat() {
           continue;
         }
         
+        // Check for workflow metadata
+        if (chunk.includes('[WORKFLOW_META]') && chunk.includes('[/WORKFLOW_META]')) {
+          const metaMatch = chunk.match(/\[WORKFLOW_META\](.*?)\[\/WORKFLOW_META\]/);
+          if (metaMatch) {
+            try {
+              const workflowMeta = JSON.parse(metaMatch[1]);
+              console.log('🔄 Workflow metadata received:', workflowMeta);
+              
+              // Workflow metadata is stored and processed but not displayed in UI
+              // This maintains the conversational flow while capturing workflow state
+            } catch (e) {
+              console.error('Failed to parse workflow metadata:', e);
+            }
+          }
+          // Don't add metadata to accumulated content
+          continue;
+        }
+        
         // Once we get actual content, stop showing search indicator
-        if (!actualContentStarted && chunk.trim() && !chunk.includes('[SEARCH_META]')) {
+        if (!actualContentStarted && chunk.trim() && !chunk.includes('[SEARCH_META]') && !chunk.includes('[WORKFLOW_META]')) {
           actualContentStarted = true;
           setIsSearching(false);
         }

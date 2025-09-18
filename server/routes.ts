@@ -230,24 +230,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         console.log(`💾 [CHAT_FLOW] AI response saved: ${Date.now() - saveAiResponseStart}ms`);
 
-        // Extract and update user profile from conversation
+        // Extract and update user profile from conversation and workflow
         const profileUpdateStart = Date.now();
         try {
+          let combinedProfileUpdates: any = {};
+          
+          // Get workflow profile patches if available
+          if (responseWithMetadata.workflowDecision?.profilePatch && 
+              Object.keys(responseWithMetadata.workflowDecision.profilePatch).length > 0) {
+            combinedProfileUpdates = { ...responseWithMetadata.workflowDecision.profilePatch };
+            console.log(`🔄 [CHAT_FLOW] Workflow profile patches:`, Object.keys(combinedProfileUpdates));
+          }
+          
+          // Also extract profile info from conversation (for backward compatibility)
           const profileExtractionStart = Date.now();
-          const profileUpdates = await extractProfileInfo(content, fullResponse, user!);
+          const conversationProfileUpdates = await extractProfileInfo(content, fullResponse, user!);
           console.log(`👤 [CHAT_FLOW] Profile extraction: ${Date.now() - profileExtractionStart}ms`);
           
-          if (profileUpdates && Object.keys(profileUpdates).length > 0) {
+          // Merge workflow patches with conversation-extracted updates
+          if (conversationProfileUpdates && Object.keys(conversationProfileUpdates).length > 0) {
+            combinedProfileUpdates = { ...combinedProfileUpdates, ...conversationProfileUpdates };
+          }
+          
+          if (Object.keys(combinedProfileUpdates).length > 0) {
             const profileSaveStart = Date.now();
-            await storage.updateUserProfile(userId, profileUpdates);
+            await storage.updateUserProfile(userId, combinedProfileUpdates);
             console.log(`👤 [CHAT_FLOW] Profile update saved: ${Date.now() - profileSaveStart}ms`);
-            console.log(`👤 [CHAT_FLOW] Profile updates:`, Object.keys(profileUpdates));
+            console.log(`👤 [CHAT_FLOW] Combined profile updates:`, Object.keys(combinedProfileUpdates));
           } else {
             console.log(`👤 [CHAT_FLOW] No profile updates found`);
           }
           console.log(`👤 [CHAT_FLOW] Total profile processing: ${Date.now() - profileUpdateStart}ms`);
         } catch (error) {
-          console.log('❌ [CHAT_FLOW] Profile extraction error:', error);
+          console.log('❌ [CHAT_FLOW] Profile processing error:', error);
           console.log(`👤 [CHAT_FLOW] Profile processing failed: ${Date.now() - profileUpdateStart}ms`);
         }
 
