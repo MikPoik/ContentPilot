@@ -59,7 +59,7 @@ export default function Chat() {
   const streamResponse = async (targetConversationId: string, content: string) => {
     console.log('🚀 Starting stream response');
     setIsStreaming(true);
-    setIsSearching(true);
+    setIsSearching(false); // Don't assume search is happening - wait for metadata
     setStreamingMessage("");
     setSearchCitations([]);
     setSearchQuery(content);
@@ -103,8 +103,10 @@ export default function Chat() {
               if (searchMeta.searchPerformed) {
                 setSearchCitations(searchMeta.citations || []);
                 setSearchQuery(searchMeta.searchQuery || content);
+                setIsSearching(true); // Show search indicator when search was performed
+              } else {
+                setIsSearching(false); // Hide search indicator when no search was performed
               }
-              setIsSearching(false);
             } catch (e) {
               console.error('Failed to parse search metadata:', e);
               setIsSearching(false);
