@@ -44,6 +44,7 @@ interface CacheEntry {
   context: string;
   citations: string[];
   timestamp: number;
+  lastAccessed: number;
 }
 
 /**
@@ -57,6 +58,7 @@ export class PerplexityService {
   private baseUrl: string = 'https://api.perplexity.ai';
   private cache: Map<string, CacheEntry> = new Map();
   private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
+  private readonly MAX_CACHE_SIZE = 200; // LRU cache capacity limit
 
   constructor() {
     this.apiKey = process.env.PERPLEXITY_API_KEY || '';
@@ -73,11 +75,33 @@ export class PerplexityService {
   }
 
   /**
-   * Generate cache key for a query and recency filter
+   * Generate cache key for a query, recency filter, domains, and context prompt
    */
-  private generateCacheKey(query: string, recency?: string): string {
+  private generateCacheKey(
+    query: string, 
+    recency?: string, 
+    domains?: string[], 
+    contextPrompt?: string
+  ): string {
+    const normQuery = query.trim().toLowerCase();
     const normalizedRecency = recency || 'week';
-    return `${query.trim().toLowerCase()}:${normalizedRecency}`;
+    const domainsPart = domains?.length ? domains.slice().sort().join(',') : '*';
+    const contextHash = contextPrompt ? this.simpleHash(contextPrompt) : 'default';
+    
+    return `${normQuery}:${normalizedRecency}:${domainsPart}:${contextHash}`;
+  }
+
+  /**
+   * Simple hash function for context prompt to keep cache keys manageable
+   */
+  private simpleHash(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(36);
   }
 
   /**
@@ -115,6 +139,8 @@ export class PerplexityService {
     
     const cachedEntry = this.cache.get(cacheKey);
     if (cachedEntry && this.isCacheEntryValid(cachedEntry)) {
+      // Update last accessed time for LRU
+      cachedEntry.lastAccessed = Date.now();
       console.log(`📦 [PERPLEXITY CACHE] Cache HIT for key: ${cacheKey}`);
       return {
         context: cachedEntry.context,
@@ -133,15 +159,46 @@ export class PerplexityService {
   }
 
   /**
-   * Store result in cache
+   * Store result in cache with LRU capacity management
    */
   private setCachedResult(cacheKey: string, context: string, citations: string[]): void {
+    const now = Date.now();
+    
+    // Enforce LRU capacity limit
+    if (this.cache.size >= this.MAX_CACHE_SIZE) {
+      this.evictLeastRecentlyUsed();
+    }
+    
     this.cache.set(cacheKey, {
       context,
       citations,
-      timestamp: Date.now()
+      timestamp: now,
+      lastAccessed: now
     });
     console.log(`💾 [PERPLEXITY CACHE] Cached result for key: ${cacheKey} (cache size: ${this.cache.size})`);
+  }
+
+  /**
+   * Evict least recently used cache entries when capacity is exceeded
+   */
+  private evictLeastRecentlyUsed(): void {
+    if (this.cache.size === 0) return;
+    
+    let oldestKey: string | null = null;
+    let oldestAccess = Date.now();
+    
+    // Find the least recently used entry
+    Array.from(this.cache.entries()).forEach(([key, entry]) => {
+      if (entry.lastAccessed < oldestAccess) {
+        oldestAccess = entry.lastAccessed;
+        oldestKey = key;
+      }
+    });
+    
+    if (oldestKey) {
+      this.cache.delete(oldestKey);
+      console.log(`🗑️ [PERPLEXITY CACHE] Evicted LRU entry: ${oldestKey} (cache size: ${this.cache.size})`);
+    }
   }
 
   /**
@@ -248,9 +305,9 @@ export class PerplexityService {
     recency?: 'hour' | 'day' | 'week' | 'month' | 'year',
     domains?: string[]
   ): Promise<{ context: string; citations: string[] }> {
-    // Generate cache key based on query and recency (domains don't affect cache key as they're less common)
+    // Generate cache key including all parameters to ensure correctness
     const effectiveRecency = recency || 'week';
-    const cacheKey = this.generateCacheKey(query, effectiveRecency);
+    const cacheKey = this.generateCacheKey(query, effectiveRecency, domains, contextPrompt);
     
     // Check cache first
     const cachedResult = this.getCachedResult(cacheKey);
