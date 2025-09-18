@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import Stripe from "stripe";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
@@ -10,11 +11,14 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-08-27.basil",
+  apiVersion: "2024-06-20",
 });
 import { setupAuth, isAuthenticated } from "./replitAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Webhook middleware for raw body (must be before other middleware)
+  app.use('/api/subscriptions/webhook', express.raw({ type: 'application/json' }));
+
   // Auth middleware
   await setupAuth(app);
 
@@ -519,10 +523,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/subscriptions/webhook", async (req, res) => {
     const sig = req.headers['stripe-signature'];
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    
+    if (!webhookSecret) {
+      console.error('Missing STRIPE_WEBHOOK_SECRET environment variable');
+      return res.status(500).send('Webhook secret not configured');
+    }
+
     let event;
 
     try {
-      event = stripe.webhooks.constructEvent(req.body, sig as string, process.env.STRIPE_WEBHOOK_SECRET || '');
+      event = stripe.webhooks.constructEvent(req.body, sig as string, webhookSecret);
     } catch (err: any) {
       console.error('Webhook signature verification failed:', err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
