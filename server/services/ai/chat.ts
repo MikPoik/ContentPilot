@@ -110,16 +110,6 @@ export async function generateChatResponse(messages: ChatMessage[], user?: User,
       let firstChunkReceived = false;
       
       try {
-        // Send workflow metadata chunk first
-        const workflowMeta = `[WORKFLOW_META]${JSON.stringify({
-          phase: workflowDecision.currentPhase,
-          missingFields: workflowDecision.missingFields,
-          readyToAdvance: workflowDecision.readyToAdvance,
-          shouldBlockContentGeneration: workflowDecision.shouldBlockContentGeneration,
-          profilePatch: workflowDecision.profilePatch
-        })}[/WORKFLOW_META]`;
-        controller.enqueue(workflowMeta);
-        
         for await (const chunk of stream) {
           const content = chunk.choices[0]?.delta?.content || '';
           if (content) {
