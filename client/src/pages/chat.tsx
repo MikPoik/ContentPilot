@@ -279,27 +279,25 @@ export default function Chat() {
       {/* Main chat area */}
       <div className="flex-1 flex flex-col h-full bg-white">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center shadow-sm min-w-0">
-          <div className="flex items-center space-x-3 min-w-0 flex-1 overflow-hidden mr-2">
+        <header className="flex items-center bg-white border-b border-gray-200 px-4 py-3 shadow-sm min-w-0">
+          <div className="flex items-center gap-2 basis-0 flex-1 min-w-0">
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden p-2 text-gray-500 hover:text-gray-700 flex-shrink-0"
+              className="lg:hidden p-2 text-gray-500 hover:text-gray-700 flex-none"
               onClick={() => setSidebarOpen(true)}
               data-testid="button-toggle-sidebar"
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <div className="flex items-center space-x-2 min-w-0 flex-1 overflow-hidden">
-              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce-subtle flex-shrink-0"></div>
-              <h2 className="text-lg font-semibold text-gray-900 truncate flex-1 min-w-0">
-                {currentConversation?.title || "ContentCraft AI"}
-              </h2>
-            </div>
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce-subtle flex-none"></div>
+            <h2 className="text-lg font-semibold text-gray-900 truncate flex-1 min-w-0 max-w-full">
+              {currentConversation?.title || "ContentCraft AI"}
+            </h2>
           </div>
           
           {/* Desktop Action Buttons */}
-          <div className="hidden md:flex items-center space-x-1 flex-shrink-0">
+          <div className="hidden md:flex items-center gap-1 flex-none shrink-0">
             <Button 
               variant="ghost" 
               size="sm" 
@@ -329,7 +327,7 @@ export default function Chat() {
           </div>
 
           {/* Mobile Dropdown Menu */}
-          <div className="md:hidden flex-shrink-0">
+          <div className="md:hidden flex-none shrink-0">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="p-2 text-gray-500 hover:text-gray-700">
