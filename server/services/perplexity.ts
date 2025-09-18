@@ -40,6 +40,12 @@ interface WebSearchResult {
   };
 }
 
+interface CacheEntry {
+  context: string;
+  citations: string[];
+  timestamp: number;
+}
+
 /**
  * Perplexity service for web search capabilities
  * 
@@ -49,6 +55,8 @@ interface WebSearchResult {
 export class PerplexityService {
   private apiKey: string;
   private baseUrl: string = 'https://api.perplexity.ai';
+  private cache: Map<string, CacheEntry> = new Map();
+  private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
 
   constructor() {
     this.apiKey = process.env.PERPLEXITY_API_KEY || '';
@@ -62,6 +70,78 @@ export class PerplexityService {
    */
   isConfigured(): boolean {
     return !!this.apiKey;
+  }
+
+  /**
+   * Generate cache key for a query and recency filter
+   */
+  private generateCacheKey(query: string, recency?: string): string {
+    const normalizedRecency = recency || 'week';
+    return `${query.trim().toLowerCase()}:${normalizedRecency}`;
+  }
+
+  /**
+   * Check if cache entry is still valid (not expired)
+   */
+  private isCacheEntryValid(entry: CacheEntry): boolean {
+    return Date.now() - entry.timestamp < this.CACHE_TTL_MS;
+  }
+
+  /**
+   * Clean up expired cache entries to prevent memory leaks
+   */
+  private cleanupExpiredEntries(): void {
+    const now = Date.now();
+    const keysToDelete: string[] = [];
+    
+    // Convert Map.entries() to array for iteration compatibility
+    Array.from(this.cache.entries()).forEach(([key, entry]) => {
+      if (now - entry.timestamp >= this.CACHE_TTL_MS) {
+        keysToDelete.push(key);
+      }
+    });
+    
+    if (keysToDelete.length > 0) {
+      keysToDelete.forEach(key => this.cache.delete(key));
+      console.log(`🧹 [PERPLEXITY CACHE] Cleaned up ${keysToDelete.length} expired entries`);
+    }
+  }
+
+  /**
+   * Get cached result if available and valid
+   */
+  private getCachedResult(cacheKey: string): { context: string; citations: string[] } | null {
+    this.cleanupExpiredEntries(); // Clean up expired entries first
+    
+    const cachedEntry = this.cache.get(cacheKey);
+    if (cachedEntry && this.isCacheEntryValid(cachedEntry)) {
+      console.log(`📦 [PERPLEXITY CACHE] Cache HIT for key: ${cacheKey}`);
+      return {
+        context: cachedEntry.context,
+        citations: cachedEntry.citations
+      };
+    }
+    
+    if (cachedEntry) {
+      // Entry exists but is expired, remove it
+      this.cache.delete(cacheKey);
+      console.log(`⏰ [PERPLEXITY CACHE] Expired entry removed for key: ${cacheKey}`);
+    }
+    
+    console.log(`❌ [PERPLEXITY CACHE] Cache MISS for key: ${cacheKey}`);
+    return null;
+  }
+
+  /**
+   * Store result in cache
+   */
+  private setCachedResult(cacheKey: string, context: string, citations: string[]): void {
+    this.cache.set(cacheKey, {
+      context,
+      citations,
+      timestamp: Date.now()
+    });
+    console.log(`💾 [PERPLEXITY CACHE] Cached result for key: ${cacheKey} (cache size: ${this.cache.size})`);
   }
 
   /**
@@ -168,17 +248,33 @@ export class PerplexityService {
     recency?: 'hour' | 'day' | 'week' | 'month' | 'year',
     domains?: string[]
   ): Promise<{ context: string; citations: string[] }> {
+    // Generate cache key based on query and recency (domains don't affect cache key as they're less common)
+    const effectiveRecency = recency || 'week';
+    const cacheKey = this.generateCacheKey(query, effectiveRecency);
+    
+    // Check cache first
+    const cachedResult = this.getCachedResult(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    // Cache miss - perform actual search
     const result = await this.search(query, {
       systemPrompt: contextPrompt,
       temperature: 0.1,
-      searchRecencyFilter: recency || 'week',
+      searchRecencyFilter: effectiveRecency,
       searchDomainFilter: domains?.length ? domains : undefined
     });
 
-    return {
+    const searchResult = {
       context: result.content,
       citations: result.citations
     };
+
+    // Store result in cache for future use
+    this.setCachedResult(cacheKey, searchResult.context, searchResult.citations);
+
+    return searchResult;
   }
 
   /**

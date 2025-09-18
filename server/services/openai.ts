@@ -184,18 +184,42 @@ Analyze the LATEST user message and decide if web search is needed.`
       };
     }
 
-    // Sanitize JSON response to handle code fences and extra formatting
+    // Robust JSON parsing with bracket-scanning to extract first top-level object
     let sanitizedResult = result.trim();
+    
     // Remove code fences if present
     if (sanitizedResult.startsWith('```') && sanitizedResult.endsWith('```')) {
       const lines = sanitizedResult.split('\n');
       sanitizedResult = lines.slice(1, -1).join('\n');
     }
+    
     // Remove json language identifier if present
     if (sanitizedResult.startsWith('json\n')) {
       sanitizedResult = sanitizedResult.replace('json\n', '');
     }
+    
     sanitizedResult = sanitizedResult.trim();
+    
+    // Extract first top-level JSON object using bracket scanning
+    const firstBraceIndex = sanitizedResult.indexOf('{');
+    if (firstBraceIndex !== -1) {
+      let braceCount = 0;
+      let endIndex = firstBraceIndex;
+      
+      for (let i = firstBraceIndex; i < sanitizedResult.length; i++) {
+        if (sanitizedResult[i] === '{') braceCount++;
+        else if (sanitizedResult[i] === '}') braceCount--;
+        
+        if (braceCount === 0) {
+          endIndex = i;
+          break;
+        }
+      }
+      
+      if (braceCount === 0) {
+        sanitizedResult = sanitizedResult.substring(firstBraceIndex, endIndex + 1);
+      }
+    }
     
     const decision: WebSearchDecision = JSON.parse(sanitizedResult);
     console.log(`🧠 [AI_SERVICE] Search decision: ${Date.now() - startTime}ms - shouldSearch: ${decision.shouldSearch}, confidence: ${decision.confidence}`);
@@ -231,11 +255,17 @@ export async function generateChatResponse(messages: ChatMessage[], user?: User,
   if (perplexityService.isConfigured() && searchDecision.shouldSearch && searchDecision.confidence >= 0.7) {
     try {
       // Fallback to last user message if refinedQuery is empty
-      let searchQuery = searchDecision.refinedQuery;
+      searchQuery = searchDecision.refinedQuery;
       if (!searchQuery.trim() && searchDecision.shouldSearch) {
-        const lastUserMessage = messages.slice(-1).find(m => m.role === 'user')?.content || '';
-        searchQuery = lastUserMessage;
-        console.log(`🔍 [AI_SERVICE] Using fallback query from last user message: "${searchQuery}"`);
+        // Find the actual last user message by searching backwards through messages
+        const lastUserMessage = messages.slice().reverse().find(m => m.role === 'user')?.content?.trim() || '';
+        if (lastUserMessage) {
+          searchQuery = lastUserMessage;
+          console.log(`🔍 [AI_SERVICE] Using fallback query from last user message: "${searchQuery}"`);
+        } else {
+          console.log(`⚠️ [AI_SERVICE] No user message found for fallback, skipping search`);
+          searchPerformed = false;
+        }
       }
       
       console.log(`🔍 [AI_SERVICE] Performing web search with query: "${searchQuery}"`);
