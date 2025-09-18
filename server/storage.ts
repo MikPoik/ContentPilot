@@ -1,4 +1,4 @@
-import { type Conversation, type InsertConversation, type Message, type InsertMessage, type Memory, type InsertMemory, type User, type UpsertUser, type UpdateUserProfile, users, conversations, messages, memories } from "@shared/schema";
+import { type Conversation, type InsertConversation, type Message, type InsertMessage, type Memory, type InsertMemory, type User, type UpsertUser, type UpdateUserProfile, type MessageMetadata, users, conversations, messages, memories } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
 
@@ -88,16 +88,17 @@ export class DatabaseStorage implements IStorage {
 
   // Messages
   async getMessages(conversationId: string): Promise<Message[]> {
-    return await db
+    const results = await db
       .select()
       .from(messages)
       .where(eq(messages.conversationId, conversationId))
       .orderBy(messages.createdAt);
+    return results.map(msg => ({ ...msg, metadata: msg.metadata as MessageMetadata | null }));
   }
 
   async getMessage(id: string): Promise<Message | undefined> {
     const [message] = await db.select().from(messages).where(eq(messages.id, id));
-    return message;
+    return message ? { ...message, metadata: message.metadata as MessageMetadata | null } : undefined;
   }
 
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
@@ -112,7 +113,7 @@ export class DatabaseStorage implements IStorage {
       .set({ updatedAt: new Date() })
       .where(eq(conversations.id, insertMessage.conversationId));
     
-    return message;
+    return { ...message, metadata: message.metadata as MessageMetadata | null };
   }
 
   async updateUserProfile(id: string, profileData: Partial<UpdateUserProfile>): Promise<User | undefined> {

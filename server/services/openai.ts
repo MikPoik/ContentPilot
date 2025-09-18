@@ -392,26 +392,34 @@ export async function extractProfileInfo(userMessage: string, aiResponse: string
           content: `Analyze the conversation between a user and ContentCraft AI to extract profile information. Return ONLY valid JSON with these fields if mentioned:
 - firstName: string (user's first name)
 - lastName: string (user's last name)
-- contentNiche: array of strings (e.g. ["fitness", "business"]) - IMPORTANT: If new content niches are mentioned, include BOTH existing and new niches in the array to preserve all values. Use consistent casing and avoid duplicates.
+- contentNiche: array of strings (e.g. ["fitness", "business"]) - CRITICAL: ALWAYS include existing content niches from the current profile plus any new ones mentioned. Never replace existing niches unless user explicitly says they want to stop focusing on something. Use consistent lowercase casing.
 - primaryPlatform: string (e.g. "instagram", "tiktok", "linkedin")
 - profileData: object with fields like targetAudience, brandVoice, businessType, contentGoals (array)
 
-Only include fields that are explicitly mentioned or clearly implied. Return empty object {} if no new profile info found. For contentNiche specifically: if the user mentions additional or new content focus areas, combine them with existing ones to avoid data loss.`
+Only include fields that are explicitly mentioned or clearly implied. Return empty object {} if no new profile info found.
+
+For contentNiche: If user mentions expanding, adding, or also doing content in new areas, combine ALL existing niches with the new ones. Examples:
+- Current: ["therapy"] + User says "expanded to AI consulting" → Return: ["therapy", "ai consulting"]
+- Current: ["fitness", "nutrition"] + User says "also do business coaching" → Return: ["fitness", "nutrition", "business coaching"]
+Only exclude existing niches if user explicitly says they stopped or no longer focus on them.`
         },
         {
           role: 'user',
-          content: `Current user profile: ${JSON.stringify({
+          content: `EXISTING USER PROFILE:
+${JSON.stringify({
             firstName: currentUser.firstName,
             lastName: currentUser.lastName,
-            contentNiche: currentUser.contentNiche,
+            contentNiche: currentUser.contentNiche || [],
             primaryPlatform: currentUser.primaryPlatform,
             profileData: currentUser.profileData
           }, null, 2)}
 
-User message: "${userMessage}"
-AI response: "${aiResponse}"
+CONVERSATION TO ANALYZE:
+User: "${userMessage}"
+AI: "${aiResponse}"
 
-Extract any NEW profile information:`
+EXTRACT PROFILE UPDATES:
+For contentNiche: Include ALL existing niches (${JSON.stringify(currentUser.contentNiche || [])}) plus any new ones mentioned, unless user explicitly says they stopped focusing on existing ones.`
         }
       ],
       max_tokens: 200,
