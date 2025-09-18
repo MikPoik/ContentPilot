@@ -99,13 +99,13 @@ export default function Chat() {
         // Filter out complete metadata blocks using regex
         let filteredContent = rawBuffer;
         
-        // Remove all complete [SEARCH_META]...[/SEARCH_META] blocks
-        const searchMetaRegex = /\[SEARCH_META\].*?\[\/SEARCH_META\]/g;
+        // Remove all complete [SEARCH_META]...[/SEARCH_META] blocks (with newline support)
+        const searchMetaRegex = /\[SEARCH_META\][\s\S]*?\[\/SEARCH_META\]/g;
         const searchMatches = filteredContent.match(searchMetaRegex);
         if (searchMatches) {
           searchMatches.forEach(match => {
             try {
-              const metaContent = match.match(/\[SEARCH_META\](.*?)\[\/SEARCH_META\]/);
+              const metaContent = match.match(/\[SEARCH_META\]([\s\S]*?)\[\/SEARCH_META\]/);
               if (metaContent) {
                 const searchMeta = JSON.parse(metaContent[1]);
                 console.log('🔍 Search metadata received:', searchMeta);
@@ -125,13 +125,13 @@ export default function Chat() {
           filteredContent = filteredContent.replace(searchMetaRegex, '');
         }
         
-        // Remove all complete [WORKFLOW_META]...[/WORKFLOW_META] blocks
-        const workflowMetaRegex = /\[WORKFLOW_META\].*?\[\/WORKFLOW_META\]/g;
+        // Remove all complete [WORKFLOW_META]...[/WORKFLOW_META] blocks (with newline support)
+        const workflowMetaRegex = /\[WORKFLOW_META\][\s\S]*?\[\/WORKFLOW_META\]/g;
         const workflowMatches = filteredContent.match(workflowMetaRegex);
         if (workflowMatches) {
           workflowMatches.forEach(match => {
             try {
-              const metaContent = match.match(/\[WORKFLOW_META\](.*?)\[\/WORKFLOW_META\]/);
+              const metaContent = match.match(/\[WORKFLOW_META\]([\s\S]*?)\[\/WORKFLOW_META\]/);
               if (metaContent) {
                 const workflowMeta = JSON.parse(metaContent[1]);
                 console.log('🔄 Workflow metadata received and FILTERED OUT:', workflowMeta);
