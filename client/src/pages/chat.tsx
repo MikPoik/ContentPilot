@@ -70,27 +70,25 @@ export default function Chat() {
     staleTime: 0, // Always consider messages stale to ensure fresh data when switching conversations
   });
 
+  // Use ref to track previous messages and prevent infinite updates
+  const prevMessagesRef = useRef<Message[]>([]);
+  
   // Effect to sync API messages with local state when conversation changes
   useEffect(() => {
-    if (messagesFromApi) {
-      setMessages(prev => {
-        // Only update if messages actually changed to prevent infinite re-renders
-        // Compare lengths first for performance, then compare IDs and content
-        if (prev.length !== messagesFromApi.length) {
-          return messagesFromApi;
-        }
-        
-        // Check if any message differs by comparing key properties
-        const hasChanges = prev.some((prevMsg, index) => {
-          const apiMsg = messagesFromApi[index];
-          return !apiMsg || 
-                 prevMsg.id !== apiMsg.id || 
-                 prevMsg.content !== apiMsg.content ||
-                 prevMsg.role !== apiMsg.role;
+    if (messagesFromApi && messagesFromApi !== prevMessagesRef.current) {
+      const prevMessages = prevMessagesRef.current;
+      
+      // Only update if messages actually changed
+      const hasChanges = prevMessages.length !== messagesFromApi.length ||
+        messagesFromApi.some((msg, index) => {
+          const prevMsg = prevMessages[index];
+          return !prevMsg || prevMsg.id !== msg.id || prevMsg.content !== msg.content;
         });
-        
-        return hasChanges ? messagesFromApi : prev;
-      });
+      
+      if (hasChanges) {
+        prevMessagesRef.current = messagesFromApi;
+        setMessages(messagesFromApi);
+      }
     }
   }, [messagesFromApi]);
 
