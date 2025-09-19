@@ -42,10 +42,58 @@ Example output:
     if (!result) return [];
 
     try {
-      const memories = JSON.parse(result);
+      // Clean up the result before parsing
+      let cleanResult = result.trim();
+      
+      // Remove any markdown code blocks
+      if (cleanResult.startsWith('```') && cleanResult.endsWith('```')) {
+        const lines = cleanResult.split('\n');
+        cleanResult = lines.slice(1, -1).join('\n');
+      }
+      
+      // Remove any "json" prefix
+      if (cleanResult.startsWith('json\n')) {
+        cleanResult = cleanResult.replace('json\n', '');
+      }
+      
+      // Find the JSON array bounds
+      const firstBracketIndex = cleanResult.indexOf('[');
+      const lastBracketIndex = cleanResult.lastIndexOf(']');
+      
+      if (firstBracketIndex !== -1 && lastBracketIndex !== -1 && lastBracketIndex > firstBracketIndex) {
+        cleanResult = cleanResult.substring(firstBracketIndex, lastBracketIndex + 1);
+      }
+      
+      // Fix common JSON issues
+      cleanResult = cleanResult
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+        .replace(/\\n/g, ' ') // Replace literal \n with spaces
+        .replace(/\\"/g, '"') // Fix escaped quotes
+        .replace(/"\s*,\s*]/g, '"]') // Fix trailing commas before closing bracket
+        .replace(/,\s*]/g, ']'); // Remove trailing commas
+      
+      const memories = JSON.parse(cleanResult);
       return Array.isArray(memories) ? memories.filter(m => typeof m === 'string' && m.length > 0) : [];
     } catch (parseError) {
       console.log('Memory extraction JSON parse error:', parseError);
+      console.log('Raw result:', result);
+      
+      // Fallback: try to extract strings manually using regex
+      try {
+        const stringMatches = result.match(/"([^"\\]*(\\.[^"\\]*)*)"/g);
+        if (stringMatches) {
+          const extractedStrings = stringMatches
+            .map(match => match.slice(1, -1)) // Remove quotes
+            .filter(str => str.length > 10 && str.length < 200) // Reasonable memory length
+            .slice(0, 5); // Max 5 memories
+          
+          console.log('Fallback extraction found:', extractedStrings.length, 'memories');
+          return extractedStrings;
+        }
+      } catch (fallbackError) {
+        console.log('Fallback extraction also failed:', fallbackError);
+      }
+      
       return [];
     }
   } catch (error) {
