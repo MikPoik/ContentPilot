@@ -48,7 +48,7 @@ export async function decideWebSearch(messages: ChatMessage[], user?: User): Pro
       .join('\n');
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4.1-nano',
+      model: 'gpt-4.1-mini',
       messages: [
         {
           role: 'system',
