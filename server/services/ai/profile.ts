@@ -54,7 +54,48 @@ Example output:
     if (!result) return {};
 
     try {
-      const profileUpdates = JSON.parse(result);
+      // Clean and extract JSON from the response
+      let sanitizedResult = result.trim();
+      
+      // Remove code fences if present
+      if (sanitizedResult.startsWith('```') && sanitizedResult.endsWith('```')) {
+        const lines = sanitizedResult.split('\n');
+        sanitizedResult = lines.slice(1, -1).join('\n');
+      }
+      
+      // Remove json language identifier if present
+      if (sanitizedResult.startsWith('json\n')) {
+        sanitizedResult = sanitizedResult.replace('json\n', '');
+      }
+      
+      sanitizedResult = sanitizedResult.trim();
+      
+      // Extract first top-level JSON object using bracket scanning
+      const firstBraceIndex = sanitizedResult.indexOf('{');
+      if (firstBraceIndex !== -1) {
+        let braceCount = 0;
+        let endIndex = firstBraceIndex;
+        
+        for (let i = firstBraceIndex; i < sanitizedResult.length; i++) {
+          if (sanitizedResult[i] === '{') braceCount++;
+          else if (sanitizedResult[i] === '}') braceCount--;
+          
+          if (braceCount === 0) {
+            endIndex = i;
+            break;
+          }
+        }
+        
+        if (braceCount === 0) {
+          sanitizedResult = sanitizedResult.substring(firstBraceIndex, endIndex + 1);
+        }
+      } else {
+        // No JSON found in response, return empty object
+        console.log('Profile extraction: No JSON object found in response');
+        return {};
+      }
+      
+      const profileUpdates = JSON.parse(sanitizedResult);
       
       // Only return non-empty updates
       const hasUpdates = Object.keys(profileUpdates).some(key => {
@@ -67,6 +108,7 @@ Example output:
       return hasUpdates ? profileUpdates : {};
     } catch (parseError) {
       console.log('Profile extraction JSON parse error:', parseError);
+      console.log('Attempted to parse:', result.substring(0, 200) + '...');
       return {};
     }
   } catch (error) {
