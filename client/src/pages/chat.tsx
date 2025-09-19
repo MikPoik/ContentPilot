@@ -74,9 +74,12 @@ export default function Chat() {
   useEffect(() => {
     // Only sync when we have a conversation ID and messages from API
     if (conversationId && messagesFromApi) {
-      // Only sync if we don't have local messages or if API has more messages
-      // This prevents overwriting optimistic updates
-      if (messages.length === 0 || messagesFromApi.length > messages.length) {
+      // Only sync if we don't have local messages or if API has different messages
+      // Use JSON comparison to avoid unnecessary re-renders
+      const currentIds = messages.map(m => m.id).sort().join(',');
+      const apiIds = messagesFromApi.map(m => m.id).sort().join(',');
+      
+      if (messages.length === 0 || currentIds !== apiIds) {
         setMessages(messagesFromApi);
       }
     } else if (!conversationId) {
@@ -218,34 +221,35 @@ export default function Chat() {
     } finally {
       console.log(`✅ [STREAM] Stream processing complete`);
 
-      // Add the final message first, then clear streaming state
-      // This ensures seamless transition without flash
-      const assistantMessage: Message = {
-        id: `temp-${Date.now()}-assistant`, // Temporary ID for optimistic update
-        conversationId: targetConversationId,
-        role: 'assistant',
-        content: accumulated,
-        metadata: searchCitations.length > 0 ? { citations: searchCitations, searchQuery } : null,
-        createdAt: new Date(),
-      };
-
-      console.log(`💾 [STREAM] Adding final message to local state`);
-      setMessages(current => [...current, assistantMessage]);
-
-      // Clear streaming state after adding the message to ensure no flash
+      // Instead of adding a new message, just transition streaming to final state
+      // Keep the streaming message as the final message content
       flushSync(() => {
         setIsStreaming(false);
-        setStreamingMessage("");
         setAiActivity(null);
         setAiActivityMessage('');
         setStreamingResponse(null);
+        // Don't clear streamingMessage yet - let it stay as final content
       });
 
-      // Clear optimistic messages since we've added to local state
-      setOptimisticMessages([]);
+      // Add the final message to local state after a brief delay
+      // This prevents visual flash while maintaining content continuity
+      setTimeout(() => {
+        const assistantMessage: Message = {
+          id: `temp-${Date.now()}-assistant`,
+          conversationId: targetConversationId,
+          role: 'assistant',
+          content: accumulated,
+          metadata: searchCitations.length > 0 ? { citations: searchCitations, searchQuery } : null,
+          createdAt: new Date(),
+        };
 
-      // Only invalidate conversations list to update "last message" preview
-      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+        setMessages(current => [...current, assistantMessage]);
+        setStreamingMessage(""); // Now clear the streaming message
+        setOptimisticMessages([]);
+        
+        // Only invalidate conversations list
+        queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      }, 50);
     }
   };
 

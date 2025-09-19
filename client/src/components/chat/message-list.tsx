@@ -206,8 +206,13 @@ export default function MessageList({
                   //console.log('🎯 Rendering streaming content:', streamingMessage.length, 'chars');
                   return (
                     <div className="text-gray-900 text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-p:leading-relaxed prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0">
-                      <ReactMarkdown>{streamingMessage}</ReactMarkdown>
-                      <span className="inline w-2 h-4 bg-gray-400 ml-1 animate-pulse" style={{ display: 'inline-block', verticalAlign: 'text-bottom' }} />
+                      <div className="inline">
+                        <ReactMarkdown components={{
+                          p: ({ children }) => <span>{children}</span>,
+                          br: () => <br />
+                        }}>{streamingMessage}</ReactMarkdown>
+                        <span className="w-2 h-4 bg-gray-400 ml-1 animate-pulse" style={{ display: 'inline-block', verticalAlign: 'middle' }} />
+                      </div>
                     </div>
                   );
                 } else {
