@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Menu, X, Share, MoreVertical, LogOut, TestTube, Download } from "lucide-react";
 import MemoryTester from "../components/MemoryTester";
-import SearchIndicator from "../components/SearchIndicator"; // Assuming SearchIndicator is in this path
+import SearchIndicator from "../components/chat/search-indicator";
 
 export default function Chat() {
   const { id: conversationId } = useParams();
