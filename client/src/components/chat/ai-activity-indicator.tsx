@@ -37,28 +37,28 @@ export default function AIActivityIndicator({ activity, message, searchQuery }: 
         return {
           icon: Eye,
           color: 'text-indigo-600',
-          text: message || 'Recalling memories...',
+          text: message || '',
           animation: 'animate-pulse'
         };
       case 'analyzing':
         return {
           icon: BarChart3,
           color: 'text-orange-600',
-          text: message || 'Analyzing context...',
+          text: message || '',
           animation: 'animate-pulse'
         };
       case 'generating':
         return {
           icon: PenTool,
           color: 'text-green-600',
-          text: message || 'Generating response...',
+          text: message || '',
           animation: 'animate-pulse'
         };
       default:
         return {
           icon: Brain,
           color: 'text-gray-600',
-          text: 'AI is working...',
+          text: '',
           animation: 'animate-pulse'
         };
     }
