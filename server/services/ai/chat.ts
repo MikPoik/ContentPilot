@@ -208,8 +208,9 @@ export async function generateConversationTitle(
   messages: ChatMessage[],
 ): Promise<string> {
   try {
-    const response = await togetherAI.chat.completions.create({
-      model: "openai/gpt-oss-20b",
+    console.log(`📝 [TITLE_GEN] Generating title for ${messages.length} messages`);
+    const response = await openaiClient.chat.completions.create({
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -228,9 +229,11 @@ export async function generateConversationTitle(
       temperature: 0.5,
     });
 
-    return response.choices[0]?.message?.content?.trim() || "New Conversation";
+    const generatedTitle = response.choices[0]?.message?.content?.trim() || "New Conversation";
+    console.log(`📝 [TITLE_GEN] Generated title: "${generatedTitle}"`);
+    return generatedTitle;
   } catch (error) {
-    console.error("Error generating conversation title:", error);
+    console.error("📝 [TITLE_GEN] Error generating conversation title:", error);
     return "New Conversation";
   }
 }

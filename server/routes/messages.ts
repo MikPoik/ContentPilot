@@ -270,7 +270,7 @@ export function registerMessageRoutes(app: Express) {
           console.log(`🧠 [CHAT_FLOW] Memory processing failed: ${Date.now() - memorySaveStart}ms`);
         }
 
-        // Update conversation title if it's the first exchange
+        // Update conversation title if it's the first exchange (after assistant message is saved)
         console.log(`📝 [CHAT_FLOW] BEFORE TITLE CHECK - messages.length=${messages.length}, conversation.title="${conversation.title}"`);
         console.log(`📝 [CHAT_FLOW] Title generation check: messages.length=${messages.length}, conversation.title="${conversation.title}"`);
         if (messages.length <= 2 && conversation.title === 'New Conversation') {
