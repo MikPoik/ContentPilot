@@ -6,6 +6,10 @@ const togetherAI = new OpenAI({
   baseURL: "https://api.together.xyz/v1"
 });
 
+// Together.ai client for gpt-4.1-mini calls to distribute load
+const openAI = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || "default_key"
+});
 export async function rephraseQueryForEmbedding(
   userMessage: string, 
   conversationHistory: Array<{role: string, content: string}>, 
@@ -36,8 +40,8 @@ export async function rephraseQueryForEmbedding(
       }
     }
 
-    const response = await togetherAI.chat.completions.create({
-      model: 'openai/gpt-4.1-mini',
+    const response = await openAI.chat.completions.create({
+      model: 'gpt-4.1-nano',
       messages: [
         {
           role: 'system',
