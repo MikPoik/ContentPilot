@@ -271,12 +271,15 @@ export function registerMessageRoutes(app: Express) {
         }
 
         // Update conversation title if it's the first exchange
+        console.log(`📝 [CHAT_FLOW] Title generation check: messages.length=${messages.length}, conversation.title="${conversation.title}"`);
         if (messages.length <= 2 && conversation.title === 'New Conversation') {
           const titleGenerationStart = Date.now();
+          console.log(`📝 [CHAT_FLOW] Starting title generation...`);
           const newTitle = await generateConversationTitle([
             ...chatHistory,
             { role: 'assistant', content: fullResponse }
           ]);
+          console.log(`📝 [CHAT_FLOW] Generated title: "${newTitle}"`);
           await storage.updateConversation(conversationId, { title: newTitle });
           console.log(`📝 [CHAT_FLOW] Title generation and save: ${Date.now() - titleGenerationStart}ms`);
         }
