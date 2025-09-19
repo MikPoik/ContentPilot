@@ -163,29 +163,40 @@ export default function MessageList({
                 searchQuery={message.metadata.searchQuery as string}
               />
             )}
-            <div className={`text-xs text-gray-500 mt-1 px-1 flex items-center gap-2 ${
-              message.role === 'user' ? 'flex-row-reverse' : ''
-            }`}>
-              <span>
+            
+            {/* Timestamp and activity indicators */}
+            {message.role === 'user' ? (
+              /* User messages: timestamp below the message, right-aligned */
+              <div className="text-xs text-gray-500 mt-1 px-1 text-right">
                 {new Date(message.createdAt).toLocaleTimeString([], { 
                   hour: '2-digit', 
                   minute: '2-digit' 
                 })}
-              </span>
-              {/* Show activity indicators for streaming assistant messages */}
-              {message.role === 'assistant' && (message as any).metadata?.streaming && (
-                <>
-                  <AIActivityIndicator 
-                    activity={(message as any).metadata?.aiActivity || null}
-                    message={(message as any).metadata?.aiActivityMessage || ''}
-                    searchQuery={(message as any).metadata?.searchQuery}
-                  />
-                  {!((message as any).metadata?.aiActivity) && isSearching && (
-                    <SearchIndicator isSearching={true} searchQuery={(message as any).metadata?.searchQuery} />
-                  )}
-                </>
-              )}
-            </div>
+              </div>
+            ) : (
+              /* Assistant messages: timestamp with activity indicators */
+              <div className="text-xs text-gray-500 mt-1 px-1 flex items-center gap-2">
+                <span>
+                  {new Date(message.createdAt).toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </span>
+                {/* Show activity indicators for streaming assistant messages */}
+                {(message as any).metadata?.streaming && (
+                  <>
+                    <AIActivityIndicator 
+                      activity={(message as any).metadata?.aiActivity || null}
+                      message={(message as any).metadata?.aiActivityMessage || ''}
+                      searchQuery={(message as any).metadata?.searchQuery}
+                    />
+                    {!((message as any).metadata?.aiActivity) && isSearching && (
+                      <SearchIndicator isSearching={true} searchQuery={(message as any).metadata?.searchQuery} />
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {message.role === 'user' && (
