@@ -319,6 +319,12 @@ export default function Chat() {
   // Combine real messages with optimistic messages (now handled by the local 'messages' state)
   const allMessages = messages; // Use the local 'messages' state
 
+  // Memoize dropdown disabled state to prevent infinite re-renders
+  const isExportDisabled = useMemo(() => 
+    !conversationId || allMessages.length === 0, 
+    [conversationId, allMessages.length]
+  );
+
   // Close sidebar on mobile when route changes and clear states
   useEffect(() => {
     if (isMobile) {
@@ -423,7 +429,7 @@ export default function Chat() {
                   Memory Tester
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem disabled={!conversationId || allMessages.length === 0}>
+                <DropdownMenuItem disabled={isExportDisabled}>
                   <Download className="h-4 w-4 mr-2" />
                   Export Chat
                 </DropdownMenuItem>
