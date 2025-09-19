@@ -207,7 +207,7 @@ export default function MessageList({
                   return (
                     <div className="text-gray-900 text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-p:leading-relaxed prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0">
                       <ReactMarkdown>{streamingMessage}</ReactMarkdown>
-                      <span className="inline-block w-2 h-4 bg-gray-400 ml-1 animate-pulse" />
+                      <span className="inline w-2 h-4 bg-gray-400 ml-1 animate-pulse" style={{ display: 'inline-block', verticalAlign: 'text-bottom' }} />
                     </div>
                   );
                 } else {

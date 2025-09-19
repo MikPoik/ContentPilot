@@ -216,8 +216,23 @@ export default function Chat() {
       setIsSearching(false); // Ensure indicator is off on error
       throw error;
     } finally {
-      // Final state updates after stream completion
-      // First, clear all streaming state atomically
+      console.log(`✅ [STREAM] Stream processing complete`);
+
+      // Add the final message first, then clear streaming state
+      // This ensures seamless transition without flash
+      const assistantMessage: Message = {
+        id: `temp-${Date.now()}-assistant`, // Temporary ID for optimistic update
+        conversationId: targetConversationId,
+        role: 'assistant',
+        content: accumulated,
+        metadata: searchCitations.length > 0 ? { citations: searchCitations, searchQuery } : null,
+        createdAt: new Date(),
+      };
+
+      console.log(`💾 [STREAM] Adding final message to local state`);
+      setMessages(current => [...current, assistantMessage]);
+
+      // Clear streaming state after adding the message to ensure no flash
       flushSync(() => {
         setIsStreaming(false);
         setStreamingMessage("");
@@ -226,30 +241,11 @@ export default function Chat() {
         setStreamingResponse(null);
       });
 
-      // Then add the final message in a separate update
-      startTransition(() => {
-        const assistantMessage: Message = {
-          id: `temp-${Date.now()}-assistant`, // Temporary ID for optimistic update
-          conversationId: targetConversationId,
-          role: 'assistant',
-          content: accumulated,
-          metadata: searchCitations.length > 0 ? { citations: searchCitations } : null,
-          createdAt: new Date(),
-        };
+      // Clear optimistic messages since we've added to local state
+      setOptimisticMessages([]);
 
-        console.log(`💾 [STREAM] Adding final message to local state optimistically`);
-        // Add to local messages state optimistically - no refetch needed
-        setMessages(current => [...current, assistantMessage]);
-
-        console.log(`✅ [STREAM] Stream processing complete`);
-
-        // Clear optimistic messages since we've added to local state
-        setOptimisticMessages([]);
-
-        // Only invalidate conversations list to update "last message" preview
-        // No need to refetch messages since we have them locally
-        queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
-      });
+      // Only invalidate conversations list to update "last message" preview
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
     }
   };
 
