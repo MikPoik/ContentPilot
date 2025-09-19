@@ -113,7 +113,7 @@ export default function Chat() {
     setSearchCitations([]);
     setSearchQuery(undefined);
     setAiActivity('thinking');
-    setAiActivityMessage('Processing your request...');
+    setAiActivityMessage('');
 
     // Create a single optimistic assistant message that we update in place
     const streamingId = `temp-stream-${Date.now()}`;
@@ -123,7 +123,7 @@ export default function Chat() {
       conversationId: targetConversationId,
       role: 'assistant',
       content: '',
-      metadata: { streaming: true, citations: [], searchQuery: undefined, aiActivity: 'thinking', aiActivityMessage: 'Processing your request...', clientKey: streamingId },
+      metadata: { streaming: true, citations: [], searchQuery: undefined, aiActivity: 'thinking', aiActivityMessage: '', clientKey: streamingId },
       createdAt: new Date(),
     };
     setMessages(prev => [...prev, optimisticAssistant]);
@@ -227,10 +227,10 @@ export default function Chat() {
         if (!actualContentStarted && accumulated.trim()) {
           actualContentStarted = true;
           setAiActivity('generating');
-          setAiActivityMessage('Generating response...');
+          setAiActivityMessage('');
           setMessages(current => current.map(m => m.id === streamingId ? {
             ...m,
-            metadata: { ...(m.metadata || {}), aiActivity: 'generating', aiActivityMessage: 'Generating response...' }
+            metadata: { ...(m.metadata || {}), aiActivity: 'generating', aiActivityMessage: '' }
           } : m));
           // The search indicator should *remain* visible if a search was initiated,
           // even if content starts appearing. It only hides when the stream is done

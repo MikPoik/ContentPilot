@@ -144,7 +144,7 @@ export function registerMessageRoutes(app: Express) {
 
       // Send memory recall indicator if memories were found
       if (relevantMemories.length > 0) {
-        res.write(`[AI_ACTIVITY]{"type":"recalling","message":"Found ${relevantMemories.length} relevant memories from past conversations..."}[/AI_ACTIVITY]`);
+        res.write(`[AI_ACTIVITY]{"type":"recalling","message":""}[/AI_ACTIVITY]`);
       }
 
       // Send search activity indicator if search is recommended

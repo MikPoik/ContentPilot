@@ -16,14 +16,14 @@ export default function AIActivityIndicator({ activity, message, searchQuery }: 
         return {
           icon: Brain,
           color: 'text-blue-600',
-          text: message || 'AI is thinking...',
+          text: message || '',
           animation: 'animate-pulse'
         };
       case 'reasoning':
         return {
           icon: Lightbulb,
           color: 'text-purple-600',
-          text: message || 'AI is reasoning...',
+          text: message || '',
           animation: 'animate-pulse'
         };
       case 'searching':
