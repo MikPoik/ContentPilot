@@ -271,6 +271,7 @@ export function registerMessageRoutes(app: Express) {
         }
 
         // Update conversation title if it's the first exchange
+        console.log(`📝 [CHAT_FLOW] BEFORE TITLE CHECK - messages.length=${messages.length}, conversation.title="${conversation.title}"`);
         console.log(`📝 [CHAT_FLOW] Title generation check: messages.length=${messages.length}, conversation.title="${conversation.title}"`);
         if (messages.length <= 2 && conversation.title === 'New Conversation') {
           const titleGenerationStart = Date.now();
