@@ -105,11 +105,7 @@ export function registerMessageRoutes(app: Express) {
         console.log(`🔍 [CHAT_FLOW] Vector similarity search: ${memorySearchEnd - similaritySearchStart}ms`);
         console.log(`🎯 [CHAT_FLOW] Total memory search: ${memorySearchEnd - memorySearchStart}ms (found ${relevantMemories.length} memories)`);
 
-        // Send memory recall indicator if memories were found
-        if (relevantMemories.length > 0) {
-          res.write(`[AI_ACTIVITY]{"type":"recalling","message":"Found ${relevantMemories.length} relevant memories from past conversations..."}[/AI_ACTIVITY]`);
-        }
-      } catch (error) {
+        } catch (error) {
         console.log(`❌ [CHAT_FLOW] Memory search failed: ${error}`);
       }
 
@@ -123,6 +119,11 @@ export function registerMessageRoutes(app: Express) {
       // Flush headers so the client begins processing the stream ASAP
       if (typeof (res as any).flushHeaders === 'function') {
         (res as any).flushHeaders();
+      }
+
+      // Send memory recall indicator if memories were found
+      if (relevantMemories.length > 0) {
+        res.write(`[AI_ACTIVITY]{"type":"recalling","message":"Found ${relevantMemories.length} relevant memories from past conversations..."}[/AI_ACTIVITY]`);
       }
 
       // Generate AI response stream with user profile and memories
@@ -265,7 +266,14 @@ export function registerMessageRoutes(app: Express) {
       const totalDuration = Date.now() - requestStartTime;
       console.error('❌ [CHAT_FLOW] Message error:', error);
       console.log(`🏁 [CHAT_FLOW] Request failed after: ${totalDuration}ms\n`);
-      res.status(500).json({ message: "Failed to process message" });
+      
+      // Only send error response if headers haven't been sent yet
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Failed to process message" });
+      } else {
+        // If streaming was started, just end the response
+        res.end();
+      }
     }
   });
 }

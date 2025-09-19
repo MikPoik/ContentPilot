@@ -1,4 +1,6 @@
 
+import { Search, Globe, Brain, Eye, BarChart3, PenTool, Lightbulb } from "lucide-react";
+
 interface AIActivityIndicatorProps {
   activity: 'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | null;
   message?: string;
@@ -12,57 +14,50 @@ export default function AIActivityIndicator({ activity, message, searchQuery }: 
     switch (activity) {
       case 'thinking':
         return {
-          icon: '🤔',
+          icon: Brain,
           color: 'text-blue-600',
-          bgColor: 'bg-blue-50',
           text: message || 'AI is thinking...',
           animation: 'animate-pulse'
         };
       case 'reasoning':
         return {
-          icon: '🧠',
+          icon: Lightbulb,
           color: 'text-purple-600',
-          bgColor: 'bg-purple-50',
-          text: message || 'AI is reasoning through your request...',
+          text: message || 'AI is reasoning...',
           animation: 'animate-pulse'
         };
       case 'searching':
         return {
-          icon: '🔍',
+          icon: Search,
           color: 'text-emerald-600',
-          bgColor: 'bg-emerald-50',
-          text: searchQuery ? `Searching the web for "${searchQuery.substring(0, 50)}${searchQuery.length > 50 ? '...' : ''}"` : 'Searching the web...',
-          animation: 'animate-bounce'
+          text: searchQuery ? `Searching for "${searchQuery.substring(0, 30)}${searchQuery.length > 30 ? '...' : ''}"` : 'Searching the web...',
+          animation: 'animate-pulse'
         };
       case 'recalling':
         return {
-          icon: '💭',
+          icon: Eye,
           color: 'text-indigo-600',
-          bgColor: 'bg-indigo-50',
-          text: message || 'Recalling relevant memories...',
+          text: message || 'Recalling memories...',
           animation: 'animate-pulse'
         };
       case 'analyzing':
         return {
-          icon: '📊',
+          icon: BarChart3,
           color: 'text-orange-600',
-          bgColor: 'bg-orange-50',
-          text: message || 'Analyzing your workflow and context...',
+          text: message || 'Analyzing context...',
           animation: 'animate-pulse'
         };
       case 'generating':
         return {
-          icon: '✍️',
+          icon: PenTool,
           color: 'text-green-600',
-          bgColor: 'bg-green-50',
           text: message || 'Generating response...',
           animation: 'animate-pulse'
         };
       default:
         return {
-          icon: '🤖',
+          icon: Brain,
           color: 'text-gray-600',
-          bgColor: 'bg-gray-50',
           text: 'AI is working...',
           animation: 'animate-pulse'
         };
@@ -70,21 +65,18 @@ export default function AIActivityIndicator({ activity, message, searchQuery }: 
   };
 
   const config = getActivityConfig();
+  const IconComponent = config.icon;
 
   return (
     <div 
-      className={`flex items-center space-x-3 px-4 py-3 mb-2 rounded-lg ${config.bgColor} animate-fade-in`}
+      className="flex items-center space-x-2 text-sm mb-2 animate-fade-in"
       data-testid="ai-activity-indicator"
     >
-      <div className={`flex items-center space-x-2 ${config.color}`}>
-        <span className={`text-lg ${config.animation}`}>{config.icon}</span>
-        <div className="flex space-x-1">
-          <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce"></div>
-          <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-          <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-        </div>
+      <div className="flex items-center space-x-1">
+        <IconComponent className={`h-4 w-4 ${config.color} ${config.animation}`} />
+        {activity === 'searching' && <Globe className="h-3 w-3 animate-spin text-emerald-600" />}
       </div>
-      <span className={`text-sm font-medium ${config.color}`}>
+      <span className="text-gray-700">
         {config.text}
       </span>
     </div>
