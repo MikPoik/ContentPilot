@@ -68,41 +68,27 @@ export async function generateChatResponse(
     `🧠 [AI_SERVICE] Search decision - shouldSearch: ${searchDecision.shouldSearch}, confidence: ${searchDecision.confidence}, reason: ${searchDecision.reason}`,
   );
 
+  // Always set searchQuery if AI recommended search, even if we don't execute it
+  if (searchDecision.shouldSearch) {
+    searchQuery = searchDecision.refinedQuery?.trim() || 
+      messages
+        .slice()
+        .reverse()
+        .find((m) => m.role === "user")
+        ?.content?.trim() || "";
+  }
+
   if (
     perplexityService.isConfigured() &&
     searchDecision.shouldSearch &&
     searchDecision.confidence >= 0.7
   ) {
     try {
-      // Fallback to last user message if refinedQuery is empty
-      searchQuery = searchDecision.refinedQuery;
-      if (!searchQuery.trim() && searchDecision.shouldSearch) {
-        // Find the actual last user message by searching backwards through messages
-        const lastUserMessage =
-          messages
-            .slice()
-            .reverse()
-            .find((m) => m.role === "user")
-            ?.content?.trim() || "";
-        if (lastUserMessage) {
-          searchQuery = lastUserMessage;
-          console.log(
-            `🔍 [AI_SERVICE] Using fallback query from last user message: "${searchQuery}"`,
-          );
-        } else {
-          console.log(
-            `⚠️ [AI_SERVICE] No user message found for fallback, skipping search`,
-          );
-          searchPerformed = false;
-        }
-      }
-
       console.log(
         `🔍 [AI_SERVICE] Performing web search with query: "${searchQuery}"`,
       );
       const searchStart = Date.now();
       searchPerformed = true;
-      // searchQuery already set above with fallback logic
 
       // Use the search query with AI decision parameters
       webSearchContext = await perplexityService.searchForChatContext(
@@ -115,6 +101,11 @@ export async function generateChatResponse(
       console.log(
         `🔍 [AI_SERVICE] Web search completed: ${Date.now() - searchStart}ms (${webSearchContext.citations.length} sources)`,
       );
+      
+      // Even if no sources found, we still performed a search
+      if (webSearchContext.citations.length === 0) {
+        console.log(`⚠️ [AI_SERVICE] Web search returned no results, but search was attempted`);
+      }
     } catch (error) {
       console.log(
         `❌ [AI_SERVICE] Web search failed, continuing without search context:`,

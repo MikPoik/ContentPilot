@@ -26,7 +26,7 @@ export function buildWorkflowAwareSystemPrompt(
   memories?: any[], 
   webSearchContext?: { context: string; citations: string[] }
 ): string {
-  const baseWorkflowPrompt = `You are ContentCraft AI, a friendly and expert social media content strategist following a proven 6-step workflow for effective content creation.
+  const baseWorkflowPrompt = `You are ContentCraft AI, a world-class social media content strategist and creative partner with web search capabilities to provide current information.
 
 CRITICAL WORKFLOW RULES:
 - Always follow the natural conversation flow while guiding users through the 6 phases
@@ -51,7 +51,7 @@ ${workflowPhase.shouldBlockContentGeneration ? '\n⚠️ CONTENT GENERATION BLOC
     userContext += `\n- Name: ${user.firstName || 'Not provided'}${user.lastName ? ' ' + user.lastName : ''}`;
     userContext += `\n- Content Niche: ${user.contentNiche?.join(', ') || 'Not specified'}`;
     userContext += `\n- Primary Platform: ${user.primaryPlatform || 'Not specified'}`;
-    
+
     if (user.profileData) {
       const data = user.profileData as any;
       if (data.targetAudience) userContext += `\n- Target Audience: ${data.targetAudience}`;
@@ -77,7 +77,7 @@ ${workflowPhase.shouldBlockContentGeneration ? '\n⚠️ CONTENT GENERATION BLOC
       userContext += `\nSOURCES: ${webSearchContext.citations.slice(0, 3).join(', ')}`;
     }
   }
-  
+
   return baseWorkflowPrompt + userContext;
 }
 
@@ -143,10 +143,10 @@ export async function decideWorkflowPhase(messages: ChatMessage[], user?: User):
   const startTime = Date.now();
   try {
     console.log(`🔄 [AI_SERVICE] Analyzing workflow phase with GPT-4.1-mini...`);
-    
+
     // Get last 8 messages for context
     const contextMessages = messages.slice(-8);
-    
+
     // Build current user context
     const currentProfile = {
       firstName: user?.firstName || null,
@@ -155,7 +155,7 @@ export async function decideWorkflowPhase(messages: ChatMessage[], user?: User):
       primaryPlatform: user?.primaryPlatform || null,
       profileData: user?.profileData || {}
     };
-    
+
     const conversationContext = contextMessages
       .map(msg => `${msg.role}: ${msg.content}`)
       .join('\n');
@@ -223,38 +223,38 @@ Analyze what workflow phase we're in and what's needed next. Be conservative abo
 
     // Parse JSON with robust parsing
     let sanitizedResult = result.trim();
-    
+
     if (sanitizedResult.startsWith('```') && sanitizedResult.endsWith('```')) {
       const lines = sanitizedResult.split('\n');
       sanitizedResult = lines.slice(1, -1).join('\n');
     }
-    
+
     if (sanitizedResult.startsWith('json\n')) {
       sanitizedResult = sanitizedResult.replace('json\n', '');
     }
-    
+
     sanitizedResult = sanitizedResult.trim();
-    
+
     const firstBraceIndex = sanitizedResult.indexOf('{');
     if (firstBraceIndex !== -1) {
       let braceCount = 0;
       let endIndex = firstBraceIndex;
-      
+
       for (let i = firstBraceIndex; i < sanitizedResult.length; i++) {
         if (sanitizedResult[i] === '{') braceCount++;
         else if (sanitizedResult[i] === '}') braceCount--;
-        
+
         if (braceCount === 0) {
           endIndex = i;
           break;
         }
       }
-      
+
       if (braceCount === 0) {
         sanitizedResult = sanitizedResult.substring(firstBraceIndex, endIndex + 1);
       }
     }
-    
+
     const decision: WorkflowPhaseDecision = JSON.parse(sanitizedResult);
     console.log(`🔄 [AI_SERVICE] Workflow phase: ${Date.now() - startTime}ms - phase: ${decision.currentPhase}, block content: ${decision.shouldBlockContentGeneration}`);
     return decision;

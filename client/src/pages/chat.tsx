@@ -114,12 +114,17 @@ export default function Chat() {
               const metaContent = match.match(/\[SEARCH_META\]([\s\S]*?)\[\/SEARCH_META\]/);
               if (metaContent) {
                 const searchMeta = JSON.parse(metaContent[1]);
-                if (searchMeta.searchPerformed) {
+                console.log('🔍 [CLIENT] Received search metadata:', searchMeta);
+                
+                // Show search was performed if searchPerformed is true OR if we have a searchQuery
+                if (searchMeta.searchPerformed || searchMeta.searchQuery) {
                   setSearchCitations(searchMeta.citations || []);
                   setSearchQuery(searchMeta.searchQuery || content);
                   setIsSearching(true);
+                  console.log(`🔍 [CLIENT] Search indicator shown: query="${searchMeta.searchQuery}", citations=${(searchMeta.citations || []).length}`);
                 } else {
                   setIsSearching(false);
+                  console.log('🔍 [CLIENT] Search indicator hidden - no search performed');
                 }
               }
             } catch (e) {

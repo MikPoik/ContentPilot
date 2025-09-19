@@ -126,19 +126,19 @@ export function registerMessageRoutes(app: Express) {
       const responseWithMetadata: ChatResponseWithMetadata = await generateChatResponse(chatHistory, user, relevantMemories);
       let fullResponse = '';
 
-      // Send search metadata first if search was performed
-      if (responseWithMetadata.searchPerformed) {
+      // Send search metadata immediately when search is performed (even with 0 citations)
+      if (responseWithMetadata.searchPerformed || responseWithMetadata.searchQuery) {
         const searchMetadata = JSON.stringify({
           type: 'search_metadata',
-          searchPerformed: true,
-          citations: responseWithMetadata.citations,
-          searchQuery: responseWithMetadata.searchQuery
+          searchPerformed: responseWithMetadata.searchPerformed || false,
+          citations: responseWithMetadata.citations || [],
+          searchQuery: responseWithMetadata.searchQuery || ''
         });
         res.write(`[SEARCH_META]${searchMetadata}[/SEARCH_META]\n`);
         if (typeof (res as any).flush === 'function') {
           try { (res as any).flush(); } catch {}
         }
-        console.log(`🔍 [CHAT_FLOW] Search metadata sent: ${responseWithMetadata.citations.length} citations`);
+        console.log(`🔍 [CHAT_FLOW] Search metadata sent: searchPerformed=${responseWithMetadata.searchPerformed}, citations=${(responseWithMetadata.citations || []).length}, query="${responseWithMetadata.searchQuery}"`);
       }
 
       const reader = responseWithMetadata.stream.getReader();
