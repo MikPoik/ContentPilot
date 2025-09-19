@@ -105,6 +105,16 @@ export function registerMessageRoutes(app: Express) {
         const memorySearchEnd = Date.now(); // Capture end time here
         console.log(`🔍 [CHAT_FLOW] Vector similarity search: ${memorySearchEnd - similaritySearchStart}ms`);
         console.log(`🎯 [CHAT_FLOW] Total memory search: ${memorySearchEnd - memorySearchStart}ms (found ${relevantMemories.length} memories)`);
+        
+        // Log actual memory contents
+        if (relevantMemories.length > 0) {
+          console.log(`🧠 [CHAT_FLOW] Retrieved memories:`);
+          relevantMemories.forEach((memory, index) => {
+            console.log(`  ${index + 1}. [Similarity: ${memory.similarity?.toFixed(3) || 'N/A'}] ${memory.content}`);
+          });
+        } else {
+          console.log(`🧠 [CHAT_FLOW] No relevant memories found for this query`);
+        }
 
         } catch (error) {
         console.log(`❌ [CHAT_FLOW] Memory search failed: ${error}`);
