@@ -10,7 +10,7 @@ const togetherAI = new OpenAI({
 export async function extractProfileInfo(userMessage: string, assistantResponse: string, user: User): Promise<any> {
   try {
     const response = await togetherAI.chat.completions.create({
-      model: 'openai-gtp-oss20b',
+      model: 'openai/gpt-oss-20b',
       messages: [
         {
           role: 'system',
