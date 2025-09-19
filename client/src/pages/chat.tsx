@@ -345,11 +345,13 @@ export default function Chat() {
     );
   }, [messages, optimisticMessages]);
 
+  // Memoize message count separately to prevent re-renders
+  const messageCount = useMemo(() => allMessages.length, [allMessages]);
 
   // Memoize dropdown disabled state to prevent infinite re-renders
   const isExportDisabled = useMemo(() =>
-    !conversationId || allMessages.length === 0,
-    [conversationId, allMessages.length]
+    !conversationId || messageCount === 0,
+    [conversationId, messageCount]
   );
 
   // Memoize dropdown handlers to prevent re-renders
