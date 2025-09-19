@@ -123,12 +123,12 @@ export default function MessageList({
             </div>
           )}
           
-          <div className={`flex-1 max-w-3xl ${message.role === 'user' ? 'flex justify-end' : ''} ${message.role === 'user' ? 'md:mr-0 mr-0' : 'md:ml-0 ml-0'}`}>
+          <div className={`flex-1 max-w-3xl ${message.role === 'user' ? 'flex flex-col items-end' : ''}`}>
             
 
             <div className={`px-4 py-3 rounded-2xl ${
               message.role === 'user'
-                ? 'bg-emerald-500 text-white rounded-tr-md ml-auto max-w-fit'
+                ? 'bg-emerald-500 text-white rounded-tr-md max-w-fit'
                 : 'bg-gray-100 text-gray-900 rounded-tl-md'
             }`}>
               {message.role === 'user' ? (
@@ -167,7 +167,7 @@ export default function MessageList({
             {/* Timestamp and activity indicators */}
             {message.role === 'user' ? (
               /* User messages: timestamp below the message, right-aligned */
-              <div className="text-xs text-gray-500 mt-1 px-1 text-right">
+              <div className="text-xs text-gray-500 mt-1 px-1">
                 {new Date(message.createdAt).toLocaleTimeString([], { 
                   hour: '2-digit', 
                   minute: '2-digit' 
