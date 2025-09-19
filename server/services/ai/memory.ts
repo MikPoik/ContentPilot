@@ -1,13 +1,15 @@
 import OpenAI from "openai";
 
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
+// Together.ai client for gpt-4.1-mini calls to distribute load
+const togetherAI = new OpenAI({
+  apiKey: process.env.TOGETHERAI_API_KEY || "default_key",
+  baseURL: "https://api.together.xyz/v1"
 });
 
 export async function extractMemoriesFromConversation(userMessage: string, assistantResponse: string): Promise<string[]> {
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4.1-mini',
+    const response = await togetherAI.chat.completions.create({
+      model: 'openai-gtp-oss20b',
       messages: [
         {
           role: 'system',

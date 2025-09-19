@@ -1,8 +1,10 @@
 import OpenAI from "openai";
 import { type User } from "@shared/schema";
 
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
+// Together.ai client for gpt-4.1-mini calls to distribute load
+const togetherAI = new OpenAI({
+  apiKey: process.env.TOGETHERAI_API_KEY || "default_key",
+  baseURL: "https://api.together.xyz/v1"
 });
 
 export interface WebSearchDecision {
@@ -47,8 +49,8 @@ export async function decideWebSearch(messages: ChatMessage[], user?: User): Pro
       .map(msg => `${msg.role}: ${msg.content}`)
       .join('\n');
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4.1-mini',
+    const response = await togetherAI.chat.completions.create({
+      model: 'openai-gtp-oss20b',
       messages: [
         {
           role: 'system',
@@ -100,7 +102,7 @@ Analyze the LATEST user message and decide if web search is needed.`
 
     const result = response.choices[0]?.message?.content?.trim();
     if (!result) {
-      console.log(`❌ [AI_SERVICE] No response from GPT-4.1 for search decision after ${Date.now() - startTime}ms`);
+      console.log(`❌ [AI_SERVICE] No response from Together.ai for search decision after ${Date.now() - startTime}ms`);
       return {
         shouldSearch: false,
         confidence: 0.9,

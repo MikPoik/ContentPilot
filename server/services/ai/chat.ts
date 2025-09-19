@@ -10,6 +10,18 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
 });
 
+// Together.ai client for gpt-4.1-mini calls to distribute load
+const togetherAI = new OpenAI({
+  apiKey: process.env.TOGETHERAI_API_KEY || "default_key",
+  baseURL: "https://api.together.xyz/v1"
+});
+
+// Deepinfra.ai client for embedding calls
+const deepinfraAI = new OpenAI({
+  apiKey: process.env.DEEPINFRA_API_KEY || "default_key",
+  baseURL: "https://api.deepinfra.com/v1/openai"
+});
+
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -142,8 +154,8 @@ export async function generateChatResponse(messages: ChatMessage[], user?: User,
 
 export async function generateConversationTitle(messages: ChatMessage[]): Promise<string> {
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4.1-mini',
+    const response = await togetherAI.chat.completions.create({
+      model: 'openai-gtp-oss20b',
       messages: [
         {
           role: 'system',
@@ -167,8 +179,8 @@ export async function generateConversationTitle(messages: ChatMessage[]): Promis
 
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
-    const response = await openai.embeddings.create({
-      model: "text-embedding-3-small",
+    const response = await deepinfraAI.embeddings.create({
+      model: "google/embeddinggemma-300m",
       input: text,
     });
     
