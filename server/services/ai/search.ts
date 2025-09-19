@@ -58,6 +58,11 @@ Current date: ${currentDate}
 
 IMPORTANT: Be CONSERVATIVE with search decisions. Only recommend search for queries that genuinely need current, factual, or time-sensitive information.
 
+LANGUAGE MATCHING: When searching specific websites, match the search terms to the website's primary language:
+- Finnish sites (.fi domains): Use Finnish search terms (e.g., "yritys", "palvelut", "tietoa meistä")
+- English sites: Use English search terms
+- Detect the website's language from the domain or URL
+
 DO NOT search for:
 - Greetings ("Hi", "Hello", "Thanks", "Goodbye")
 - Social conversation ("How are you?", "Nice to meet you")
@@ -79,7 +84,7 @@ Return ONLY valid JSON with these exact fields:
   "shouldSearch": boolean,
   "confidence": number (0.0 to 1.0),
   "reason": "brief explanation of decision",
-  "refinedQuery": "optimized search query if shouldSearch=true, otherwise empty string",
+  "refinedQuery": "optimized search query in appropriate language if shouldSearch=true, otherwise empty string",
   "recency": "hour|day|week|month|year (how recent info should be)",
   "domains": ["array", "of", "relevant", "website", "domains", "if", "any"]
 }

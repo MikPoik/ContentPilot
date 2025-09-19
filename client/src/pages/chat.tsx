@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Menu, X, Share, MoreVertical, LogOut, TestTube, Download } from "lucide-react";
 import MemoryTester from "../components/MemoryTester";
+import SearchIndicator from "../components/SearchIndicator"; // Assuming SearchIndicator is in this path
 
 export default function Chat() {
   const { id: conversationId } = useParams();
@@ -29,7 +30,7 @@ export default function Chat() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
+  const [isSearching, setIsSearching] = useState(false); // This state is used for the indicator
   const [searchQuery, setSearchQuery] = useState<string | undefined>();
   const [searchCitations, setSearchCitations] = useState<string[]>([]);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
@@ -39,17 +40,30 @@ export default function Chat() {
   const { user } = useAuth() as { user: User | undefined };
   const { toast } = useToast();
 
+  // State for the typing indicator and the search query extracted from streaming data
+  const [typingIndicator, setTypingIndicator] = useState(false);
+  const [streamingResponse, setStreamingResponse] = useState<any>(null); // To store search metadata
+  const [isLoading, setIsLoading] = useState(false); // General loading state for sending messages
+  const [messages, setMessages] = useState<Message[]>([]); // Local state for messages to enable real-time updates
+
   // Get conversations list
   const { data: conversations = [] } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
   });
 
   // Get messages for current conversation
-  const { data: messages = [], refetch: refetchMessages } = useQuery<Message[]>({
+  const { data: messagesFromApi = [], refetch: refetchMessages } = useQuery<Message[]>({
     queryKey: ["/api/conversations", conversationId, "messages"],
     enabled: !!conversationId,
     staleTime: 0, // Always consider messages stale to ensure fresh data when switching conversations
   });
+
+  // Effect to sync API messages with local state when conversation changes
+  useEffect(() => {
+    if (messagesFromApi) {
+      setMessages(messagesFromApi);
+    }
+  }, [messagesFromApi]);
 
   // Create new conversation mutation
   const createConversationMutation = useMutation({
@@ -67,10 +81,10 @@ export default function Chat() {
   const streamResponse = async (targetConversationId: string, content: string) => {
     console.log('🚀 Starting stream response');
     setIsStreaming(true);
-    setIsSearching(false); // Don't assume search is happening - wait for metadata
+    setIsSearching(false); // Reset search indicator state
     setStreamingMessage("");
     setSearchCitations([]);
-    setSearchQuery(content);
+    setSearchQuery(content); // Set the initial user query
 
     const response = await fetch(`/api/conversations/${targetConversationId}/messages`, {
       method: "POST",
@@ -93,7 +107,6 @@ export default function Chat() {
     let accumulated = "";
     let actualContentStarted = false;
     let chunkCount = 0;
-    let rawBuffer = ""; // Buffer to handle metadata spanning multiple chunks
 
     try {
       while (true) {
@@ -102,10 +115,9 @@ export default function Chat() {
 
         const chunk = decoder.decode(value, { stream: true });
         chunkCount++;
-        
-        // Process search metadata if present, then filter it out
+
         let chunkContent = chunk;
-        
+
         const searchMetaRegex = /\[SEARCH_META\][\s\S]*?\[\/SEARCH_META\]/g;
         const searchMatches = chunkContent.match(searchMetaRegex);
         if (searchMatches) {
@@ -115,72 +127,76 @@ export default function Chat() {
               if (metaContent) {
                 const searchMeta = JSON.parse(metaContent[1]);
                 console.log('🔍 [CLIENT] Received search metadata:', searchMeta);
-                
-                // Show search was performed if searchPerformed is true OR if we have a searchQuery
-                if (searchMeta.searchPerformed || searchMeta.searchQuery) {
-                  setSearchCitations(searchMeta.citations || []);
-                  setSearchQuery(searchMeta.searchQuery || content);
-                  setIsSearching(true);
-                  console.log(`🔍 [CLIENT] Search indicator shown: query="${searchMeta.searchQuery}", citations=${(searchMeta.citations || []).length}`);
+                setStreamingResponse(searchMeta); // Store metadata for UI checks
+
+                // Set search indicator based on AI decision to search
+                if (searchMeta.searchQuery && searchMeta.searchQuery.trim()) {
+                  setIsSearching(true); // Activate search indicator
+                  setSearchQuery(searchMeta.searchQuery); // Update search query display
+                  setSearchCitations(searchMeta.citations || []); // Update citations
+                  console.log(`🔍 Search indicator activated for query: ${searchMeta.searchQuery}`);
                 } else {
-                  setIsSearching(false);
-                  console.log('🔍 [CLIENT] Search indicator hidden - no search performed');
+                  setIsSearching(false); // Deactivate if no search query in metadata
                 }
               }
             } catch (e) {
               console.error('Failed to parse search metadata:', e);
-              setIsSearching(false);
+              setIsSearching(false); // Ensure indicator is off on parsing error
             }
           });
           chunkContent = chunkContent.replace(searchMetaRegex, '');
         }
-        
+
         // Add clean content to accumulated display
         accumulated += chunkContent;
-        
+
         // Once we get actual content, stop showing search indicator
         if (!actualContentStarted && accumulated.trim()) {
           actualContentStarted = true;
-          setIsSearching(false);
+          // The search indicator should *remain* visible if a search was initiated,
+          // even if content starts appearing. It only hides when the stream is done
+          // or if explicitly turned off by new metadata.
         }
-        
+
         // Force immediate React update using flushSync for real-time streaming
         flushSync(() => {
           setStreamingMessage(accumulated);
         });
       }
-      
+
       console.log(`✅ Stream complete: ${chunkCount} chunks, ${accumulated.length} chars`);
     } catch (error) {
       console.error('❌ Stream error:', error);
-      setIsSearching(false);
+      setIsSearching(false); // Ensure indicator is off on error
       throw error;
-    }
+    } finally {
+      // Final state updates after stream completion
+      startTransition(() => {
+        const assistantMessage: Message = {
+          id: `${Date.now()}-assistant`, // Temporary ID, will be replaced by actual API ID if available
+          conversationId: targetConversationId,
+          role: 'assistant',
+          content: accumulated,
+          metadata: searchCitations.length > 0 ? { citations: searchCitations } : null,
+          createdAt: new Date(),
+        };
 
-    // Final state updates
-    startTransition(() => {
-      const assistantMessage: Message = {
-        id: `${Date.now()}-assistant`,
-        conversationId: targetConversationId,
-        role: 'assistant',
-        content: accumulated,
-        metadata: searchCitations.length > 0 ? { citations: searchCitations } : null,
-        createdAt: new Date(),
-      };
-      
-      console.log('💾 Adding final message to optimistic state');
-      setOptimisticMessages(current => [...current, assistantMessage]);
-      setIsStreaming(false);
-      setIsSearching(false);
-      setStreamingMessage("");
-    });
+        console.log('💾 Adding final message to optimistic state');
+        // Use the local 'messages' state here to add the new message
+        setMessages(current => [...current, assistantMessage]);
+        setIsStreaming(false);
+        // Keep setIsSearching true if a search was performed, it will be reset by the next message or cleared on conversation change
+        setStreamingMessage("");
+        setStreamingResponse(null); // Clear search metadata after processing
+      });
+    }
   };
 
-  // Send message mutation - simplified
+  // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
       let targetConversationId = conversationId;
-      
+
       if (!conversationId) {
         // Create new conversation first
         const newConversation = await createConversationMutation.mutateAsync("New Conversation");
@@ -188,28 +204,29 @@ export default function Chat() {
         setLocation(`/chat/${newConversation.id}`);
       }
 
-      // Add user message immediately to optimistic state
+      // Add user message immediately to optimistic state (local 'messages' state)
       const userMessage: Message = {
-        id: `temp-${Date.now()}`,
+        id: `temp-${Date.now()}`, // Temporary ID
         conversationId: targetConversationId!,
         role: 'user',
         content,
         metadata: null,
         createdAt: new Date(),
       };
-      setOptimisticMessages(prev => [...prev, userMessage]);
+      setMessages(prev => [...prev, userMessage]);
 
-      // Stream response outside mutation context
+      // Stream response
       await streamResponse(targetConversationId!, content);
     },
     onError: (error) => {
       console.error('Send message error:', error);
       setIsStreaming(false);
-      setIsSearching(false);
+      setIsSearching(false); // Ensure search indicator is off on error
       setStreamingMessage("");
       setSearchCitations([]);
-      setOptimisticMessages([]);
-      
+      setOptimisticMessages([]); // Clear optimistic messages on error
+      setStreamingResponse(null); // Clear search metadata on error
+
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -221,7 +238,7 @@ export default function Chat() {
         }, 500);
         return;
       }
-      
+
       // Show specific error message if available
       const errorMessage = error instanceof Error ? error.message : "Failed to send message";
       toast({
@@ -230,6 +247,14 @@ export default function Chat() {
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      // This is called after onSuccess or onError
+      // Reset streaming states that are not handled by streamResponse's finally block
+      setIsStreaming(false);
+      setIsSearching(false); // Ensure search indicator is off when mutation settles
+      setStreamingMessage("");
+      setStreamingResponse(null); // Clear search metadata
+    }
   });
 
   // Handle new conversation
@@ -245,23 +270,22 @@ export default function Chat() {
   // Get current conversation
   const currentConversation = conversations.find(c => c.id === conversationId);
 
-  // Combine real messages with optimistic messages
-  const allMessages = [...messages, ...optimisticMessages].sort((a, b) => 
-    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-  );
+  // Combine real messages with optimistic messages (now handled by the local 'messages' state)
+  const allMessages = messages; // Use the local 'messages' state
 
-  // Close sidebar on mobile when route changes and clear optimistic messages
+  // Close sidebar on mobile when route changes and clear states
   useEffect(() => {
     if (isMobile) {
       setSidebarOpen(false);
     }
-    // Clear optimistic messages when conversation changes
-    setOptimisticMessages([]);
+    // Clear states related to ongoing streams or searches when conversation changes
+    setOptimisticMessages([]); // This might be redundant now if using local messages state
     setStreamingMessage("");
     setIsStreaming(false);
-    setIsSearching(false);
+    setIsSearching(false); // Crucially, reset search indicator state
     setSearchCitations([]);
     setSearchQuery(undefined);
+    setStreamingResponse(null); // Clear search metadata
   }, [conversationId, isMobile]);
 
   return (
@@ -306,7 +330,7 @@ export default function Chat() {
               {currentConversation?.title || "ContentCraft AI"}
             </h2>
           </div>
-          
+
           {/* Desktop Action Buttons */}
           <div className="hidden md:flex items-center gap-1 flex-none shrink-0">
             <Button 
@@ -370,7 +394,13 @@ export default function Chat() {
         </header>
 
         {/* Messages or Memory Tester */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto flex flex-col">
+          {/* Search Indicator - Show when AI decides to search OR search is being performed */}
+          {(isSearching || (streamingResponse && streamingResponse.searchQuery)) && (
+            <div className="flex justify-center mb-4 mt-4">
+              <SearchIndicator />
+            </div>
+          )}
           {showMemoryTester ? (
             <MemoryTester />
           ) : (
@@ -378,7 +408,7 @@ export default function Chat() {
               messages={allMessages}
               streamingMessage={streamingMessage}
               isStreaming={isStreaming}
-              isSearching={isSearching}
+              isSearching={isSearching} // Pass the state down
               searchQuery={searchQuery}
               searchCitations={searchCitations}
               user={user}
@@ -391,7 +421,7 @@ export default function Chat() {
         {!showMemoryTester && (
           <MessageInput
             onSendMessage={handleSendMessage}
-            isLoading={sendMessageMutation.isPending}
+            isLoading={sendMessageMutation.isPending || isStreaming} // Also consider isStreaming as loading
             disabled={isStreaming}
           />
         )}

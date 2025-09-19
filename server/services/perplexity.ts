@@ -83,12 +83,12 @@ export class PerplexityService {
     domains?: string[], 
     contextPrompt?: string
   ): string {
-    const normQuery = query.trim().toLowerCase();
+    const normQuery = query.trim().toLowerCase().replace(/:/g, '_');
     const normalizedRecency = recency || 'week';
-    const domainsPart = domains?.length ? domains.slice().sort().join(',') : '*';
+    const domainsPart = domains?.length ? domains.slice().sort().join(',').replace(/:/g, '_') : '*';
     const contextHash = contextPrompt ? this.simpleHash(contextPrompt) : 'default';
     
-    return `${normQuery}:${normalizedRecency}:${domainsPart}:${contextHash}`;
+    return `${normQuery}|${normalizedRecency}|${domainsPart}|${contextHash}`;
   }
 
   /**
