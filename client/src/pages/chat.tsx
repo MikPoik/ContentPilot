@@ -73,7 +73,13 @@ export default function Chat() {
   // Effect to sync API messages with local state when conversation changes
   useEffect(() => {
     if (messagesFromApi) {
-      setMessages(messagesFromApi);
+      setMessages(prev => {
+        // Only update if messages actually changed to prevent infinite re-renders
+        if (JSON.stringify(prev) !== JSON.stringify(messagesFromApi)) {
+          return messagesFromApi;
+        }
+        return prev;
+      });
     }
   }, [messagesFromApi]);
 
