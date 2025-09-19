@@ -331,11 +331,9 @@ export default function Chat() {
     [conversationId, allMessages.length]
   );
 
-  // Close sidebar on mobile when route changes and clear states
+  // Close sidebar when route changes and clear states
   useEffect(() => {
-    if (isMobile) {
-      setSidebarOpen(false);
-    }
+    setSidebarOpen(false); // Always close sidebar when conversation changes
     // Clear states related to ongoing streams or searches when conversation changes
     setOptimisticMessages([]); // This might be redundant now if using local messages state
     setStreamingMessage("");
@@ -346,7 +344,7 @@ export default function Chat() {
     setSearchCitations([]);
     setSearchQuery(undefined);
     setStreamingResponse(null); // Clear search metadata
-  }, [conversationId, isMobile]);
+  }, [conversationId]);
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
