@@ -233,16 +233,16 @@ export default function Chat() {
 
         console.log(`✅ [STREAM] Stream processing complete`);
 
-        // Clear streaming states
+        // Clear all streaming state atomically to prevent flash
         setIsStreaming(false);
+        setStreamingMessage("");
         setAiActivity(null);
         setAiActivityMessage('');
-        setStreamingMessage("");
-        setStreamingResponse(null);
-        
+        setStreamingResponse(null); // Clear search metadata after processing
+
         // Clear optimistic messages since we've added to local state
         setOptimisticMessages([]);
-        
+
         // Only invalidate conversations list to update "last message" preview
         // No need to refetch messages since we have them locally
         queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
@@ -362,7 +362,7 @@ export default function Chat() {
     setSearchCitations([]);
     setSearchQuery(undefined);
     setStreamingResponse(null); // Clear search metadata
-    
+
     // Reset local messages to empty when changing conversations
     // The useEffect above will populate with API data
     if (!conversationId) {

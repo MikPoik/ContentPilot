@@ -176,7 +176,7 @@ export default function MessageList({
       })}
 
       {/* Streaming message - render inline in same position */}
-      {(isStreaming || streamingMessage) && (
+      {isStreaming && (
         <div className="flex items-start space-x-3">
           <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center flex-shrink-0">
             <span className="text-white text-sm">🤖</span>
