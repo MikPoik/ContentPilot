@@ -70,27 +70,16 @@ export default function Chat() {
     staleTime: 0, // Always consider messages stale to ensure fresh data when switching conversations
   });
 
-  // Use ref to track previous messages and prevent infinite updates
-  const prevMessagesRef = useRef<Message[]>([]);
-  
   // Effect to sync API messages with local state when conversation changes
   useEffect(() => {
-    if (messagesFromApi && messagesFromApi !== prevMessagesRef.current) {
-      const prevMessages = prevMessagesRef.current;
-      
-      // Only update if messages actually changed
-      const hasChanges = prevMessages.length !== messagesFromApi.length ||
-        messagesFromApi.some((msg, index) => {
-          const prevMsg = prevMessages[index];
-          return !prevMsg || prevMsg.id !== msg.id || prevMsg.content !== msg.content;
-        });
-      
-      if (hasChanges) {
-        prevMessagesRef.current = messagesFromApi;
-        setMessages(messagesFromApi);
-      }
+    // Only sync when we have a conversation ID and messages from API
+    if (conversationId && messagesFromApi) {
+      setMessages(messagesFromApi);
+    } else if (!conversationId) {
+      // For new conversations without ID, keep existing local messages
+      // This ensures the first message stays visible when starting from main view
     }
-  }, [messagesFromApi]);
+  }, [conversationId, messagesFromApi]);
 
   // Create new conversation mutation
   const createConversationMutation = useMutation({
@@ -267,23 +256,23 @@ export default function Chat() {
     mutationFn: async (content: string) => {
       let targetConversationId = conversationId;
 
-      if (!conversationId) {
-        // Create new conversation first
-        const newConversation = await createConversationMutation.mutateAsync("New Conversation");
-        targetConversationId = newConversation.id;
-        setLocation(`/chat/${newConversation.id}`);
-      }
-
-      // Add user message immediately to optimistic state (local 'messages' state)
+      // Add user message immediately to local state
       const userMessage: Message = {
         id: `temp-${Date.now()}`, // Temporary ID
-        conversationId: targetConversationId!,
+        conversationId: targetConversationId || 'temp',
         role: 'user',
         content,
         metadata: null,
         createdAt: new Date(),
       };
       setMessages(prev => [...prev, userMessage]);
+
+      if (!conversationId) {
+        // Create new conversation first
+        const newConversation = await createConversationMutation.mutateAsync("New Conversation");
+        targetConversationId = newConversation.id;
+        setLocation(`/chat/${newConversation.id}`);
+      }
 
       // Stream response
       await streamResponse(targetConversationId!, content);

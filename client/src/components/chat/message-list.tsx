@@ -41,7 +41,7 @@ export default function MessageList({
     scrollToBottom();
   }, [messages, streamingMessage]);
 
-  // Show welcome message only when there are truly no messages (including optimistic and streaming)
+  // Show welcome message only for completely empty state
   if (!conversationId && messages.length === 0 && !streamingMessage && !isStreaming) {
     return (
       <div 
