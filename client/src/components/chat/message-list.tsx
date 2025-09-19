@@ -99,7 +99,7 @@ export default function MessageList({
   return (
     <div 
       ref={containerRef}
-      className="h-full overflow-y-auto px-4 py-6 space-y-6"
+      className="h-full overflow-y-auto px-4 py-6 space-y-6 pt-12"
       data-testid="message-list"
     >
       {/* Render all messages; streaming assistant updates in-place via metadata.streaming */}
@@ -109,7 +109,7 @@ export default function MessageList({
         const hasClientKey = Boolean((message as any).metadata?.clientKey);
         const isOptimisticAssistant = message.role === 'assistant' && ((/^\d+-assistant$/.test(message.id.toString())) || /^temp-stream-/.test(message.id.toString()) || hasClientKey);
         const shouldAnimate = message.role === 'user' || !isOptimisticAssistant;
-        
+
         return (
           <div 
             key={(message as any).metadata?.clientKey || message.id}
@@ -122,11 +122,11 @@ export default function MessageList({
               <span className="text-white text-sm">🤖</span>
             </div>
           )}
-          
+
           <div className={`flex-1 max-w-3xl ${message.role === 'user' ? 'flex justify-end' : ''}`}>
             {/* When assistant is streaming, show activity indicators above bubble */}
             {message.role === 'assistant' && (message as any).metadata?.streaming && (
-              <div className="mb-1">
+              <div className="mb-1 absolute bottom-full left-0 w-full pb-2"> {/* Added positioning and padding */}
                 <AIActivityIndicator 
                   activity={(message as any).metadata?.aiActivity || null}
                   message={(message as any).metadata?.aiActivityMessage || ''}
@@ -167,7 +167,7 @@ export default function MessageList({
                 </div>
               )}
             </div>
-            
+
             {/* Show citations for assistant messages if available */}
             {message.role === 'assistant' && message.metadata?.citations && (
               <SearchCitations 
