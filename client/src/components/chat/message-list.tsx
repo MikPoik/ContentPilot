@@ -215,7 +215,6 @@ What type of content creator are you? Are you focused on a specific niche like f
                 }
               })()}
             </div>
-          </div>
             
             {/* Show citations for streaming response if available */}
             {searchCitations.length > 0 && !isSearching && streamingMessage && (
