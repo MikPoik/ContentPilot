@@ -1,110 +1,77 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Download, FileText, Globe } from "lucide-react";
-import { type Message, type Conversation } from "@shared/schema";
-import { exportToMarkdown, exportToHTML, downloadFile, generateFilename } from "@/lib/exportUtils";
-import { useToast } from "@/hooks/use-toast";
+import { Download, FileText, Share2 } from "lucide-react";
+import { exportConversation } from "@/lib/exportUtils";
+import { type Message } from "@shared/schema";
 
 interface ExportMenuProps {
   messages: Message[];
-  conversation?: Conversation;
-  disabled?: boolean;
+  conversationTitle?: string;
 }
 
-export default function ExportMenu({ messages, conversation, disabled = false }: ExportMenuProps) {
+export default function ExportMenu({ messages, conversationTitle }: ExportMenuProps) {
   const [isExporting, setIsExporting] = useState(false);
-  const { toast } = useToast();
-  
-  const handleExport = async (format: 'markdown' | 'html') => {
-    if (messages.length === 0) {
-      toast({
-        title: "Nothing to export",
-        description: "Start a conversation first to export it.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
+
+  const handleExport = useCallback(async (format: 'markdown' | 'txt' | 'json') => {
+    if (isExporting || messages.length === 0) return;
+
     setIsExporting(true);
-    
     try {
-      let content: string;
-      let filename: string;
-      let contentType: string;
-      
-      if (format === 'markdown') {
-        content = exportToMarkdown(messages, conversation, {
-          includeTimestamps: true,
-          includeMetadata: true
-        });
-        filename = generateFilename(conversation, 'md');
-        contentType = 'text/markdown';
-      } else {
-        content = exportToHTML(messages, conversation, {
-          includeTimestamps: true,
-          includeMetadata: true
-        });
-        filename = generateFilename(conversation, 'html');
-        contentType = 'text/html';
-      }
-      
-      downloadFile(content, filename, contentType);
-      
-      toast({
-        title: "Export successful",
-        description: `Conversation exported as ${format.toUpperCase()}`,
-      });
+      await exportConversation(messages, format, conversationTitle);
     } catch (error) {
       console.error('Export failed:', error);
-      toast({
-        title: "Export failed",
-        description: "There was an error exporting your conversation. Please try again.",
-        variant: "destructive"
-      });
     } finally {
       setIsExporting(false);
     }
-  };
-  
+  }, [isExporting, messages, conversationTitle]);
+
+  // Early return to prevent rendering dropdown when no messages
+  if (messages.length === 0) {
+    return null;
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size="sm"
-          disabled={disabled || isExporting}
-          className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-          data-testid="button-export-menu"
+          className="p-1.5 text-gray-500 hover:text-gray-700 transition-colors rounded-lg hover:bg-gray-100"
+          disabled={isExporting}
         >
           <Download className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem
+        <DropdownMenuItem 
           onClick={() => handleExport('markdown')}
           disabled={isExporting}
           className="cursor-pointer"
-          data-testid="export-markdown"
         >
-          <FileText className="h-4 w-4 mr-2" />
+          <FileText className="mr-2 h-4 w-4" />
           Export as Markdown
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => handleExport('html')}
+        <DropdownMenuItem 
+          onClick={() => handleExport('txt')}
           disabled={isExporting}
           className="cursor-pointer"
-          data-testid="export-html"
         >
-          <Globe className="h-4 w-4 mr-2" />
-          Export as HTML
+          <FileText className="mr-2 h-4 w-4" />
+          Export as Text
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={() => handleExport('json')}
+          disabled={isExporting}
+          className="cursor-pointer"
+        >
+          <Share2 className="mr-2 h-4 w-4" />
+          Export as JSON
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
