@@ -75,10 +75,21 @@ export default function Chat() {
     if (messagesFromApi) {
       setMessages(prev => {
         // Only update if messages actually changed to prevent infinite re-renders
-        if (JSON.stringify(prev) !== JSON.stringify(messagesFromApi)) {
+        // Compare lengths first for performance, then compare IDs and content
+        if (prev.length !== messagesFromApi.length) {
           return messagesFromApi;
         }
-        return prev;
+        
+        // Check if any message differs by comparing key properties
+        const hasChanges = prev.some((prevMsg, index) => {
+          const apiMsg = messagesFromApi[index];
+          return !apiMsg || 
+                 prevMsg.id !== apiMsg.id || 
+                 prevMsg.content !== apiMsg.content ||
+                 prevMsg.role !== apiMsg.role;
+        });
+        
+        return hasChanges ? messagesFromApi : prev;
       });
     }
   }, [messagesFromApi]);
