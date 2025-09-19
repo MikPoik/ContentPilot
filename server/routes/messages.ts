@@ -4,6 +4,7 @@ import { isAuthenticated } from "../replitAuth";
 import { generateChatResponse, generateConversationTitle, generateEmbedding, type ChatResponseWithMetadata } from "../services/ai/chat";
 import { extractProfileInfo } from "../services/ai/profile";
 import { extractMemoriesFromConversation } from "../services/ai/memory";
+import { decideWebSearch } from "../services/ai/search"; // Added import
 
 export function registerMessageRoutes(app: Express) {
   // Get messages for a conversation
@@ -54,7 +55,7 @@ export function registerMessageRoutes(app: Express) {
 
       // Check message limits (skip check for unlimited plans where messagesLimit is -1)
       if (messagesLimit !== -1 && messagesUsed >= messagesLimit) {
-        return res.status(429).json({ 
+        return res.status(429).json({
           message: "Message limit reached. Please upgrade your subscription.",
           messagesUsed,
           messagesLimit
@@ -109,6 +110,9 @@ export function registerMessageRoutes(app: Express) {
         console.log(`❌ [CHAT_FLOW] Memory search failed: ${error}`);
       }
 
+      // Make search decision first, before generating response
+      const searchDecision = await decideWebSearch(chatHistory, user); // Used the imported function
+
       // Set up streaming response
       // Important: prevent any intermediary (proxies) from buffering so chunks reach client immediately
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -129,7 +133,7 @@ export function registerMessageRoutes(app: Express) {
       // Generate AI response stream with user profile and memories
       const aiResponseStart = Date.now();
       console.log(`🤖 [CHAT_FLOW] Starting AI response generation...`);
-      const responseWithMetadata: ChatResponseWithMetadata = await generateChatResponse(chatHistory, user, relevantMemories);
+      const responseWithMetadata: ChatResponseWithMetadata = await generateChatResponse(chatHistory, user, relevantMemories, searchDecision); // Pass searchDecision here
       let fullResponse = '';
 
       // Send search metadata immediately when search is performed (even with 0 citations)
@@ -185,7 +189,7 @@ export function registerMessageRoutes(app: Express) {
           let combinedProfileUpdates: any = {};
 
           // Get workflow profile patches if available
-          if (responseWithMetadata.workflowDecision?.profilePatch && 
+          if (responseWithMetadata.workflowDecision?.profilePatch &&
               Object.keys(responseWithMetadata.workflowDecision.profilePatch).length > 0) {
             combinedProfileUpdates = { ...responseWithMetadata.workflowDecision.profilePatch };
             console.log(`🔄 [CHAT_FLOW] Workflow profile patches:`, Object.keys(combinedProfileUpdates));
@@ -266,7 +270,7 @@ export function registerMessageRoutes(app: Express) {
       const totalDuration = Date.now() - requestStartTime;
       console.error('❌ [CHAT_FLOW] Message error:', error);
       console.log(`🏁 [CHAT_FLOW] Request failed after: ${totalDuration}ms\n`);
-      
+
       // Only send error response if headers haven't been sent yet
       if (!res.headersSent) {
         res.status(500).json({ message: "Failed to process message" });
