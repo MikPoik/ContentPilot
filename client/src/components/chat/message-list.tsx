@@ -102,16 +102,17 @@ export default function MessageList({
       className="h-full overflow-y-auto px-4 py-6 space-y-6"
       data-testid="message-list"
     >
-      {/* Render all messages including streaming inline */}
+      {/* Render all messages; streaming assistant updates in-place via metadata.streaming */}
       {messages.map((message) => {
         // Only apply fade-in to user messages and assistant messages from real DB (not optimistic)
         // Optimistic assistant messages have timestamp IDs, real DB messages have UUIDs
-        const isOptimisticAssistant = message.role === 'assistant' && /^\d+-assistant$/.test(message.id.toString());
+        const hasClientKey = Boolean((message as any).metadata?.clientKey);
+        const isOptimisticAssistant = message.role === 'assistant' && ((/^\d+-assistant$/.test(message.id.toString())) || /^temp-stream-/.test(message.id.toString()) || hasClientKey);
         const shouldAnimate = message.role === 'user' || !isOptimisticAssistant;
         
         return (
           <div 
-            key={message.id} 
+            key={(message as any).metadata?.clientKey || message.id}
             className={`flex items-start space-x-3 ${shouldAnimate ? 'animate-fade-in' : ''} ${
               message.role === 'user' ? 'justify-end' : ''
             }`}
@@ -123,6 +124,20 @@ export default function MessageList({
           )}
           
           <div className={`flex-1 max-w-3xl ${message.role === 'user' ? 'flex justify-end' : ''}`}>
+            {/* When assistant is streaming, show activity indicators above bubble */}
+            {message.role === 'assistant' && (message as any).metadata?.streaming && (
+              <div className="mb-1">
+                <AIActivityIndicator 
+                  activity={(message as any).metadata?.aiActivity || null}
+                  message={(message as any).metadata?.aiActivityMessage || ''}
+                  searchQuery={(message as any).metadata?.searchQuery}
+                />
+                {!((message as any).metadata?.aiActivity) && isSearching && (
+                  <SearchIndicator isSearching={true} searchQuery={(message as any).metadata?.searchQuery} />
+                )}
+              </div>
+            )}
+
             <div className={`px-4 py-3 rounded-2xl ${
               message.role === 'user'
                 ? 'bg-emerald-500 text-white rounded-tr-md ml-auto max-w-fit'
@@ -134,7 +149,21 @@ export default function MessageList({
                 </p>
               ) : (
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-p:leading-relaxed prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0">
-                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                  {((message as any).metadata?.streaming) ? (
+                    <span className="inline">
+                      <ReactMarkdown
+                        components={{
+                          p: ({ children }) => <span>{children}</span>,
+                          br: () => <br />,
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                      <span className="w-2 h-4 bg-gray-400 ml-1 animate-pulse inline-block align-baseline" />
+                    </span>
+                  ) : (
+                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                  )}
                 </div>
               )}
             </div>
@@ -175,71 +204,7 @@ export default function MessageList({
         );
       })}
 
-      {/* Streaming message - render inline in same position */}
-      {isStreaming && (
-        <div className="flex items-start space-x-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-sm">🤖</span>
-          </div>
-          <div className="flex-1 max-w-3xl">
-            {/* Show AI activity indicator */}
-            <AIActivityIndicator 
-              activity={aiActivity} 
-              message={aiActivityMessage}
-              searchQuery={searchQuery}
-            />
-            
-            {/* Show search indicator while searching (for backward compatibility) */}
-            {isSearching && !aiActivity && (
-              <SearchIndicator 
-                isSearching={true} 
-                searchQuery={searchQuery} 
-              />
-            )}
-            
-            <div className="bg-gray-100 rounded-2xl rounded-tl-md px-4 py-3">
-              {(() => {
-                //console.log('💬 MessageList render - isStreaming:', isStreaming, 'isSearching:', isSearching, 'streamingMessage length:', streamingMessage?.length || 0, 'streamingMessage exists:', !!streamingMessage, 'content preview:', streamingMessage?.substring(0, 50));
-                
-                // Force show streaming content if we have any streamingMessage
-                if (streamingMessage && streamingMessage.length > 0) {
-                  //console.log('🎯 Rendering streaming content:', streamingMessage.length, 'chars');
-                  return (
-                    <div className="text-gray-900 text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-p:leading-relaxed prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0">
-                      <div className="inline">
-                        <ReactMarkdown components={{
-                          p: ({ children }) => <span>{children}</span>,
-                          br: () => <br />
-                        }}>{streamingMessage}</ReactMarkdown>
-                        <span className="w-2 h-4 bg-gray-400 ml-1 animate-pulse" style={{ display: 'inline-block', verticalAlign: 'middle' }} />
-                      </div>
-                    </div>
-                  );
-                } else {
-                  console.log('🔄 Rendering typing indicator');
-                  return (
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                    </div>
-                  );
-                }
-              })()}
-            </div>
-            
-            {/* Show citations for streaming response if available */}
-            {searchCitations.length > 0 && !isSearching && streamingMessage && (
-              <SearchCitations 
-                citations={searchCitations} 
-                searchQuery={searchQuery}
-              />
-            )}
-            
-            <div className="text-xs text-gray-500 mt-1 px-1">Just now</div>
-          </div>
-        </div>
-      )}
+      {/* No separate streaming block; content streams in-place within the assistant message */}
 
       <div ref={messagesEndRef} />
     </div>

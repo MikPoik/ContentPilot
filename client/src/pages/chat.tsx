@@ -57,6 +57,7 @@ export default function Chat() {
   const [streamingResponse, setStreamingResponse] = useState<any>(null); // To store search metadata
   const [isLoading, setIsLoading] = useState(false); // General loading state for sending messages
   const [messages, setMessages] = useState<Message[]>([]); // Local state for messages to enable real-time updates
+  const streamingMessageIdRef = useRef<string | null>(null);
 
   // Get conversations list
   const { data: conversations = [] } = useQuery<Conversation[]>({
@@ -64,7 +65,7 @@ export default function Chat() {
   });
 
   // Get messages for current conversation
-  const { data: messagesFromApi = [], refetch: refetchMessages } = useQuery<Message[]>({
+  const { data: messagesFromApi, refetch: refetchMessages } = useQuery<Message[]>({
     queryKey: ["/api/conversations", conversationId, "messages"],
     enabled: !!conversationId,
     staleTime: 0, // Always consider messages stale to ensure fresh data when switching conversations
@@ -72,19 +73,22 @@ export default function Chat() {
 
   // Effect to sync API messages with local state when conversation changes
   useEffect(() => {
-    // Only sync when we have a conversation ID and messages from API
-    if (conversationId && messagesFromApi) {
-      // Only sync if we don't have local messages or if API has different messages
-      // Use JSON comparison to avoid unnecessary re-renders
-      const currentIds = messages.map(m => m.id).sort().join(',');
-      const apiIds = messagesFromApi.map(m => m.id).sort().join(',');
+    // Only sync when we have a conversation ID and fetched data
+    if (!conversationId || !messagesFromApi) return;
 
-      if (messages.length === 0 || currentIds !== apiIds) {
-        setMessages(messagesFromApi);
-      }
-    } else if (!conversationId) {
-      // For new conversations without ID, keep existing local messages
-      // This ensures the first message stays visible when starting from main view
+    // Avoid loop on initial undefined->[] case
+    if (messages.length === 0 && messagesFromApi.length === 0) return;
+
+    // If an optimistic client message is present, prefer local state and skip replacing with server data.
+    // This prevents any re-keying or animation at completion.
+    const hasClientMessage = messages.some(m => (m as any).metadata?.clientKey);
+    if (hasClientMessage) return;
+
+    // Only sync if IDs differ
+    const currentIds = messages.map(m => m.id).sort().join(',');
+    const apiIds = messagesFromApi.map(m => m.id).sort().join(',');
+    if (currentIds !== apiIds) {
+      setMessages(messagesFromApi);
     }
   }, [conversationId, messagesFromApi]);
 
@@ -104,12 +108,25 @@ export default function Chat() {
   const streamResponse = async (targetConversationId: string, content: string) => {
     console.log('🚀 Starting stream response');
     setIsStreaming(true);
-    setIsSearching(false); // Reset search indicator state
+    setIsSearching(false);
     setStreamingMessage("");
     setSearchCitations([]);
-    setSearchQuery(content); // Set the initial user query
+    setSearchQuery(undefined);
     setAiActivity('thinking');
     setAiActivityMessage('Processing your request...');
+
+    // Create a single optimistic assistant message that we update in place
+    const streamingId = `temp-stream-${Date.now()}`;
+    streamingMessageIdRef.current = streamingId;
+    const optimisticAssistant: Message = {
+      id: streamingId,
+      conversationId: targetConversationId,
+      role: 'assistant',
+      content: '',
+      metadata: { streaming: true, citations: [], searchQuery: undefined, aiActivity: 'thinking', aiActivityMessage: 'Processing your request...', clientKey: streamingId },
+      createdAt: new Date(),
+    };
+    setMessages(prev => [...prev, optimisticAssistant]);
 
     const response = await fetch(`/api/conversations/${targetConversationId}/messages`, {
       method: "POST",
@@ -156,18 +173,21 @@ export default function Chat() {
               if (metaContent) {
                 const searchMeta = JSON.parse(metaContent[1]);
                 console.log('🔍 [CLIENT] Received search metadata:', searchMeta);
-                setStreamingResponse(searchMeta); // Store metadata for UI checks
-
-                // Set search indicator based on AI decision to search
-                if (searchMeta.searchQuery && searchMeta.searchQuery.trim()) {
-                  setIsSearching(true); // Activate search indicator
-                  setAiActivity('searching');
-                  setSearchQuery(searchMeta.searchQuery); // Update search query display
-                  setSearchCitations(searchMeta.citations || []); // Update citations
-                  console.log(`🔍 Search indicator activated for query: ${searchMeta.searchQuery}`);
-                } else {
-                  setIsSearching(false); // Deactivate if no search query in metadata
-                }
+                setStreamingResponse(searchMeta);
+                const sq = (searchMeta.searchQuery && searchMeta.searchQuery.trim()) ? searchMeta.searchQuery : undefined;
+                setIsSearching(!!sq);
+                setSearchQuery(sq);
+                setSearchCitations(searchMeta.citations || []);
+                // Update the optimistic assistant message metadata
+                setMessages(current => current.map(m => m.id === streamingId ? {
+                  ...m,
+                  metadata: {
+                    ...(m.metadata || {}),
+                    searchQuery: sq,
+                    citations: searchMeta.citations || [],
+                    aiActivity: sq ? 'searching' : (m.metadata?.aiActivity || null),
+                  }
+                } : m));
               }
             } catch (e) {
               console.error('Failed to parse search metadata:', e);
@@ -187,6 +207,10 @@ export default function Chat() {
                 const activityData = JSON.parse(activityContent[1]);
                 setAiActivity(activityData.type);
                 setAiActivityMessage(activityData.message || '');
+                setMessages(current => current.map(m => m.id === streamingId ? {
+                  ...m,
+                  metadata: { ...(m.metadata || {}), aiActivity: activityData.type, aiActivityMessage: activityData.message || '' }
+                } : m));
                 console.log(`🤖 [CLIENT] AI Activity: ${activityData.type} - ${activityData.message}`);
               }
             } catch (e) {
@@ -204,6 +228,10 @@ export default function Chat() {
           actualContentStarted = true;
           setAiActivity('generating');
           setAiActivityMessage('Generating response...');
+          setMessages(current => current.map(m => m.id === streamingId ? {
+            ...m,
+            metadata: { ...(m.metadata || {}), aiActivity: 'generating', aiActivityMessage: 'Generating response...' }
+          } : m));
           // The search indicator should *remain* visible if a search was initiated,
           // even if content starts appearing. It only hides when the stream is done
           // or if explicitly turned off by new metadata.
@@ -211,6 +239,8 @@ export default function Chat() {
 
         // Update streaming message state for real-time display
         setStreamingMessage(accumulated);
+        // Update assistant message content in place
+        setMessages(current => current.map(m => m.id === streamingId ? { ...m, content: accumulated } : m));
       }
 
       console.log(`✅ Stream complete: ${chunkCount} chunks, ${accumulated.length} chars`);
@@ -220,36 +250,20 @@ export default function Chat() {
       throw error;
     } finally {
       console.log(`✅ [STREAM] Stream processing complete`);
-
-      // Instead of adding a new message, just transition streaming to final state
-      // Keep the streaming message as the final message content
-      flushSync(() => {
-        setIsStreaming(false);
-        setAiActivity(null);
-        setAiActivityMessage('');
-        setStreamingResponse(null);
-        // Don't clear streamingMessage yet - let it stay as final content
-      });
-
-      // Add the final message to local state after a brief delay
-      // This prevents visual flash while maintaining content continuity
-      setTimeout(() => {
-        const assistantMessage: Message = {
-          id: `temp-${Date.now()}-assistant`,
-          conversationId: targetConversationId,
-          role: 'assistant',
-          content: accumulated,
-          metadata: searchCitations.length > 0 ? { citations: searchCitations, searchQuery } : null,
-          createdAt: new Date(),
-        };
-
-        setMessages(current => [...current, assistantMessage]);
-        setStreamingMessage(""); // Now clear the streaming message
-        setOptimisticMessages([]);
-
-        // Only invalidate conversations list
-        queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
-      }, 50);
+      // Finalize in minimal updates without forcing sync flush
+      setIsStreaming(false);
+      setAiActivity(null);
+      setAiActivityMessage('');
+      setStreamingResponse(null);
+      // Mark the optimistic assistant message as finalized in-place
+      setMessages(current => current.map(m => m.id === streamingId ? {
+        ...m,
+        metadata: { ...(m.metadata || {}), streaming: false, aiActivity: null, aiActivityMessage: '' }
+      } : m));
+      // Do not clear streamingMessage here to avoid extra re-render; it's ignored by UI now
+      setOptimisticMessages([]);
+      // Invalidate conversations list for updated timestamps
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
     }
   };
 
@@ -345,10 +359,8 @@ export default function Chat() {
     );
   }, [messages, optimisticMessages]);
 
-  // Stabilize message count using JSON comparison to prevent unnecessary re-renders
-  const messageCount = useMemo(() => {
-    return allMessages.length;
-  }, [allMessages.map(m => m.id).join(',')]);
+  // Stabilize message count; only depend on length
+  const messageCount = useMemo(() => allMessages.length, [allMessages.length]);
 
   // Memoize dropdown disabled state to prevent infinite re-renders
   const isExportDisabled = useMemo(() =>
@@ -439,11 +451,14 @@ export default function Chat() {
             >
               <TestTube className="h-4 w-4" />
             </Button>
-            <ExportMenu
-              messages={allMessages}
-              conversation={currentConversation}
-              disabled={!conversationId || allMessages.length === 0}
-            />
+            {!isExportDisabled && (
+              <ExportMenu
+                key={conversationId}
+                messages={allMessages}
+                conversation={currentConversation}
+                disabled={false}
+              />
+            )}
             <Button variant="ghost" size="sm" className="p-2 text-gray-500 hover:text-gray-700">
               <Share className="h-4 w-4" />
             </Button>
@@ -460,7 +475,7 @@ export default function Chat() {
 
           {/* Mobile Dropdown Menu */}
           <div className="md:hidden flex-none shrink-0">
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="p-2 text-gray-500 hover:text-gray-700">
                   <MoreVertical className="h-4 w-4" />

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import React, { useMemo, useState, memo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,15 +18,11 @@ interface ExportMenuProps {
   disabled?: boolean;
 }
 
-export default function ExportMenu({ messages, conversationTitle, conversation, disabled }: ExportMenuProps) {
+function ExportMenuImpl({ messages, conversationTitle, conversation, disabled }: ExportMenuProps) {
   const [isExporting, setIsExporting] = useState(false);
+  const isDisabled = useMemo(() => disabled || messages.length === 0, [disabled, messages.length]);
 
-  // Early return to prevent rendering dropdown when no messages or disabled
-  if (messages.length === 0 || disabled) {
-    return null;
-  }
-
-  const handleExport = async (format: 'markdown' | 'txt' | 'json') => {
+  const handleExport = useCallback(async (format: 'markdown' | 'txt' | 'json') => {
     if (isExporting || messages.length === 0) return;
 
     setIsExporting(true);
@@ -37,16 +33,16 @@ export default function ExportMenu({ messages, conversationTitle, conversation, 
     } finally {
       setIsExporting(false);
     }
-  };
+  }, [isExporting, messages, conversationTitle]);
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false} {...(isDisabled ? { open: false, onOpenChange: () => {} } : {})}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
           size="sm"
           className="p-1.5 text-gray-500 hover:text-gray-700 transition-colors rounded-lg hover:bg-gray-100"
-          disabled={isExporting}
+          disabled={isExporting || isDisabled}
         >
           <Download className="h-4 w-4" />
         </Button>
@@ -54,7 +50,7 @@ export default function ExportMenu({ messages, conversationTitle, conversation, 
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem 
           onClick={() => handleExport('markdown')}
-          disabled={isExporting}
+          disabled={isExporting || isDisabled}
           className="cursor-pointer"
         >
           <FileText className="mr-2 h-4 w-4" />
@@ -62,7 +58,7 @@ export default function ExportMenu({ messages, conversationTitle, conversation, 
         </DropdownMenuItem>
         <DropdownMenuItem 
           onClick={() => handleExport('txt')}
-          disabled={isExporting}
+          disabled={isExporting || isDisabled}
           className="cursor-pointer"
         >
           <FileText className="mr-2 h-4 w-4" />
@@ -70,7 +66,7 @@ export default function ExportMenu({ messages, conversationTitle, conversation, 
         </DropdownMenuItem>
         <DropdownMenuItem 
           onClick={() => handleExport('json')}
-          disabled={isExporting}
+          disabled={isExporting || isDisabled}
           className="cursor-pointer"
         >
           <Share2 className="mr-2 h-4 w-4" />
@@ -80,3 +76,6 @@ export default function ExportMenu({ messages, conversationTitle, conversation, 
     </DropdownMenu>
   );
 }
+
+const ExportMenu = memo(ExportMenuImpl);
+export default ExportMenu;
