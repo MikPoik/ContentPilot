@@ -59,9 +59,11 @@ Current date: ${currentDate}
 IMPORTANT: Be CONSERVATIVE with search decisions. Only recommend search for queries that genuinely need current, factual, or time-sensitive information.
 
 LANGUAGE MATCHING: When searching specific websites, match the search terms to the website's primary language:
-- Finnish sites (.fi domains): Use Finnish search terms (e.g., "yritys", "palvelut", "tietoa meistä")
-- English sites: Use English search terms
-- Detect the website's language from the domain or URL
+- Finnish sites (.fi domains): Use Finnish search terms (e.g., "yritys", "palvelut", "tietoa", "mielenterveys", "hyvinvointi", "koulutus")
+- Swedish sites (.se domains): Use Swedish search terms
+- German sites (.de domains): Use German search terms
+- For site-specific searches, prioritize using just the domain URL (e.g., "site:example.fi") rather than complex keyword combinations
+- When user asks to "read" or "analyze" a specific website, use simple site: search with minimal additional terms
 
 DO NOT search for:
 - Greetings ("Hi", "Hello", "Thanks", "Goodbye")
@@ -78,6 +80,12 @@ DO search for:
 - Recent algorithm changes or platform updates  
 - Time-sensitive information (today, this week, latest, recent)
 - Specific company or product information that may be outdated
+- Website content analysis requests (use simple site: searches with minimal additional terms)
+
+SEARCH QUERY RULES:
+- For Finnish websites (.fi): Use Finnish terms or just "site:domain.fi"
+- For website content requests: Prefer "site:domain.com" over complex keyword combinations
+- Match the language of the target website in your search terms
 
 Return ONLY valid JSON with these exact fields:
 {
