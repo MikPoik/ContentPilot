@@ -209,7 +209,7 @@ export async function generateConversationTitle(
 ): Promise<string> {
   try {
     console.log(`📝 [TITLE_GEN] Generating title for ${messages.length} messages`);
-    const response = await openaiClient.chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
