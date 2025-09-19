@@ -46,6 +46,7 @@ export async function generateChatResponse(
   messages: ChatMessage[],
   user?: User,
   memories?: any[],
+  searchDecision?: WebSearchDecision,
 ): Promise<ChatResponseWithMetadata> {
   const startTime = Date.now();
   console.log(`🤖 [AI_SERVICE] Building workflow-aware response...`);
@@ -56,29 +57,31 @@ export async function generateChatResponse(
     `🔄 [AI_SERVICE] Workflow phase: ${workflowDecision.currentPhase}, block content: ${workflowDecision.shouldBlockContentGeneration}`,
   );
 
-  // Use AI-driven search decision system
+  // Use search decision from caller (routes layer)
   let webSearchContext: { context: string; citations: string[] } | undefined =
     undefined;
   let searchPerformed = false;
   let searchQuery: string | undefined = undefined;
 
-  // Get AI decision on whether to perform web search
-  const searchDecision = await decideWebSearch(messages, user);
-  console.log(
-    `🧠 [AI_SERVICE] Search decision - shouldSearch: ${searchDecision.shouldSearch}, confidence: ${searchDecision.confidence}, reason: ${searchDecision.reason}`,
-  );
+  // Use the search decision passed from the routes layer
+  if (searchDecision) {
+    console.log(
+      `🧠 [AI_SERVICE] Using search decision - shouldSearch: ${searchDecision.shouldSearch}, confidence: ${searchDecision.confidence}, reason: ${searchDecision.reason}`,
+    );
 
-  // Always set searchQuery if AI recommended search, even if we don't execute it
-  if (searchDecision.shouldSearch) {
-    searchQuery = searchDecision.refinedQuery?.trim() || 
-      messages
-        .slice()
-        .reverse()
-        .find((m) => m.role === "user")
-        ?.content?.trim() || "";
+    // Always set searchQuery if AI recommended search, even if we don't execute it
+    if (searchDecision.shouldSearch) {
+      searchQuery = searchDecision.refinedQuery?.trim() || 
+        messages
+          .slice()
+          .reverse()
+          .find((m) => m.role === "user")
+          ?.content?.trim() || "";
+    }
   }
 
   if (
+    searchDecision &&
     perplexityService.isConfigured() &&
     searchDecision.shouldSearch &&
     searchDecision.confidence >= 0.7
@@ -117,7 +120,7 @@ export async function generateChatResponse(
     console.log(
       `⚠️ [AI_SERVICE] Perplexity not configured, skipping search despite AI recommendation`,
     );
-  } else if (searchDecision.shouldSearch) {
+  } else if (searchDecision?.shouldSearch) {
     console.log(
       `🔍 [AI_SERVICE] AI recommended search but confidence too low (${searchDecision.confidence}), skipping search`,
     );

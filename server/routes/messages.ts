@@ -130,6 +130,20 @@ export function registerMessageRoutes(app: Express) {
         res.write(`[AI_ACTIVITY]{"type":"recalling","message":"Found ${relevantMemories.length} relevant memories from past conversations..."}[/AI_ACTIVITY]`);
       }
 
+      // Send search activity indicator if search is recommended
+      if (searchDecision.shouldSearch && searchDecision.confidence >= 0.7) {
+        const searchActivityMessage = searchDecision.refinedQuery?.trim() || 
+          chatHistory
+            .slice()
+            .reverse()
+            .find((m) => m.role === "user")
+            ?.content?.trim() || "";
+        res.write(`[AI_ACTIVITY]{"type":"searching","message":"${searchActivityMessage}"}[/AI_ACTIVITY]`);
+        if (typeof (res as any).flush === 'function') {
+          try { (res as any).flush(); } catch {}
+        }
+      }
+
       // Generate AI response stream with user profile and memories
       const aiResponseStart = Date.now();
       console.log(`🤖 [CHAT_FLOW] Starting AI response generation...`);
