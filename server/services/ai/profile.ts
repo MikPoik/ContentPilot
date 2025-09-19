@@ -21,12 +21,14 @@ export async function extractProfileInfo(userMessage: string, assistantResponse:
 - profileData object with:
   - targetAudience (who they're trying to reach)
   - brandVoice (their communication style)
-  - businessType (what kind of business/creator they are)
+  - businessType (what kind of business/creator they are - look for mentions like "I run a X business", "I'm a therapist", "I own a restaurant", etc.)
   - contentGoals (array of what they want to achieve)
+
+IMPORTANT: Pay special attention to business type information. If someone mentions running any type of business, being a professional, or their occupation, capture it as businessType.
 
 Return ONLY a JSON object with the fields that were mentioned. If no new info is found, return {}.
 
-Example output:
+Example outputs:
 {
   "firstName": "Sarah",
   "contentNiche": ["fitness", "nutrition"],
@@ -34,6 +36,12 @@ Example output:
   "profileData": {
     "targetAudience": "busy professionals",
     "brandVoice": "encouraging but practical"
+  }
+}
+
+{
+  "profileData": {
+    "businessType": "therapy business"
   }
 }`
         },
