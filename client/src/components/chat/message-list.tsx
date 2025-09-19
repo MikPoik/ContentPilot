@@ -118,12 +118,12 @@ export default function MessageList({
             }`}
           >
           {message.role === 'assistant' && (
-            <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="hidden md:flex w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full items-center justify-center flex-shrink-0">
               <span className="text-white text-sm">🤖</span>
             </div>
           )}
           
-          <div className={`flex-1 max-w-3xl ${message.role === 'user' ? 'flex justify-end' : ''}`}>
+          <div className={`flex-1 max-w-3xl ${message.role === 'user' ? 'flex justify-end' : ''} ${message.role === 'user' ? 'md:mr-0 mr-0' : 'md:ml-0 ml-0'}`}>
             
 
             <div className={`px-4 py-3 rounded-2xl ${
@@ -189,7 +189,7 @@ export default function MessageList({
           </div>
 
           {message.role === 'user' && (
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="hidden md:flex w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full items-center justify-center flex-shrink-0">
               {user?.profileImageUrl ? (
                 <img 
                   src={user.profileImageUrl} 
