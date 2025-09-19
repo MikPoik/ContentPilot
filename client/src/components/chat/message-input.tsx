@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Paperclip, Send } from "lucide-react";
@@ -13,6 +13,15 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
   const [message, setMessage] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const maxChars = 500;
+
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      const scrollHeight = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = `${Math.min(scrollHeight, 100)}px`;
+    }
+  }, [message]);
 
   const handleSubmit = () => {
     if (!message.trim() || disabled || isLoading) return;
