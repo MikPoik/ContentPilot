@@ -124,19 +124,7 @@ export default function MessageList({
           )}
           
           <div className={`flex-1 max-w-3xl ${message.role === 'user' ? 'flex justify-end' : ''}`}>
-            {/* When assistant is streaming, show activity indicators above bubble */}
-            {message.role === 'assistant' && (message as any).metadata?.streaming && (
-              <div className="mb-1">
-                <AIActivityIndicator 
-                  activity={(message as any).metadata?.aiActivity || null}
-                  message={(message as any).metadata?.aiActivityMessage || ''}
-                  searchQuery={(message as any).metadata?.searchQuery}
-                />
-                {!((message as any).metadata?.aiActivity) && isSearching && (
-                  <SearchIndicator isSearching={true} searchQuery={(message as any).metadata?.searchQuery} />
-                )}
-              </div>
-            )}
+            
 
             <div className={`px-4 py-3 rounded-2xl ${
               message.role === 'user'
@@ -175,13 +163,28 @@ export default function MessageList({
                 searchQuery={message.metadata.searchQuery as string}
               />
             )}
-            <div className={`text-xs text-gray-500 mt-1 px-1 ${
-              message.role === 'user' ? 'text-right' : ''
+            <div className={`text-xs text-gray-500 mt-1 px-1 flex items-center gap-2 ${
+              message.role === 'user' ? 'flex-row-reverse' : ''
             }`}>
-              {new Date(message.createdAt).toLocaleTimeString([], { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              })}
+              <span>
+                {new Date(message.createdAt).toLocaleTimeString([], { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })}
+              </span>
+              {/* Show activity indicators for streaming assistant messages */}
+              {message.role === 'assistant' && (message as any).metadata?.streaming && (
+                <>
+                  <AIActivityIndicator 
+                    activity={(message as any).metadata?.aiActivity || null}
+                    message={(message as any).metadata?.aiActivityMessage || ''}
+                    searchQuery={(message as any).metadata?.searchQuery}
+                  />
+                  {!((message as any).metadata?.aiActivity) && isSearching && (
+                    <SearchIndicator isSearching={true} searchQuery={(message as any).metadata?.searchQuery} />
+                  )}
+                </>
+              )}
             </div>
           </div>
 
