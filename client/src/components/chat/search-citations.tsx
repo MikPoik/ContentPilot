@@ -20,7 +20,7 @@ export default function SearchCitations({ citations, searchQuery }: SearchCitati
         </span>
       </div>
       <div className="space-y-1">
-        {citations.slice(0, 3).map((citation, index) => {
+        {citations.map((citation, index) => {
           // Extract domain from URL for cleaner display
           const domain = citation.replace(/^https?:\/\//, '').split('/')[0];
           
@@ -39,11 +39,6 @@ export default function SearchCitations({ citations, searchQuery }: SearchCitati
             </div>
           );
         })}
-        {citations.length > 3 && (
-          <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-            +{citations.length - 3} more sources
-          </div>
-        )}
       </div>
     </div>
   );
