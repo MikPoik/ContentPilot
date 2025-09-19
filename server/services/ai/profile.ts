@@ -68,7 +68,44 @@ Example outputs:
     }
 
     try {
-      const profileUpdates = JSON.parse(result);
+      // Clean up the result to handle code fences and other formatting
+      let cleanResult = result.trim();
+      
+      // Remove code fences if present
+      if (cleanResult.startsWith('```') && cleanResult.endsWith('```')) {
+        const lines = cleanResult.split('\n');
+        cleanResult = lines.slice(1, -1).join('\n');
+      }
+      
+      // Remove json language identifier if present
+      if (cleanResult.startsWith('json\n')) {
+        cleanResult = cleanResult.replace('json\n', '');
+      }
+      
+      cleanResult = cleanResult.trim();
+      
+      // Extract first top-level JSON object using bracket scanning
+      const firstBraceIndex = cleanResult.indexOf('{');
+      if (firstBraceIndex !== -1) {
+        let braceCount = 0;
+        let endIndex = firstBraceIndex;
+        
+        for (let i = firstBraceIndex; i < cleanResult.length; i++) {
+          if (cleanResult[i] === '{') braceCount++;
+          else if (cleanResult[i] === '}') braceCount--;
+          
+          if (braceCount === 0) {
+            endIndex = i;
+            break;
+          }
+        }
+        
+        if (braceCount === 0) {
+          cleanResult = cleanResult.substring(firstBraceIndex, endIndex + 1);
+        }
+      }
+      
+      const profileUpdates = JSON.parse(cleanResult);
       console.log(`👤 [PROFILE_EXTRACT] Parsed updates:`, profileUpdates);
       
       // Only return non-empty updates
