@@ -352,6 +352,15 @@ export default function Chat() {
     [conversationId, allMessages.length]
   );
 
+  // Memoize dropdown handlers to prevent re-renders
+  const handleMemoryTesterToggle = useCallback(() => {
+    setShowMemoryTester(prev => !prev);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    window.location.href = "/api/logout";
+  }, []);
+
   // Close sidebar when route changes and clear states
   useEffect(() => {
     setSidebarOpen(false); // Always close sidebar when conversation changes
@@ -422,7 +431,7 @@ export default function Chat() {
               variant="ghost"
               size="sm"
               className={`p-2 ${showMemoryTester ? 'text-blue-600 bg-blue-50' : 'text-gray-500 hover:text-gray-700'}`}
-              onClick={() => setShowMemoryTester(!showMemoryTester)}
+              onClick={handleMemoryTesterToggle}
               data-testid="button-memory-tester"
             >
               <TestTube className="h-4 w-4" />
@@ -439,7 +448,7 @@ export default function Chat() {
               variant="ghost"
               size="sm"
               className="p-2 text-gray-500 hover:text-gray-700"
-              onClick={() => window.location.href = "/api/logout"}
+              onClick={handleLogout}
               data-testid="button-logout"
             >
               <LogOut className="h-4 w-4" />
@@ -455,7 +464,7 @@ export default function Chat() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => setShowMemoryTester(!showMemoryTester)}>
+                <DropdownMenuItem onClick={handleMemoryTesterToggle}>
                   <TestTube className="h-4 w-4 mr-2" />
                   Memory Tester
                 </DropdownMenuItem>
@@ -469,7 +478,7 @@ export default function Chat() {
                   Share
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => { window.location.href = "/api/logout"; }}>
+                <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
                 </DropdownMenuItem>
