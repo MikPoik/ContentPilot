@@ -74,16 +74,16 @@ export default function Chat() {
   useEffect(() => {
     // Only sync when we have a conversation ID and messages from API
     if (conversationId && messagesFromApi) {
-      // Don't overwrite local messages if we have more messages locally than from API
-      // This prevents clearing the first message when creating a new conversation
-      if (messagesFromApi.length >= messages.length) {
+      // Only sync if we don't have local messages or if API has more messages
+      // This prevents overwriting optimistic updates
+      if (messages.length === 0 || messagesFromApi.length > messages.length) {
         setMessages(messagesFromApi);
       }
     } else if (!conversationId) {
       // For new conversations without ID, keep existing local messages
       // This ensures the first message stays visible when starting from main view
     }
-  }, [conversationId, messagesFromApi, messages.length]);
+  }, [conversationId, messagesFromApi]);
 
   // Create new conversation mutation
   const createConversationMutation = useMutation({
@@ -219,7 +219,7 @@ export default function Chat() {
       // Final state updates after stream completion
       startTransition(() => {
         const assistantMessage: Message = {
-          id: `${Date.now()}-assistant`, // Temporary ID, will be replaced by actual API ID if available
+          id: `temp-${Date.now()}-assistant`, // Temporary ID for optimistic update
           conversationId: targetConversationId,
           role: 'assistant',
           content: accumulated,
@@ -227,28 +227,25 @@ export default function Chat() {
           createdAt: new Date(),
         };
 
-        console.log(`💾 [STREAM] Adding final message to optimistic state`);
-        // Use the local 'messages' state here to add the new message
+        console.log(`💾 [STREAM] Adding final message to local state optimistically`);
+        // Add to local messages state optimistically - no refetch needed
         setMessages(current => [...current, assistantMessage]);
 
         console.log(`✅ [STREAM] Stream processing complete`);
 
-        // Refetch to get updated conversation state and clear optimistic messages
-        if (conversationId) {
-          // Assuming refetchConversations is available or handled elsewhere
-          // For now, we rely on queryClient invalidation and the useEffect for messages
-          // refetchConversations(); // This might not be defined in this scope, ensure it's available if needed
-          refetchMessages();
-          // Clear optimistic messages after successful refetch
-          setOptimisticMessages([]);
-        }
-
+        // Clear streaming states
         setIsStreaming(false);
         setAiActivity(null);
         setAiActivityMessage('');
-        // Keep setIsSearching true if a search was performed, it will be reset by the next message or cleared on conversation change
         setStreamingMessage("");
-        setStreamingResponse(null); // Clear search metadata after processing
+        setStreamingResponse(null);
+        
+        // Clear optimistic messages since we've added to local state
+        setOptimisticMessages([]);
+        
+        // Only invalidate conversations list to update "last message" preview
+        // No need to refetch messages since we have them locally
+        queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
       });
     }
   };
@@ -356,7 +353,7 @@ export default function Chat() {
   useEffect(() => {
     setSidebarOpen(false); // Always close sidebar when conversation changes
     // Clear states related to ongoing streams or searches when conversation changes
-    setOptimisticMessages([]); // This might be redundant now if using local messages state
+    setOptimisticMessages([]);
     setStreamingMessage("");
     setIsStreaming(false);
     setIsSearching(false); // Crucially, reset search indicator state
@@ -365,6 +362,12 @@ export default function Chat() {
     setSearchCitations([]);
     setSearchQuery(undefined);
     setStreamingResponse(null); // Clear search metadata
+    
+    // Reset local messages to empty when changing conversations
+    // The useEffect above will populate with API data
+    if (!conversationId) {
+      setMessages([]);
+    }
   }, [conversationId]);
 
   return (
