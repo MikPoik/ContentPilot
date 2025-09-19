@@ -283,3 +283,49 @@ export function generateFilename(conversation?: Conversation, format: 'md' | 'ht
   const timestamp = new Date().toISOString().split('T')[0];
   return `${sanitizedTitle}-${timestamp}.${format}`;
 }
+
+export async function exportConversation(
+  messages: Message[], 
+  format: 'markdown' | 'txt' | 'json', 
+  conversationTitle?: string
+) {
+  const title = conversationTitle || 'Conversation Export';
+  let content: string;
+  let filename: string;
+  let contentType: string;
+
+  switch (format) {
+    case 'markdown':
+      content = exportToMarkdown(messages, undefined, { title });
+      filename = `${title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.md`;
+      contentType = 'text/markdown';
+      break;
+    
+    case 'txt':
+      content = messages
+        .map(msg => `${msg.role === 'user' ? 'You' : 'ContentCraft AI'}: ${msg.content}`)
+        .join('\n\n---\n\n');
+      filename = `${title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.txt`;
+      contentType = 'text/plain';
+      break;
+    
+    case 'json':
+      content = JSON.stringify({
+        title,
+        exportedAt: new Date().toISOString(),
+        messages: messages.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+          createdAt: msg.createdAt
+        }))
+      }, null, 2);
+      filename = `${title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
+      contentType = 'application/json';
+      break;
+    
+    default:
+      throw new Error(`Unsupported export format: ${format}`);
+  }
+
+  downloadFile(content, filename, contentType);
+}
