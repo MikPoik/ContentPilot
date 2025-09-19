@@ -11,7 +11,7 @@ export function registerMessageRoutes(app: Express) {
     try {
       const conversationId = req.params.id;
       const userId = req.user.claims.sub;
-      
+
       // Verify conversation exists and user owns it
       const conversation = await storage.getConversation(conversationId);
       if (!conversation) {
@@ -20,7 +20,7 @@ export function registerMessageRoutes(app: Express) {
       if (conversation.userId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       const messages = await storage.getMessages(conversationId);
       res.json(messages);
     } catch (error) {
@@ -32,7 +32,7 @@ export function registerMessageRoutes(app: Express) {
   app.post("/api/conversations/:id/messages", isAuthenticated, async (req: any, res) => {
     const requestStartTime = Date.now();
     console.log(`\n🚀 [CHAT_FLOW] Starting message processing at ${new Date().toISOString()}`);
-    
+
     try {
       const { content } = req.body;
       if (!content || typeof content !== 'string') {
@@ -42,7 +42,7 @@ export function registerMessageRoutes(app: Express) {
       const conversationId = req.params.id;
       const userId = req.user.claims.sub;
       console.log(`📝 [CHAT_FLOW] Processing message for user: ${userId}, conversation: ${conversationId}`);
-      
+
       // Check message usage limits
       const currentUser = await storage.getUser(userId);
       if (!currentUser) {
@@ -60,7 +60,7 @@ export function registerMessageRoutes(app: Express) {
           messagesLimit
         });
       }
-      
+
       // Verify conversation exists and user owns it
       const verificationStartTime = Date.now();
       const conversation = await storage.getConversation(conversationId);
@@ -98,14 +98,19 @@ export function registerMessageRoutes(app: Express) {
         const embeddingStart = Date.now();
         const queryEmbedding = await generateEmbedding(content);
         console.log(`🧠 [CHAT_FLOW] Embedding generation: ${Date.now() - embeddingStart}ms`);
-        
+
         const similaritySearchStart = Date.now();
         relevantMemories = await storage.searchSimilarMemories(userId, queryEmbedding, 5);
-        console.log(`🔍 [CHAT_FLOW] Vector similarity search: ${Date.now() - similaritySearchStart}ms`);
-        console.log(`🎯 [CHAT_FLOW] Total memory search: ${Date.now() - memorySearchStart}ms (found ${relevantMemories.length} memories)`);
+        const memorySearchEnd = Date.now(); // Capture end time here
+        console.log(`🔍 [CHAT_FLOW] Vector similarity search: ${memorySearchEnd - similaritySearchStart}ms`);
+        console.log(`🎯 [CHAT_FLOW] Total memory search: ${memorySearchEnd - memorySearchStart}ms (found ${relevantMemories.length} memories)`);
+
+        // Send memory recall indicator if memories were found
+        if (relevantMemories.length > 0) {
+          res.write(`[AI_ACTIVITY]{"type":"recalling","message":"Found ${relevantMemories.length} relevant memories from past conversations..."}[/AI_ACTIVITY]`);
+        }
       } catch (error) {
-        console.log('❌ [CHAT_FLOW] Memory search error:', error);
-        console.log(`🎯 [CHAT_FLOW] Memory search failed: ${Date.now() - memorySearchStart}ms`);
+        console.log(`❌ [CHAT_FLOW] Memory search failed: ${error}`);
       }
 
       // Set up streaming response
@@ -142,12 +147,12 @@ export function registerMessageRoutes(app: Express) {
       }
 
       const reader = responseWithMetadata.stream.getReader();
-      
+
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          
+
           fullResponse += value;
           res.write(value);
           // Hint to flush on each chunk if supported by the underlying impl
@@ -155,10 +160,10 @@ export function registerMessageRoutes(app: Express) {
             try { (res as any).flush(); } catch {}
           }
         }
-        
+
         console.log(`🤖 [CHAT_FLOW] AI response generation completed: ${Date.now() - aiResponseStart}ms`);
         console.log(`📏 [CHAT_FLOW] AI response length: ${fullResponse.length} characters`);
-        
+
         // Save AI response
         const saveAiResponseStart = Date.now();
         await storage.createMessage({
@@ -177,24 +182,24 @@ export function registerMessageRoutes(app: Express) {
         const profileUpdateStart = Date.now();
         try {
           let combinedProfileUpdates: any = {};
-          
+
           // Get workflow profile patches if available
           if (responseWithMetadata.workflowDecision?.profilePatch && 
               Object.keys(responseWithMetadata.workflowDecision.profilePatch).length > 0) {
             combinedProfileUpdates = { ...responseWithMetadata.workflowDecision.profilePatch };
             console.log(`🔄 [CHAT_FLOW] Workflow profile patches:`, Object.keys(combinedProfileUpdates));
           }
-          
+
           // Also extract profile info from conversation (for backward compatibility)
           const profileExtractionStart = Date.now();
           const conversationProfileUpdates = await extractProfileInfo(content, fullResponse, user!);
           console.log(`👤 [CHAT_FLOW] Profile extraction: ${Date.now() - profileExtractionStart}ms`);
-          
+
           // Merge workflow patches with conversation-extracted updates
           if (conversationProfileUpdates && Object.keys(conversationProfileUpdates).length > 0) {
             combinedProfileUpdates = { ...combinedProfileUpdates, ...conversationProfileUpdates };
           }
-          
+
           if (Object.keys(combinedProfileUpdates).length > 0) {
             const profileSaveStart = Date.now();
             await storage.updateUserProfile(userId, combinedProfileUpdates);
@@ -215,12 +220,12 @@ export function registerMessageRoutes(app: Express) {
           const memoryExtractionStart = Date.now();
           const newMemories = await extractMemoriesFromConversation(content, fullResponse);
           console.log(`🧠 [CHAT_FLOW] Memory extraction: ${Date.now() - memoryExtractionStart}ms (found ${newMemories.length} memories)`);
-          
+
           for (const memoryContent of newMemories) {
             const memoryEmbeddingStart = Date.now();
             const embedding = await generateEmbedding(memoryContent);
             console.log(`🧠 [CHAT_FLOW] Memory embedding: ${Date.now() - memoryEmbeddingStart}ms`);
-            
+
             const memorySaveOneStart = Date.now();
             await storage.createMemory({
               userId,
@@ -250,7 +255,7 @@ export function registerMessageRoutes(app: Express) {
         const totalDuration = Date.now() - requestStartTime;
         console.log(`🏁 [CHAT_FLOW] Total request processing: ${totalDuration}ms`);
         console.log(`🏁 [CHAT_FLOW] Request completed at ${new Date().toISOString()}\n`);
-        
+
         res.end();
       } catch (error) {
         console.error('❌ [CHAT_FLOW] Streaming error:', error);

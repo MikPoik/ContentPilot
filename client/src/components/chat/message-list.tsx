@@ -3,6 +3,7 @@ import { type Message, type User } from "@shared/schema";
 import ReactMarkdown from "react-markdown";
 import SearchIndicator from "./search-indicator";
 import SearchCitations from "./search-citations";
+import AIActivityIndicator from "./ai-activity-indicator";
 
 interface MessageListProps {
   messages: Message[];
@@ -11,6 +12,8 @@ interface MessageListProps {
   isSearching?: boolean;
   searchQuery?: string;
   searchCitations?: string[];
+  aiActivity?: 'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | null;
+  aiActivityMessage?: string;
   user?: User;
   conversationId?: string;
 }
@@ -22,6 +25,8 @@ export default function MessageList({
   isSearching = false,
   searchQuery,
   searchCitations = [],
+  aiActivity = null,
+  aiActivityMessage = '',
   user,
   conversationId 
 }: MessageListProps) {
@@ -170,15 +175,22 @@ What type of content creator are you? Are you focused on a specific niche like f
             <span className="text-white text-sm">🤖</span>
           </div>
           <div className="flex-1 max-w-3xl">
-            {/* Show search indicator while searching */}
-            {isSearching && (
+            {/* Show AI activity indicator */}
+            <AIActivityIndicator 
+              activity={aiActivity} 
+              message={aiActivityMessage}
+              searchQuery={searchQuery}
+            />
+            
+            {/* Show search indicator while searching (for backward compatibility) */}
+            {isSearching && !aiActivity && (
               <SearchIndicator 
                 isSearching={true} 
                 searchQuery={searchQuery} 
               />
             )}
             
-            <div className="bg-gray-100 rounded-2xl rounded-tl-md px-4 py-3">
+            <div className="bg-gray-100 rounded-2xl rounded-tl-md px-4 py-3"></div>
               {(() => {
                 //console.log('💬 MessageList render - isStreaming:', isStreaming, 'isSearching:', isSearching, 'streamingMessage length:', streamingMessage?.length || 0, 'streamingMessage exists:', !!streamingMessage, 'content preview:', streamingMessage?.substring(0, 50));
                 

@@ -23,6 +23,7 @@ import {
 import { Menu, X, Share, MoreVertical, LogOut, TestTube, Download } from "lucide-react";
 import MemoryTester from "../components/MemoryTester";
 import SearchIndicator from "../components/chat/search-indicator";
+import AIActivityIndicator from "../components/chat/ai-activity-indicator";
 
 export default function Chat() {
   const { id: conversationId } = useParams();
@@ -35,6 +36,8 @@ export default function Chat() {
   const [searchCitations, setSearchCitations] = useState<string[]>([]);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const [showMemoryTester, setShowMemoryTester] = useState(false);
+  const [aiActivity, setAiActivity] = useState<'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | null>(null);
+  const [aiActivityMessage, setAiActivityMessage] = useState<string>('');
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const { user } = useAuth() as { user: User | undefined };
@@ -85,6 +88,8 @@ export default function Chat() {
     setStreamingMessage("");
     setSearchCitations([]);
     setSearchQuery(content); // Set the initial user query
+    setAiActivity('thinking');
+    setAiActivityMessage('Processing your request...');
 
     const response = await fetch(`/api/conversations/${targetConversationId}/messages`, {
       method: "POST",
@@ -118,7 +123,11 @@ export default function Chat() {
 
         let chunkContent = chunk;
 
+        // Check for various AI activity indicators in the stream
         const searchMetaRegex = /\[SEARCH_META\][\s\S]*?\[\/SEARCH_META\]/g;
+        const activityRegex = /\[AI_ACTIVITY\](.*?)\[\/AI_ACTIVITY\]/g;
+        
+        // Handle search metadata
         const searchMatches = chunkContent.match(searchMetaRegex);
         if (searchMatches) {
           searchMatches.forEach(match => {
@@ -132,6 +141,7 @@ export default function Chat() {
                 // Set search indicator based on AI decision to search
                 if (searchMeta.searchQuery && searchMeta.searchQuery.trim()) {
                   setIsSearching(true); // Activate search indicator
+                  setAiActivity('searching');
                   setSearchQuery(searchMeta.searchQuery); // Update search query display
                   setSearchCitations(searchMeta.citations || []); // Update citations
                   console.log(`🔍 Search indicator activated for query: ${searchMeta.searchQuery}`);
@@ -147,12 +157,33 @@ export default function Chat() {
           chunkContent = chunkContent.replace(searchMetaRegex, '');
         }
 
+        // Handle activity indicators
+        const activityMatches = chunkContent.match(activityRegex);
+        if (activityMatches) {
+          activityMatches.forEach(match => {
+            try {
+              const activityContent = match.match(/\[AI_ACTIVITY\](.*?)\[\/AI_ACTIVITY\]/);
+              if (activityContent) {
+                const activityData = JSON.parse(activityContent[1]);
+                setAiActivity(activityData.type);
+                setAiActivityMessage(activityData.message || '');
+                console.log(`🤖 [CLIENT] AI Activity: ${activityData.type} - ${activityData.message}`);
+              }
+            } catch (e) {
+              console.error('Failed to parse activity metadata:', e);
+            }
+          });
+          chunkContent = chunkContent.replace(activityRegex, '');
+        }
+
         // Add clean content to accumulated display
         accumulated += chunkContent;
 
-        // Once we get actual content, stop showing search indicator
+        // Once we get actual content, switch to generating activity
         if (!actualContentStarted && accumulated.trim()) {
           actualContentStarted = true;
+          setAiActivity('generating');
+          setAiActivityMessage('Generating response...');
           // The search indicator should *remain* visible if a search was initiated,
           // even if content starts appearing. It only hides when the stream is done
           // or if explicitly turned off by new metadata.
@@ -185,6 +216,8 @@ export default function Chat() {
         // Use the local 'messages' state here to add the new message
         setMessages(current => [...current, assistantMessage]);
         setIsStreaming(false);
+        setAiActivity(null);
+        setAiActivityMessage('');
         // Keep setIsSearching true if a search was performed, it will be reset by the next message or cleared on conversation change
         setStreamingMessage("");
         setStreamingResponse(null); // Clear search metadata after processing
@@ -222,6 +255,8 @@ export default function Chat() {
       console.error('Send message error:', error);
       setIsStreaming(false);
       setIsSearching(false); // Ensure search indicator is off on error
+      setAiActivity(null);
+      setAiActivityMessage('');
       setStreamingMessage("");
       setSearchCitations([]);
       setOptimisticMessages([]); // Clear optimistic messages on error
@@ -252,6 +287,8 @@ export default function Chat() {
       // Reset streaming states that are not handled by streamResponse's finally block
       setIsStreaming(false);
       setIsSearching(false); // Ensure search indicator is off when mutation settles
+      setAiActivity(null);
+      setAiActivityMessage('');
       setStreamingMessage("");
       setStreamingResponse(null); // Clear search metadata
     }
@@ -283,6 +320,8 @@ export default function Chat() {
     setStreamingMessage("");
     setIsStreaming(false);
     setIsSearching(false); // Crucially, reset search indicator state
+    setAiActivity(null);
+    setAiActivityMessage('');
     setSearchCitations([]);
     setSearchQuery(undefined);
     setStreamingResponse(null); // Clear search metadata
@@ -405,6 +444,8 @@ export default function Chat() {
               isSearching={isSearching}
               searchQuery={searchQuery}
               searchCitations={searchCitations}
+              aiActivity={aiActivity}
+              aiActivityMessage={aiActivityMessage}
               user={user}
               conversationId={conversationId}
             />
