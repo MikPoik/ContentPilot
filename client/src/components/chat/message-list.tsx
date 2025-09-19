@@ -190,7 +190,7 @@ What type of content creator are you? Are you focused on a specific niche like f
               />
             )}
             
-            <div className="bg-gray-100 rounded-2xl rounded-tl-md px-4 py-3"></div>
+            <div className="bg-gray-100 rounded-2xl rounded-tl-md px-4 py-3">
               {(() => {
                 //console.log('💬 MessageList render - isStreaming:', isStreaming, 'isSearching:', isSearching, 'streamingMessage length:', streamingMessage?.length || 0, 'streamingMessage exists:', !!streamingMessage, 'content preview:', streamingMessage?.substring(0, 50));
                 
@@ -215,6 +215,7 @@ What type of content creator are you? Are you focused on a specific niche like f
                 }
               })()}
             </div>
+          </div>
             
             {/* Show citations for streaming response if available */}
             {searchCitations.length > 0 && !isSearching && streamingMessage && (
