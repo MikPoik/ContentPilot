@@ -237,8 +237,8 @@ export default function Chat() {
         if (conversationId) {
           // Assuming refetchConversations is available or handled elsewhere
           // For now, we rely on queryClient invalidation and the useEffect for messages
-          // await refetchConversations(); // This might not be defined in this scope, ensure it's available if needed
-          await refetchMessages();
+          // refetchConversations(); // This might not be defined in this scope, ensure it's available if needed
+          refetchMessages();
           // Clear optimistic messages after successful refetch
           setOptimisticMessages([]);
         }
