@@ -3,7 +3,7 @@ import { storage } from "../storage";
 import { isAuthenticated } from "../replitAuth";
 import { generateChatResponse, generateConversationTitle, generateEmbedding, type ChatResponseWithMetadata } from "../services/ai/chat";
 import { extractProfileInfo } from "../services/ai/profile";
-import { extractMemoriesFromConversation } from "../services/ai/memory";
+import { extractMemoriesFromConversation, rephraseQueryForEmbedding } from "../services/ai/memory";
 import { decideWebSearch } from "../services/ai/search"; // Added import
 
 export function registerMessageRoutes(app: Express) {
@@ -92,12 +92,19 @@ export function registerMessageRoutes(app: Express) {
       }));
       console.log(`📚 [CHAT_FLOW] Data fetch (messages + user): ${Date.now() - dataFetchStart}ms`);
 
-      // Search for relevant memories using user message
+      // Search for relevant memories using user message with query rephrasing
       const memorySearchStart = Date.now();
       let relevantMemories: any[] = [];
       try {
+        // Rephrase the query for better embedding search using conversation context
+        const queryRephrasingStart = Date.now();
+        const rephrasedQuery = await rephraseQueryForEmbedding(content, chatHistory.slice(-6), user);
+        console.log(`🔄 [CHAT_FLOW] Query rephrasing: ${Date.now() - queryRephrasingStart}ms`);
+        console.log(`🔍 [CHAT_FLOW] Original query: "${content}"`);
+        console.log(`🔍 [CHAT_FLOW] Rephrased query: "${rephrasedQuery}"`);
+
         const embeddingStart = Date.now();
-        const queryEmbedding = await generateEmbedding(content);
+        const queryEmbedding = await generateEmbedding(rephrasedQuery);
         console.log(`🧠 [CHAT_FLOW] Embedding generation: ${Date.now() - embeddingStart}ms`);
 
         const similaritySearchStart = Date.now();
