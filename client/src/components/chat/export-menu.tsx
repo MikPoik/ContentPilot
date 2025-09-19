@@ -29,7 +29,7 @@ export default function ExportMenu({ messages, conversationTitle }: ExportMenuPr
     } finally {
       setIsExporting(false);
     }
-  }, [isExporting, messages, conversationTitle]);
+  }, [messages, conversationTitle]);
 
   // Early return to prevent rendering dropdown when no messages
   if (messages.length === 0) {
