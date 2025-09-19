@@ -49,7 +49,7 @@ export default function MessageList({
     previousMessageCountRef.current = messages.length;
   }, [messages.length, isStreaming, scrollToBottom]);
 
-  // Scroll once when streaming starts, then stop autoscrolling until complete
+  // Scroll once when streaming starts, then continue scrolling during streaming
   const streamingStartedRef = useRef(false);
   useEffect(() => {
     if (isStreaming && !streamingStartedRef.current) {
@@ -59,6 +59,13 @@ export default function MessageList({
       streamingStartedRef.current = false;
     }
   }, [isStreaming, scrollToBottom]);
+
+  // Continuously scroll during streaming as content updates
+  useEffect(() => {
+    if (isStreaming && streamingMessage) {
+      scrollToBottom();
+    }
+  }, [isStreaming, streamingMessage, scrollToBottom]);
 
   // Show welcome message only for completely empty state
   if (!conversationId && messages.length === 0 && !streamingMessage && !isStreaming) {
