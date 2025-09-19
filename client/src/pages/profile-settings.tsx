@@ -14,12 +14,17 @@ import SubscriptionManagement from "@/components/subscription-management";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 export default function ProfileSettings() {
   const { user, isLoading } = useAuth();
+  const [location] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  
+  // Get the 'from' parameter to know where to go back
+  const urlParams = new URLSearchParams(location.split('?')[1] || '');
+  const fromPath = urlParams.get('from') || '/';
 
   // Refetch user data when the page mounts to ensure fresh data
   useEffect(() => {
@@ -120,7 +125,7 @@ export default function ProfileSettings() {
               className="text-gray-600 hover:text-gray-800"
               data-testid="button-back-to-chat"
             >
-              <Link href="/">
+              <Link href={fromPath}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Chat
               </Link>

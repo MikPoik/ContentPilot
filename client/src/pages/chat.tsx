@@ -1,4 +1,4 @@
-import { useState, useEffect, startTransition } from "react";
+import { useState, useEffect, startTransition, useCallback, useMemo } from "react";
 import { flushSync } from "react-dom";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -29,6 +29,15 @@ export default function Chat() {
   const { id: conversationId } = useParams();
   const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Memoize handlers to prevent dropdown re-renders
+  const handleSidebarToggle = useCallback(() => {
+    setSidebarOpen(prev => !prev);
+  }, []);
+  
+  const handleSidebarClose = useCallback(() => {
+    setSidebarOpen(false);
+  }, []);
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [isSearching, setIsSearching] = useState(false); // This state is used for the indicator
@@ -338,7 +347,7 @@ export default function Chat() {
           currentConversationId={conversationId}
           user={user}
           onNewConversation={handleNewConversation}
-          onClose={() => setSidebarOpen(false)}
+          onClose={handleSidebarClose}
         />
       </div>
 
@@ -359,7 +368,7 @@ export default function Chat() {
               variant="ghost"
               size="sm"
               className="lg:hidden p-1 text-gray-500 hover:text-gray-700 flex-shrink-0"
-              onClick={() => setSidebarOpen(true)}
+              onClick={handleSidebarToggle}
               data-testid="button-toggle-sidebar"
             >
               <Menu className="h-4 w-4" />

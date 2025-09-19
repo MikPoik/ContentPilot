@@ -198,7 +198,7 @@ export default function Sidebar({
             asChild
             data-testid="button-profile-settings"
           >
-            <Link href="/profile-settings">
+            <Link href={`/profile-settings?from=${encodeURIComponent(window.location.pathname)}`}>
               <Settings className="h-4 w-4" />
             </Link>
           </Button>
