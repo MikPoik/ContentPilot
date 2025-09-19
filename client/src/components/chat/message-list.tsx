@@ -39,12 +39,17 @@ export default function MessageList({
     }
   }, []);
 
-  // Only scroll when new messages are added, not on streaming updates
+  // Scroll when new complete messages are added (but not when streaming message is added to state)
+  const previousMessageCountRef = useRef(messages.length);
   useEffect(() => {
-    scrollToBottom();
-  }, [messages.length, scrollToBottom]);
+    // Only scroll if messages increased and we're not currently streaming
+    if (messages.length > previousMessageCountRef.current && !isStreaming) {
+      scrollToBottom();
+    }
+    previousMessageCountRef.current = messages.length;
+  }, [messages.length, isStreaming, scrollToBottom]);
 
-  // Scroll once when streaming starts, but not on every update
+  // Scroll once when streaming starts, then stop autoscrolling until complete
   const streamingStartedRef = useRef(false);
   useEffect(() => {
     if (isStreaming && !streamingStartedRef.current) {
