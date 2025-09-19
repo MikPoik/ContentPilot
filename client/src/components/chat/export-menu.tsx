@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,7 +19,12 @@ interface ExportMenuProps {
 export default function ExportMenu({ messages, conversationTitle }: ExportMenuProps) {
   const [isExporting, setIsExporting] = useState(false);
 
-  const handleExport = useCallback(async (format: 'markdown' | 'txt' | 'json') => {
+  // Early return to prevent rendering dropdown when no messages
+  if (messages.length === 0) {
+    return null;
+  }
+
+  const handleExport = async (format: 'markdown' | 'txt' | 'json') => {
     if (isExporting || messages.length === 0) return;
 
     setIsExporting(true);
@@ -29,12 +35,7 @@ export default function ExportMenu({ messages, conversationTitle }: ExportMenuPr
     } finally {
       setIsExporting(false);
     }
-  }, [messages, conversationTitle]);
-
-  // Early return to prevent rendering dropdown when no messages
-  if (messages.length === 0) {
-    return null;
-  }
+  };
 
   return (
     <DropdownMenu>
