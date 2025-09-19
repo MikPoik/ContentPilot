@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { type Message, type User } from "@shared/schema";
 import ReactMarkdown from "react-markdown";
 import SearchIndicator from "./search-indicator";
@@ -33,13 +33,27 @@ export default function MessageList({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, []);
 
+  // Only scroll when new messages are added, not on streaming updates
   useEffect(() => {
     scrollToBottom();
-  }, [messages, streamingMessage]);
+  }, [messages.length, scrollToBottom]);
+
+  // Scroll once when streaming starts, but not on every update
+  const streamingStartedRef = useRef(false);
+  useEffect(() => {
+    if (isStreaming && !streamingStartedRef.current) {
+      streamingStartedRef.current = true;
+      scrollToBottom();
+    } else if (!isStreaming) {
+      streamingStartedRef.current = false;
+    }
+  }, [isStreaming, scrollToBottom]);
 
   // Show welcome message only for completely empty state
   if (!conversationId && messages.length === 0 && !streamingMessage && !isStreaming) {

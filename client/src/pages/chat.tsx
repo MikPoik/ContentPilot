@@ -206,10 +206,8 @@ export default function Chat() {
           // or if explicitly turned off by new metadata.
         }
 
-        // Force immediate React update using flushSync for real-time streaming
-        flushSync(() => {
-          setStreamingMessage(accumulated);
-        });
+        // Update streaming message state for real-time display
+        setStreamingMessage(accumulated);
       }
 
       console.log(`✅ Stream complete: ${chunkCount} chunks, ${accumulated.length} chars`);
@@ -339,6 +337,9 @@ export default function Chat() {
 
   // Combined messages for display (real + optimistic)
   const allMessages = useMemo(() => {
+    if (optimisticMessages.length === 0) {
+      return messages;
+    }
     return [...messages, ...optimisticMessages].sort((a, b) =>
       new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
