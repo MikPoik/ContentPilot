@@ -395,12 +395,6 @@ export default function Chat() {
 
         {/* Messages or Memory Tester */}
         <div className="flex-1 overflow-y-auto flex flex-col">
-          {/* Search Indicator - Show when AI decides to search OR search is being performed */}
-          {(isSearching || (streamingResponse && streamingResponse.searchQuery)) && (
-            <div className="flex justify-center mb-4 mt-4">
-              <SearchIndicator />
-            </div>
-          )}
           {showMemoryTester ? (
             <MemoryTester />
           ) : (
@@ -408,7 +402,7 @@ export default function Chat() {
               messages={allMessages}
               streamingMessage={streamingMessage}
               isStreaming={isStreaming}
-              isSearching={isSearching} // Pass the state down
+              isSearching={isSearching}
               searchQuery={searchQuery}
               searchCitations={searchCitations}
               user={user}
