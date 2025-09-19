@@ -78,7 +78,7 @@ export default function Chat() {
       // Use JSON comparison to avoid unnecessary re-renders
       const currentIds = messages.map(m => m.id).sort().join(',');
       const apiIds = messagesFromApi.map(m => m.id).sort().join(',');
-      
+
       if (messages.length === 0 || currentIds !== apiIds) {
         setMessages(messagesFromApi);
       }
@@ -246,7 +246,7 @@ export default function Chat() {
         setMessages(current => [...current, assistantMessage]);
         setStreamingMessage(""); // Now clear the streaming message
         setOptimisticMessages([]);
-        
+
         // Only invalidate conversations list
         queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
       }, 50);
@@ -335,7 +335,7 @@ export default function Chat() {
   // Get current conversation
   const currentConversation = conversations.find(c => c.id === conversationId);
 
-  // Combined messages for display (real + optimistic)
+  // Combined messages for display (real + optimistic) - stabilized
   const allMessages = useMemo(() => {
     if (optimisticMessages.length === 0) {
       return messages;
@@ -345,14 +345,15 @@ export default function Chat() {
     );
   }, [messages, optimisticMessages]);
 
-  // Memoize message count separately to prevent re-renders
-  const messageCount = useMemo(() => allMessages.length, [allMessages]);
+  // Stabilize message count using JSON comparison to prevent unnecessary re-renders
+  const messageCount = useMemo(() => {
+    return allMessages.length;
+  }, [allMessages.map(m => m.id).join(',')]);
 
   // Memoize dropdown disabled state to prevent infinite re-renders
   const isExportDisabled = useMemo(() =>
     !conversationId || messageCount === 0,
-    [conversationId, messageCount]
-  );
+    [conversationId, messageCount]);
 
   // Memoize dropdown handlers to prevent re-renders
   const handleMemoryTesterToggle = useCallback(() => {
