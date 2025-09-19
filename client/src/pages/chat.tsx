@@ -217,6 +217,16 @@ export default function Chat() {
       throw error;
     } finally {
       // Final state updates after stream completion
+      // First, clear all streaming state atomically
+      flushSync(() => {
+        setIsStreaming(false);
+        setStreamingMessage("");
+        setAiActivity(null);
+        setAiActivityMessage('');
+        setStreamingResponse(null);
+      });
+
+      // Then add the final message in a separate update
       startTransition(() => {
         const assistantMessage: Message = {
           id: `temp-${Date.now()}-assistant`, // Temporary ID for optimistic update
@@ -232,13 +242,6 @@ export default function Chat() {
         setMessages(current => [...current, assistantMessage]);
 
         console.log(`✅ [STREAM] Stream processing complete`);
-
-        // Clear all streaming state atomically to prevent flash
-        setIsStreaming(false);
-        setStreamingMessage("");
-        setAiActivity(null);
-        setAiActivityMessage('');
-        setStreamingResponse(null); // Clear search metadata after processing
 
         // Clear optimistic messages since we've added to local state
         setOptimisticMessages([]);
