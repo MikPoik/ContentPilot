@@ -411,7 +411,7 @@ export default function Chat() {
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem onClick={() => setShowMemoryTester(!showMemoryTester)}>
                   <TestTube className="h-4 w-4 mr-2" />
-                  {showMemoryTester ? 'Hide' : 'Show'} Memory Tester
+                  Memory Tester
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem disabled={!conversationId || allMessages.length === 0}>
@@ -423,7 +423,7 @@ export default function Chat() {
                   Share
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => window.location.href = "/api/logout"}>
+                <DropdownMenuItem onClick={() => { window.location.href = "/api/logout"; }}>
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
                 </DropdownMenuItem>

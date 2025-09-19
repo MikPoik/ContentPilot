@@ -14,13 +14,15 @@ import { type Message } from "@shared/schema";
 interface ExportMenuProps {
   messages: Message[];
   conversationTitle?: string;
+  conversation?: any;
+  disabled?: boolean;
 }
 
-export default function ExportMenu({ messages, conversationTitle }: ExportMenuProps) {
+export default function ExportMenu({ messages, conversationTitle, conversation, disabled }: ExportMenuProps) {
   const [isExporting, setIsExporting] = useState(false);
 
-  // Early return to prevent rendering dropdown when no messages
-  if (messages.length === 0) {
+  // Early return to prevent rendering dropdown when no messages or disabled
+  if (messages.length === 0 || disabled) {
     return null;
   }
 
