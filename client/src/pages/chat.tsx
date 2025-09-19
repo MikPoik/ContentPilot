@@ -29,12 +29,12 @@ export default function Chat() {
   const { id: conversationId } = useParams();
   const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
+
   // Memoize handlers to prevent dropdown re-renders
   const handleSidebarToggle = useCallback(() => {
     setSidebarOpen(prev => !prev);
   }, []);
-  
+
   const handleSidebarClose = useCallback(() => {
     setSidebarOpen(false);
   }, []);
@@ -141,7 +141,7 @@ export default function Chat() {
         // Check for various AI activity indicators in the stream
         const searchMetaRegex = /\[SEARCH_META\][\s\S]*?\[\/SEARCH_META\]/g;
         const activityRegex = /\[AI_ACTIVITY\](.*?)\[\/AI_ACTIVITY\]/g;
-        
+
         // Handle search metadata
         const searchMatches = chunkContent.match(searchMetaRegex);
         if (searchMatches) {
@@ -227,9 +227,22 @@ export default function Chat() {
           createdAt: new Date(),
         };
 
-        console.log('💾 Adding final message to optimistic state');
+        console.log(`💾 [STREAM] Adding final message to optimistic state`);
         // Use the local 'messages' state here to add the new message
         setMessages(current => [...current, assistantMessage]);
+
+        console.log(`✅ [STREAM] Stream processing complete`);
+
+        // Refetch to get updated conversation state and clear optimistic messages
+        if (conversationId) {
+          // Assuming refetchConversations is available or handled elsewhere
+          // For now, we rely on queryClient invalidation and the useEffect for messages
+          // await refetchConversations(); // This might not be defined in this scope, ensure it's available if needed
+          await refetchMessages();
+          // Clear optimistic messages after successful refetch
+          setOptimisticMessages([]);
+        }
+
         setIsStreaming(false);
         setAiActivity(null);
         setAiActivityMessage('');
@@ -322,12 +335,17 @@ export default function Chat() {
   // Get current conversation
   const currentConversation = conversations.find(c => c.id === conversationId);
 
-  // Combine real messages with optimistic messages (now handled by the local 'messages' state)
-  const allMessages = messages; // Use the local 'messages' state
+  // Combined messages for display (real + optimistic)
+  const allMessages = useMemo(() => {
+    return [...messages, ...optimisticMessages].sort((a, b) =>
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }, [messages, optimisticMessages]);
+
 
   // Memoize dropdown disabled state to prevent infinite re-renders
-  const isExportDisabled = useMemo(() => 
-    !conversationId || allMessages.length === 0, 
+  const isExportDisabled = useMemo(() =>
+    !conversationId || allMessages.length === 0,
     [conversationId, allMessages.length]
   );
 
@@ -363,7 +381,7 @@ export default function Chat() {
 
       {/* Overlay for mobile */}
       {sidebarOpen && isMobile && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -391,16 +409,16 @@ export default function Chat() {
 
           {/* Desktop Action Buttons */}
           <div className="hidden md:flex items-center gap-1 flex-none shrink-0">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className={`p-2 ${showMemoryTester ? 'text-blue-600 bg-blue-50' : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => setShowMemoryTester(!showMemoryTester)}
               data-testid="button-memory-tester"
             >
               <TestTube className="h-4 w-4" />
             </Button>
-            <ExportMenu 
+            <ExportMenu
               messages={allMessages}
               conversation={currentConversation}
               disabled={!conversationId || allMessages.length === 0}
@@ -408,9 +426,9 @@ export default function Chat() {
             <Button variant="ghost" size="sm" className="p-2 text-gray-500 hover:text-gray-700">
               <Share className="h-4 w-4" />
             </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="p-2 text-gray-500 hover:text-gray-700"
               onClick={() => window.location.href = "/api/logout"}
               data-testid="button-logout"

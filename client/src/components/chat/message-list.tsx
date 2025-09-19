@@ -65,25 +65,6 @@ export default function MessageList({
           </div>
         </div>
 
-        {/* Initial AI Message */}
-        <div className="flex items-start space-x-3 animate-fade-in">
-          <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-sm">🤖</span>
-          </div>
-          <div className="flex-1 max-w-3xl">
-            <div className="bg-gray-100 rounded-2xl rounded-tl-md px-4 py-3">
-              <div className="text-gray-900 text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-p:leading-relaxed prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0">
-                <ReactMarkdown>
-                  {`Hi there! 👋 I'm excited to help you create amazing social media content. To get started, I'd love to learn more about you and your brand.
-
-What type of content creator are you? Are you focused on a specific niche like fitness, food, tech, lifestyle, or business?`}
-                </ReactMarkdown>
-              </div>
-            </div>
-            <div className="text-xs text-gray-500 mt-1 px-1">Just now</div>
-          </div>
-        </div>
-
         <div ref={messagesEndRef} />
       </div>
     );
