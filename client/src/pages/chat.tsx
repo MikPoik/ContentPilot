@@ -79,6 +79,10 @@ export default function Chat() {
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Message limit reached. Please upgrade your subscription.");
+      }
       throw new Error("Failed to send message");
     }
 
@@ -213,9 +217,11 @@ export default function Chat() {
         return;
       }
       
+      // Show specific error message if available
+      const errorMessage = error instanceof Error ? error.message : "Failed to send message";
       toast({
         title: "Error",
-        description: "Failed to send message",
+        description: errorMessage,
         variant: "destructive",
       });
     },
