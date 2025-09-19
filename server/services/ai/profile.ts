@@ -29,6 +29,12 @@ export async function extractProfileInfo(userMessage: string, assistantResponse:
 
 IMPORTANT: Pay special attention to business type information. If someone mentions running any type of business, being a professional, or their occupation, capture it as businessType.
 
+User:
+ ${userMessage}
+
+Assistant:
+${assistantResponse}
+
 Return ONLY a JSON object with the fields that were mentioned. If no new info is found, return {}.
 
 Example outputs:
@@ -47,14 +53,6 @@ Example outputs:
     "businessType": "therapy business"
   }
 }`
-        },
-        {
-          role: 'user',
-          content: `User: ${userMessage}`
-        },
-        {
-          role: 'assistant',
-          content: assistantResponse
         }
       ],
       max_tokens: 200,
