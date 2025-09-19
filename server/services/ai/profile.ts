@@ -2,9 +2,9 @@ import OpenAI from "openai";
 import { type User } from "@shared/schema";
 
 // Together.ai client for gpt-4.1-mini calls to distribute load
-const togetherAI = new OpenAI({
-  apiKey: process.env.TOGETHERAI_API_KEY || "default_key",
-  baseURL: "https://api.together.xyz/v1"
+const deepinfraAI = new OpenAI({
+  apiKey: process.env.DEEPINFRA_API_KEY || "default_key",
+  baseURL: "https://api.deepinfra.com/v1/openai"
 });
 
 export async function extractProfileInfo(userMessage: string, assistantResponse: string, user: User): Promise<any> {
@@ -12,8 +12,8 @@ export async function extractProfileInfo(userMessage: string, assistantResponse:
     console.log(`👤 [PROFILE_EXTRACT] Input - User: "${userMessage.substring(0, 100)}..."`);
     console.log(`👤 [PROFILE_EXTRACT] Input - Assistant: "${assistantResponse.substring(0, 100)}..."`);
     
-    const response = await togetherAI.chat.completions.create({
-      model: 'openai/gpt-oss-20b',
+    const response = await deepinfraAI.chat.completions.create({
+      model: "google/gemini-2.0-flash-001",
       messages: [
         {
           role: 'system',
