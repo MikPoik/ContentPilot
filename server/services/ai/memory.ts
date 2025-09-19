@@ -106,7 +106,7 @@ export async function extractMemoriesFromConversation(
 ): Promise<string[]> {
   try {
     const response = await togetherAI.chat.completions.create({
-      model: "openai/gpt-oss-20b",
+      model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
       messages: [
         {
           role: "system",
