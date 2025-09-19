@@ -9,6 +9,9 @@ const togetherAI = new OpenAI({
 
 export async function extractProfileInfo(userMessage: string, assistantResponse: string, user: User): Promise<any> {
   try {
+    console.log(`👤 [PROFILE_EXTRACT] Input - User: "${userMessage.substring(0, 100)}..."`);
+    console.log(`👤 [PROFILE_EXTRACT] Input - Assistant: "${assistantResponse.substring(0, 100)}..."`);
+    
     const response = await togetherAI.chat.completions.create({
       model: 'openai/gpt-oss-20b',
       messages: [
@@ -59,10 +62,16 @@ Example outputs:
     });
 
     const result = response.choices[0]?.message?.content?.trim();
-    if (!result) return {};
+    console.log(`👤 [PROFILE_EXTRACT] Raw AI response: "${result}"`);
+    
+    if (!result) {
+      console.log(`👤 [PROFILE_EXTRACT] No response from AI model`);
+      return {};
+    }
 
     try {
       const profileUpdates = JSON.parse(result);
+      console.log(`👤 [PROFILE_EXTRACT] Parsed updates:`, profileUpdates);
       
       // Only return non-empty updates
       const hasUpdates = Object.keys(profileUpdates).some(key => {
@@ -72,13 +81,18 @@ Example outputs:
         return value !== null && value !== undefined && value !== '';
       });
       
-      return hasUpdates ? profileUpdates : {};
+      console.log(`👤 [PROFILE_EXTRACT] Has updates: ${hasUpdates}`);
+      const finalResult = hasUpdates ? profileUpdates : {};
+      console.log(`👤 [PROFILE_EXTRACT] Final result:`, finalResult);
+      
+      return finalResult;
     } catch (parseError) {
-      console.log('Profile extraction JSON parse error:', parseError);
+      console.log(`❌ [PROFILE_EXTRACT] JSON parse error:`, parseError);
+      console.log(`❌ [PROFILE_EXTRACT] Raw result that failed to parse: "${result}"`);
       return {};
     }
   } catch (error) {
-    console.log('Profile extraction error:', error);
+    console.log(`❌ [PROFILE_EXTRACT] API error:`, error);
     return {};
   }
 }
