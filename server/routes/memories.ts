@@ -86,7 +86,7 @@ export function registerMemoryRoutes(app: Express) {
         queryEmbedding, 
         limit || 10
       );
-      
+      console.log(`Memory search results: ${similarMemories.map(memory => memory.content).join(', ')}`)
       res.json(similarMemories);
     } catch (error) {
       console.error("Memory search error:", error);
