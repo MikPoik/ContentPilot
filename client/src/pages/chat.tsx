@@ -74,12 +74,16 @@ export default function Chat() {
   useEffect(() => {
     // Only sync when we have a conversation ID and messages from API
     if (conversationId && messagesFromApi) {
-      setMessages(messagesFromApi);
+      // Don't overwrite local messages if we have more messages locally than from API
+      // This prevents clearing the first message when creating a new conversation
+      if (messagesFromApi.length >= messages.length) {
+        setMessages(messagesFromApi);
+      }
     } else if (!conversationId) {
       // For new conversations without ID, keep existing local messages
       // This ensures the first message stays visible when starting from main view
     }
-  }, [conversationId, messagesFromApi]);
+  }, [conversationId, messagesFromApi, messages.length]);
 
   // Create new conversation mutation
   const createConversationMutation = useMutation({
