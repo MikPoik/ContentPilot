@@ -12,6 +12,8 @@ export interface WebSearchDecision {
   refinedQuery: string;
   recency: 'hour' | 'day' | 'week' | 'month' | 'year';
   domains: string[];
+  searchService: 'perplexity' | 'grok';
+  socialHandles?: string[];
 }
 
 export interface ChatMessage {
@@ -81,6 +83,7 @@ DO search for:
 - Time-sensitive information (today, this week, latest, recent)
 - Specific company or product information that may be outdated
 - Website content analysis requests (use simple site: searches with minimal additional terms)
+- Social media trends, Twitter/X discussions, or platform-specific content
 
 SEARCH QUERY RULES:
 - For Finnish websites (.fi): Use Finnish terms or just "site:domain.fi"
@@ -94,7 +97,9 @@ Return ONLY valid JSON with these exact fields:
   "reason": "brief explanation of decision",
   "refinedQuery": "optimized search query in appropriate language if shouldSearch=true, otherwise empty string",
   "recency": "hour|day|week|month|year (how recent info should be)",
-  "domains": ["array", "of", "relevant", "website", "domains", "if", "any"]
+  "domains": ["array", "of", "relevant", "website", "domains", "if", "any"],
+  "searchService": "perplexity|grok (use grok for social media, Twitter/X content, real-time discussions; use perplexity for general web search)",
+  "socialHandles": ["array", "of", "twitter", "handles", "if", "relevant", "for", "grok", "search"]
 }
 
 Be especially conservative - when in doubt, choose NO search.`
@@ -120,7 +125,9 @@ Analyze the LATEST user message and decide if web search is needed.`
         reason: "Unable to analyze query, defaulting to no search",
         refinedQuery: "",
         recency: "month",
-        domains: []
+        domains: [],
+        searchService: "perplexity",
+        socialHandles: []
       };
     }
 
@@ -174,7 +181,9 @@ Analyze the LATEST user message and decide if web search is needed.`
       reason: "Error analyzing query, defaulting to no search for safety",
       refinedQuery: "",
       recency: "month",
-      domains: []
+      domains: [],
+      searchService: "perplexity",
+      socialHandles: []
     };
   }
 }

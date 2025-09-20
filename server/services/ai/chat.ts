@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { type User } from "@shared/schema";
 import { perplexityService } from "../perplexity";
+import { grokService } from "../grok";
 import {
   buildWorkflowAwareSystemPrompt,
   decideWorkflowPhase,
@@ -82,27 +83,36 @@ export async function generateChatResponse(
 
   if (
     searchDecision &&
-    perplexityService.isConfigured() &&
     searchDecision.shouldSearch &&
     searchDecision.confidence >= 0.7
   ) {
     try {
       console.log(
-        `🔍 [AI_SERVICE] Performing web search with query: "${searchQuery}"`,
+        `🔍 [AI_SERVICE] Performing ${searchDecision.searchService} search with query: "${searchQuery}"`,
       );
       const searchStart = Date.now();
       searchPerformed = true;
 
-      // Use the search query with AI decision parameters
-      webSearchContext = await perplexityService.searchForChatContext(
-        searchQuery || "",
-        "Provide current, relevant information that would help a social media content strategist give accurate advice. Focus on recent trends, current events, or factual data mentioned in the query.",
-        searchDecision.recency,
-        searchDecision.domains,
-      );
+      if (searchDecision.searchService === 'grok' && grokService.isConfigured()) {
+        webSearchContext = await grokService.searchForChatContext(
+          searchQuery || "",
+          "Provide current, relevant social media information that would help a content strategist give accurate advice. Focus on recent trends, social media discussions, and real-time insights.",
+          searchDecision.socialHandles
+        );
+      } else if (perplexityService.isConfigured()) {
+        // Use Perplexity as fallback or when explicitly chosen
+        webSearchContext = await perplexityService.searchForChatContext(
+          searchQuery || "",
+          "Provide current, relevant information that would help a social media content strategist give accurate advice. Focus on recent trends, current events, or factual data mentioned in the query.",
+          searchDecision.recency,
+          searchDecision.domains,
+        );
+      } else {
+        throw new Error(`${searchDecision.searchService} service not configured`);
+      }
 
       console.log(
-        `🔍 [AI_SERVICE] Web search completed: ${Date.now() - searchStart}ms (${webSearchContext.citations.length} sources)`,
+        `🔍 [AI_SERVICE] ${searchDecision.searchService} search completed: ${Date.now() - searchStart}ms (${webSearchContext.citations.length} sources)`,
       );
       
       // Even if no sources found, we still performed a search
@@ -111,14 +121,14 @@ export async function generateChatResponse(
       }
     } catch (error) {
       console.log(
-        `❌ [AI_SERVICE] Web search failed, continuing without search context:`,
+        `❌ [AI_SERVICE] ${searchDecision.searchService} search failed, continuing without search context:`,
         error,
       );
       searchPerformed = false;
     }
-  } else if (!perplexityService.isConfigured()) {
+  } else if (searchDecision?.shouldSearch && !perplexityService.isConfigured() && !grokService.isConfigured()) {
     console.log(
-      `⚠️ [AI_SERVICE] Perplexity not configured, skipping search despite AI recommendation`,
+      `⚠️ [AI_SERVICE] No search services configured, skipping search despite AI recommendation`,
     );
   } else if (searchDecision?.shouldSearch) {
     console.log(

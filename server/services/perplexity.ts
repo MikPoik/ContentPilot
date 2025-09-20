@@ -1,4 +1,7 @@
-import { ChatMessage } from "./openai";
+interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
 
 interface PerplexityMessage {
   role: 'system' | 'user' | 'assistant';
