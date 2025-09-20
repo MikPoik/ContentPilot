@@ -54,7 +54,9 @@ export class HikerAPIService {
   }
 
   async getUserByUsername(username: string): Promise<HikerAPIUserData> {
-    const response = await this.request<HikerAPIResponse>(`/v1/user/by/username/${username}`);
+    const response = await this.request<HikerAPIResponse>(`/v2/user/by/username`, {
+      username: username
+    });
     if (!response.user) {
       throw new Error(`User not found: ${username}`);
     }
