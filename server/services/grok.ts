@@ -2,14 +2,16 @@ import OpenAI from "openai";
 import { WebSearchResult } from "./perplexity";
 
 interface GrokSearchParameters {
-  mode: 'on' | 'off';
-  sources: Array<{
-    type: 'x';
-    includedXHandles?: string[];
-    excludedXHandles?: string[];
-    postFavoriteCount?: number;
-    postViewCount?: number;
+  mode: 'on' | 'off' | 'auto';
+  sources?: Array<{
+    type: 'x' | 'web' | 'news';
+    included_x_handles?: string[];
+    excluded_x_handles?: string[];
+    post_favorite_count?: number;
+    post_view_count?: number;
   }>;
+  max_search_results?: number;
+  return_citations?: boolean;
 }
 
 interface CacheEntry {
@@ -164,15 +166,17 @@ export class GrokService {
         mode: 'on',
         sources: [{
           type: 'x',
-          includedXHandles: options?.socialHandles || [],
-          excludedXHandles: options?.excludeHandles || [],
-          postFavoriteCount: options?.minFavorites || 5,
-          postViewCount: options?.minViews || 50,
-        }]
+          included_x_handles: options?.socialHandles && options.socialHandles.length > 0 ? options.socialHandles : undefined,
+          excluded_x_handles: options?.excludeHandles && options.excludeHandles.length > 0 ? options.excludeHandles : undefined,
+          post_favorite_count: options?.minFavorites || 10,
+          post_view_count: options?.minViews || 100,
+        }],
+        max_search_results: 10,
+        return_citations: true
       };
 
       const response = await this.client.chat.completions.create({
-        model: 'grok-3-latest',
+        model: 'grok-4-fast',
         messages: [
           ...(options?.systemPrompt ? [{
             role: 'system' as const,
@@ -184,19 +188,21 @@ export class GrokService {
           }
         ],
         temperature: 0.2,
-        // @ts-ignore - Grok-specific options
-        providerOptions: {
-          xai: {
-            searchParameters: searchParams
-          }
-        }
+        // @ts-ignore - Grok-specific search parameters
+        search_parameters: searchParams
       });
 
       const content = response.choices[0]?.message?.content || '';
       console.log(`🔍 [GROK] Search completed: ${Date.now() - startTime}ms`);
 
-      // Extract citations from content (basic approach)
-      const citations = this.extractCitations(content);
+      // Extract citations from content and usage data
+      const citations = this.extractCitations(content, response.usage);
+
+      // Log response details for debugging
+      console.log(`🔍 [GROK] Response content length: ${content.length}, citations found: ${citations.length}`);
+      if (response.usage && 'num_sources_used' in response.usage) {
+        console.log(`🔍 [GROK] API reported ${(response.usage as any).num_sources_used} sources used`);
+      }
 
       return {
         content,
@@ -215,12 +221,18 @@ export class GrokService {
   }
 
   /**
-   * Extract citations from Grok response content
+   * Extract citations from Grok response content and usage data
    */
-  private extractCitations(content: string): string[] {
-    // Basic citation extraction - look for URLs and X.com links
+  private extractCitations(content: string, usage?: any): string[] {
+    // Try to extract URLs from content
     const urlRegex = /https?:\/\/[^\s]+/g;
     const urls = content.match(urlRegex) || [];
+    
+    // For debugging - log if we have usage data about sources
+    if (usage && 'num_sources_used' in usage) {
+      console.log(`🔍 [GROK] Sources used: ${usage.num_sources_used}`);
+    }
+    
     return Array.from(new Set(urls)); // Remove duplicates
   }
 
@@ -234,7 +246,7 @@ export class GrokService {
   ): Promise<{ context: string; citations: string[] }> {
     const cacheKey = this.generateCacheKey(query, { 
       mode: 'on',
-      sources: [{ type: 'x', includedXHandles: socialHandles }]
+      sources: [{ type: 'x', included_x_handles: socialHandles }]
     });
     
     // Check cache first
