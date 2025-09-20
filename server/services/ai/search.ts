@@ -74,6 +74,8 @@ DO NOT search for:
 - Personal opinions or subjective advice
 - Basic how-to questions about common topics
 - Conversational responses or acknowledgments
+- Instagram profile analysis requests (these use dedicated Instagram analysis service)
+- Instagram account mentions with @username (handled by Instagram analysis)
 
 DO search for:
 - Current events, news, or recent developments
@@ -83,9 +85,16 @@ DO search for:
 - Time-sensitive information (today, this week, latest, recent)
 - Specific company or product information that may be outdated
 - Website content analysis requests (use simple site: searches with minimal additional terms)
-- Social media trends, Twitter/X discussions, or platform-specific content
+- X (Twitter) trends, discussions, or platform-specific content
+- Social media trends and real-time discussions
+
+PLATFORM-SPECIFIC PRIORITY RULES:
+- Instagram analysis requests: DO NOT search - these are handled by dedicated Instagram analysis service
+- X (Twitter) analysis requests: USE grok search with specific X-focused queries
+- General social media trends: USE grok for real-time social discussions
 
 SEARCH QUERY RULES:
+- For X (Twitter) searches: Use specific X-focused terms like "site:x.com" or handle-based queries
 - For Finnish websites (.fi): Use Finnish terms or just "site:domain.fi"
 - For website content requests: Prefer "site:domain.com" over complex keyword combinations
 - Match the language of the target website in your search terms
@@ -98,7 +107,7 @@ Return ONLY valid JSON with these exact fields:
   "refinedQuery": "optimized search query in appropriate language if shouldSearch=true, otherwise empty string",
   "recency": "hour|day|week|month|year (how recent info should be)",
   "domains": ["array", "of", "relevant", "website", "domains", "if", "any"],
-  "searchService": "perplexity|grok (use grok for social media, Twitter/X content, real-time discussions; use perplexity for general web search)",
+  "searchService": "perplexity|grok (use grok ONLY for X/Twitter content, real-time social discussions; use perplexity for general web search)",
   "socialHandles": ["array", "of", "twitter", "handles", "if", "relevant", "for", "grok", "search"]
 }
 
