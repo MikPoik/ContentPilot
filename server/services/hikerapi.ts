@@ -54,7 +54,7 @@ export class HikerAPIService {
   }
 
   async getUserByUsername(username: string): Promise<HikerAPIUserData> {
-    const response = await this.request<HikerAPIResponse>(`/v2/user/username/${username}`);
+    const response = await this.request<HikerAPIResponse>(`/v1/user/by/username/${username}`);
     if (!response.user) {
       throw new Error(`User not found: ${username}`);
     }
@@ -122,10 +122,11 @@ export class HikerAPIService {
 
   async getRelatedProfiles(userId: string): Promise<any[]> {
     try {
-      const response = await this.request<any[]>('/gql/user/related/profiles', {
-        user_id: userId
-      });
-      return Array.isArray(response) ? response.slice(0, 5) : [];
+      // Note: HikerAPI doesn't have a direct "related profiles" endpoint
+      // This is a placeholder that returns empty array for now
+      // In the future, we could use search functionality to find similar accounts
+      console.log('Related profiles functionality not available in current HikerAPI version');
+      return [];
     } catch (error) {
       console.error('Error fetching related profiles:', error);
       return [];
