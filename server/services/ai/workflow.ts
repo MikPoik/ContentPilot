@@ -24,7 +24,8 @@ export function buildWorkflowAwareSystemPrompt(
   workflowPhase: WorkflowPhaseDecision, 
   user?: User, 
   memories?: any[], 
-  webSearchContext?: { context: string; citations: string[] }
+  webSearchContext?: { context: string; citations: string[] },
+  instagramAnalysisContext?: { analysis: any; cached: boolean; error?: string }
 ): string {
   const baseWorkflowPrompt = `You are ContentCraft AI, a world-class social media content strategist and creative partner with web search capabilities to provide current information.
 
@@ -75,6 +76,26 @@ ${workflowPhase.shouldBlockContentGeneration ? '\n⚠️ CONTENT GENERATION BLOC
     userContext += `\n${webSearchContext.context}`;
     if (webSearchContext.citations.length > 0) {
       userContext += `\nSOURCES: ${webSearchContext.citations.slice(0, 3).join(', ')}`;
+    }
+  }
+
+  // Add Instagram analysis context if available
+  if (instagramAnalysisContext) {
+    userContext += `\n\nINSTAGRAM ANALYSIS RESULTS:`;
+    if (instagramAnalysisContext.error) {
+      userContext += `\nERROR: ${instagramAnalysisContext.error}`;
+      userContext += `\nProvide helpful guidance on Instagram analysis and suggest alternative approaches.`;
+    } else if (instagramAnalysisContext.analysis) {
+      const analysis = instagramAnalysisContext.analysis;
+      const cacheStatus = instagramAnalysisContext.cached ? ' (from recent analysis)' : ' (fresh analysis)';
+      userContext += `\nAnalysis for @${analysis.username}${cacheStatus}:`;
+      userContext += `\n- ${analysis.followers.toLocaleString()} followers, ${analysis.engagement_rate.toFixed(2)}% engagement rate`;
+      userContext += `\n- Top hashtags: ${analysis.top_hashtags.slice(0, 5).join(', ')}`;
+      userContext += `\n- Avg engagement: ${Math.round(analysis.avg_likes).toLocaleString()} likes, ${Math.round(analysis.avg_comments).toLocaleString()} comments`;
+      if (analysis.similar_accounts?.length > 0) {
+        userContext += `\n- Similar accounts: ${analysis.similar_accounts.slice(0, 3).map(acc => `@${acc.username}`).join(', ')}`;
+      }
+      userContext += `\nProvide detailed insights and actionable recommendations based on this data.`;
     }
   }
 

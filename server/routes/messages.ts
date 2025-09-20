@@ -5,6 +5,7 @@ import { generateChatResponse, generateConversationTitle, generateEmbedding, typ
 import { extractProfileInfo } from "../services/ai/profile";
 import { extractMemoriesFromConversation, rephraseQueryForEmbedding } from "../services/ai/memory";
 import { decideWebSearch } from "../services/ai/search"; // Added import
+import { decideInstagramAnalysis, performInstagramAnalysis, formatInstagramAnalysisForChat } from "../services/ai/instagram"; // Added Instagram integration
 
 export function registerMessageRoutes(app: Express) {
   // Get messages for a conversation
@@ -127,6 +128,23 @@ export function registerMessageRoutes(app: Express) {
         console.log(`❌ [CHAT_FLOW] Memory search failed: ${error}`);
       }
 
+      // Check for Instagram analysis requests
+      const instagramAnalysisStart = Date.now();
+      let instagramAnalysisResult: any = null;
+      try {
+        const instagramDecision = await decideInstagramAnalysis(chatHistory, user);
+        console.log(`📸 [CHAT_FLOW] Instagram analysis decision: ${Date.now() - instagramAnalysisStart}ms - shouldAnalyze: ${instagramDecision.shouldAnalyze}, confidence: ${instagramDecision.confidence}`);
+        
+        if (instagramDecision.shouldAnalyze && instagramDecision.username && instagramDecision.confidence >= 0.7) {
+          console.log(`📸 [CHAT_FLOW] Performing Instagram analysis for @${instagramDecision.username}...`);
+          const analysisStart = Date.now();
+          instagramAnalysisResult = await performInstagramAnalysis(instagramDecision.username, userId);
+          console.log(`📸 [CHAT_FLOW] Instagram analysis completed: ${Date.now() - analysisStart}ms - success: ${instagramAnalysisResult.success}`);
+        }
+      } catch (error) {
+        console.log(`❌ [CHAT_FLOW] Instagram analysis error: ${error}`);
+      }
+
       // Make search decision first, before generating response
       const searchDecision = await decideWebSearch(chatHistory, user); // Used the imported function
 
@@ -164,7 +182,7 @@ export function registerMessageRoutes(app: Express) {
       // Generate AI response stream with user profile and memories
       const aiResponseStart = Date.now();
       console.log(`🤖 [CHAT_FLOW] Starting AI response generation...`);
-      const responseWithMetadata: ChatResponseWithMetadata = await generateChatResponse(chatHistory, user, relevantMemories, searchDecision); // Pass searchDecision here
+      const responseWithMetadata: ChatResponseWithMetadata = await generateChatResponse(chatHistory, user, relevantMemories, searchDecision, instagramAnalysisResult); // Pass Instagram analysis result
       let fullResponse = '';
 
       // Send search metadata immediately when search is performed (even with 0 citations)

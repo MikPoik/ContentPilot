@@ -48,6 +48,7 @@ export async function generateChatResponse(
   user?: User,
   memories?: any[],
   searchDecision?: WebSearchDecision,
+  instagramAnalysisResult?: { analysis: any; cached: boolean; error?: string },
 ): Promise<ChatResponseWithMetadata> {
   const startTime = Date.now();
   console.log(`🤖 [AI_SERVICE] Building workflow-aware response...`);
@@ -142,6 +143,7 @@ export async function generateChatResponse(
     user,
     memories,
     webSearchContext,
+    instagramAnalysisResult,
   );
   console.log(
     `🤖 [AI_SERVICE] Workflow-aware system prompt built: ${Date.now() - promptBuildStart}ms (length: ${systemPrompt.length} chars)`,
