@@ -110,6 +110,7 @@ function getPhaseSpecificGuidance(workflowPhase: WorkflowPhaseDecision): string 
 - Discover their content niche and expertise areas through thoughtful questions
 - Understand their primary social media platform preferences
 - Learn about their target audience and business goals
+- If they mention using Instagram, ask for their handle - this will trigger automatic profile analysis
 - Explore their content creation experience and current challenges
 DO NOT suggest content ideas yet - focus purely on discovery and building rapport.`;
 
@@ -202,13 +203,18 @@ CRITICAL RULES:
 - Be conservative - when in doubt, stay in earlier phases and gather more context
 - Block content generation if confidence is low that user profile is sufficient
 
+INSTAGRAM ANALYSIS DETECTION:
+- If user mentions using Instagram as their platform or mentions their Instagram username during discovery, add "instagramUsername" to profilePatch
+- Look for patterns like "I use Instagram", "my Instagram is @username", "I post on IG", "my handle is @username"
+- Extract the username without @ symbol if mentioned
+
 Return ONLY valid JSON:
 {
   "currentPhase": "Discovery & Personalization|Brand Voice & Positioning|Collaborative Idea Generation|Developing Chosen Ideas|Content Drafting & Iterative Review|Finalization & Scheduling",
   "missingFields": ["array of missing key info like name, niche, platform, audience, etc"],
   "readyToAdvance": boolean,
   "suggestedPrompts": ["array of 1-2 specific questions to ask next"],
-  "profilePatch": {"any new profile data to store like firstName, contentNiche, primaryPlatform, etc"},
+  "profilePatch": {"any new profile data to store like firstName, contentNiche, primaryPlatform, instagramUsername, etc"},
   "shouldBlockContentGeneration": boolean,
   "confidence": number (0.0 to 1.0)
 }`
@@ -221,7 +227,7 @@ ${JSON.stringify(currentProfile, null, 2)}
 RECENT CONVERSATION:
 ${conversationContext}
 
-Analyze what workflow phase we're in and what's needed next. Be conservative about advancing to content generation phases.`
+Analyze what workflow phase we're in and what's needed next. Be conservative about advancing to content generation phases. Also detect if user mentions Instagram usage or username.`
         }
       ],
       max_tokens: 300,

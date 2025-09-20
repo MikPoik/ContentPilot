@@ -128,7 +128,7 @@ export function registerMessageRoutes(app: Express) {
         console.log(`❌ [CHAT_FLOW] Memory search failed: ${error}`);
       }
 
-      // Check for Instagram analysis requests
+      // Check for Instagram analysis requests and auto-analysis during discovery
       const instagramAnalysisStart = Date.now();
       let instagramAnalysisResult: any = null;
       try {
@@ -252,6 +252,26 @@ export function registerMessageRoutes(app: Express) {
           // Merge workflow patches with conversation-extracted updates
           if (conversationProfileUpdates && Object.keys(conversationProfileUpdates).length > 0) {
             combinedProfileUpdates = { ...combinedProfileUpdates, ...conversationProfileUpdates };
+          }
+
+          // Check for automatic Instagram analysis during discovery
+          if (combinedProfileUpdates.instagramUsername && !instagramAnalysisResult) {
+            console.log(`📸 [CHAT_FLOW] Auto-triggering Instagram analysis for discovered username: @${combinedProfileUpdates.instagramUsername}`);
+            try {
+              const autoAnalysisStart = Date.now();
+              instagramAnalysisResult = await performInstagramAnalysis(combinedProfileUpdates.instagramUsername, userId);
+              console.log(`📸 [CHAT_FLOW] Auto Instagram analysis completed: ${Date.now() - autoAnalysisStart}ms - success: ${instagramAnalysisResult.success}`);
+              
+              // If analysis was successful, add a note to the response stream
+              if (instagramAnalysisResult.success) {
+                res.write(`\n\n📸 **Discovered your Instagram!** I've analyzed @${combinedProfileUpdates.instagramUsername} to better understand your content style and audience. This will help me provide more personalized recommendations.\n\n`);
+                if (typeof (res as any).flush === 'function') {
+                  try { (res as any).flush(); } catch {}
+                }
+              }
+            } catch (autoAnalysisError) {
+              console.log(`❌ [CHAT_FLOW] Auto Instagram analysis failed:`, autoAnalysisError);
+            }
           }
 
           if (Object.keys(combinedProfileUpdates).length > 0) {
