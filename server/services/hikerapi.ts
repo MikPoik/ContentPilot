@@ -122,10 +122,10 @@ export class HikerAPIService {
     return allMedias;
   }
 
-  async getRelatedProfiles(username: string): Promise<any[]> {
+  async getRelatedProfiles(userId: string): Promise<any[]> {
     try {
       const response = await this.request<any[]>('/gql/user/related/profiles', {
-        username: username
+        user_id: userId
       });
       return Array.isArray(response) ? response.slice(0, 5) : [];
     } catch (error) {
@@ -181,7 +181,7 @@ export class HikerAPIService {
       .map(([tag]) => tag);
 
     // Analyze similar accounts
-    const similarAccountsData = await this.getRelatedProfiles(userProfile.username);
+    const similarAccountsData = await this.getRelatedProfiles(userProfile.pk);
     const similarAccounts: InstagramAccount[] = [];
 
     for (const accountData of similarAccountsData.slice(0, 3)) {
