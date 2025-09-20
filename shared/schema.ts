@@ -118,6 +118,47 @@ export const updateUserSubscriptionSchema = createInsertSchema(users).pick({
   subscriptionStartedAt: true,
 }).partial();
 
+// Instagram profile data interfaces
+export interface InstagramProfile {
+  username: string;
+  full_name: string;
+  biography: string;
+  category: string;
+  followers: number;
+  following: number;
+  posts: number;
+  top_hashtags: string[];
+  engagement_rate: number;
+  avg_likes: number;
+  avg_comments: number;
+  similar_accounts: InstagramAccount[];
+  post_texts: string[];
+  profile_pic_url?: string;
+  is_verified?: boolean;
+  cached_at: string;
+}
+
+export interface InstagramAccount {
+  username: string;
+  full_name: string;
+  category: string;
+  followers: number;
+  engagement_rate: number;
+  avg_likes: number;
+  avg_comments: number;
+  top_hashtags: string[];
+  post_texts: string[];
+}
+
+export interface InstagramPost {
+  pk: string;
+  caption_text?: string;
+  like_count: number;
+  comment_count: number;
+  media_type: number;
+  taken_at: number;
+}
+
 // Search metadata interface for messages
 export interface SearchMessageMetadata {
   citations?: string[];
@@ -130,6 +171,7 @@ export interface MessageMetadata extends Record<string, any> {
   citations?: string[];
   searchQuery?: string;
   source?: string;
+  instagramProfile?: InstagramProfile;
 }
 
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
