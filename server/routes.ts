@@ -6,6 +6,7 @@ import { registerConversationRoutes } from "./routes/conversations";
 import { registerMessageRoutes } from "./routes/messages";
 import { registerMemoryRoutes } from "./routes/memories";
 import { registerSubscriptionRoutes } from "./routes/subscriptions";
+import { registerInstagramRoutes } from "./routes/instagram";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication middleware
@@ -17,6 +18,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerConversationRoutes(app);
   registerMessageRoutes(app);
   registerMemoryRoutes(app);
+  registerInstagramRoutes(app);
 
   // Create HTTP server
   const httpServer = createServer(app);
