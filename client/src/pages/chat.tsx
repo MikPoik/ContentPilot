@@ -398,11 +398,11 @@ export default function Chat() {
   }, [conversationId]);
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:w-64 lg:flex-shrink-0 ${
+      <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-card shadow-xl transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:w-64 lg:flex-shrink-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      }`}></div>
         <Sidebar
           conversations={conversations}
           currentConversationId={conversationId}
@@ -421,21 +421,21 @@ export default function Chat() {
       )}
 
       {/* Main chat area */}
-      <div className="flex-1 flex flex-col h-full bg-white">
+      <div className="flex-1 flex flex-col h-full bg-background"></div>
         {/* Header */}
-        <header className="flex items-center bg-white border-b border-gray-200 px-2 py-2 shadow-sm">
+        <header className="flex items-center bg-card border-b border-border px-2 py-2 shadow-sm"></div>
           <div className="flex items-center gap-1 min-w-0 flex-1 overflow-hidden pr-2">
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden p-1 text-gray-500 hover:text-gray-700 flex-shrink-0"
+              className="lg:hidden p-1 text-muted-foreground hover:text-foreground flex-shrink-0"
               onClick={handleSidebarToggle}
               data-testid="button-toggle-sidebar"
-            >
+            ></div>
               <Menu className="h-4 w-4" />
             </Button>
             <div className="w-1 h-1 bg-emerald-500 rounded-full flex-shrink-0"></div>
-            <h2 className="text-xs font-medium text-gray-800 dark:text-gray-100 truncate min-w-0">
+            <h2 className="text-xs font-medium text-foreground truncate min-w-0"></div>
               {currentConversation?.title || "ContentCraft AI"}
             </h2>
           </div>
@@ -445,10 +445,10 @@ export default function Chat() {
             <Button
               variant="ghost"
               size="sm"
-              className={`p-2 ${showMemoryTester ? 'text-blue-600 bg-blue-50' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`p-2 ${showMemoryTester ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950' : 'text-muted-foreground hover:text-foreground'}`}
               onClick={handleMemoryTesterToggle}
               data-testid="button-memory-tester"
-            >
+            ></div>
               <TestTube className="h-4 w-4" />
             </Button>
             {!isExportDisabled && (
@@ -459,16 +459,16 @@ export default function Chat() {
                 disabled={false}
               />
             )}
-            <Button variant="ghost" size="sm" className="p-2 text-gray-500 hover:text-gray-700">
+            <Button variant="ghost" size="sm" className="p-2 text-muted-foreground hover:text-foreground">
               <Share className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className="p-2 text-gray-500 hover:text-gray-700"
+              className="p-2 text-muted-foreground hover:text-foreground"
               onClick={handleLogout}
               data-testid="button-logout"
-            >
+            ></div>
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
@@ -477,7 +477,7 @@ export default function Chat() {
           <div className="md:hidden flex-none shrink-0">
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="p-2 text-gray-500 hover:text-gray-700">
+                <Button variant="ghost" size="sm" className="p-2 text-muted-foreground hover:text-foreground"></div>
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>

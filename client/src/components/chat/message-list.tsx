@@ -81,10 +81,10 @@ export default function MessageList({
             <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mb-4 mx-auto">
               <span className="text-white text-xl">🚀</span>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <h3 className="text-xl font-semibold text-foreground mb-2">
               Welcome to ContentCraft AI!
             </h3>
-            <p className="text-gray-600 text-sm leading-relaxed">
+            <p className="text-muted-foreground text-sm leading-relaxed"></div>
               I'm here to help you brainstorm amazing social media content ideas. 
               Let's start by getting to know your brand and interests!
             </p>
@@ -129,7 +129,7 @@ export default function MessageList({
             <div className={`px-4 py-3 rounded-2xl ${
               message.role === 'user'
                 ? 'bg-emerald-500 text-white rounded-tr-md max-w-fit'
-                : 'bg-gray-100 text-gray-900 rounded-tl-md'
+                : 'bg-muted text-foreground rounded-tl-md'</div>
             }`}>
               {message.role === 'user' ? (
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">
@@ -147,7 +147,7 @@ export default function MessageList({
                       >
                         {message.content}
                       </ReactMarkdown>
-                      <span className="w-2 h-4 bg-gray-400 ml-1 animate-pulse inline-block align-baseline" />
+                      <span className="w-2 h-4 bg-muted-foreground ml-1 animate-pulse inline-block align-baseline" /></div>
                     </span>
                   ) : (
                     <ReactMarkdown>{message.content}</ReactMarkdown>
@@ -167,7 +167,7 @@ export default function MessageList({
             {/* Timestamp and activity indicators */}
             {message.role === 'user' ? (
               /* User messages: timestamp below the message, right-aligned */
-              <div className="text-xs text-gray-500 mt-1 px-1">
+              <div className="text-xs text-muted-foreground mt-1 px-1"></div>
                 {new Date(message.createdAt).toLocaleTimeString([], { 
                   hour: '2-digit', 
                   minute: '2-digit' 
@@ -175,7 +175,7 @@ export default function MessageList({
               </div>
             ) : (
               /* Assistant messages: timestamp with activity indicators */
-              <div className="text-xs text-gray-500 mt-1 px-1 flex items-center gap-2">
+              <div className="text-xs text-muted-foreground mt-1 px-1 flex items-center gap-2"></div>
                 <span>
                   {new Date(message.createdAt).toLocaleTimeString([], { 
                     hour: '2-digit', 

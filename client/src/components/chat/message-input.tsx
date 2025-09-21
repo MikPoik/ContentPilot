@@ -52,13 +52,13 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
   const isValid = message.trim().length > 0 && message.length <= maxChars;
 
   return (
-    <div className="border-t border-gray-200 bg-white px-2 py-2">
+    <div className="border-t border-border bg-card px-2 py-2"></div>
       <div className="flex items-end space-x-3 max-w-4xl mx-auto">
         <Button 
           variant="ghost" 
           size="sm"
-          className="p-2 text-gray-500 hover:text-gray-700 transition-colors rounded-lg hover:bg-gray-100 flex-shrink-0"
-        >
+          className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted flex-shrink-0"
+        ></div>
           <Paperclip className="h-4 w-4" />
         </Button>
         
@@ -69,7 +69,7 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             placeholder=""
-            className="min-h-[44px] max-h-[44px] resize-none border border-gray-300 rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-gray-500 text-sm leading-relaxed overflow-hidden"
+            className="min-h-[44px] max-h-[44px] resize-none border border-input rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-muted-foreground text-sm leading-relaxed overflow-hidden bg-background text-foreground"</div>
             disabled={disabled}
             data-testid="input-message"
           />
@@ -87,7 +87,7 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
         <Button
           onClick={handleSubmit}
           disabled={!isValid || disabled || isLoading}
-          className="bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-300 text-white p-3 rounded-xl transition-all duration-200 flex-shrink-0 shadow-sm hover:shadow-md disabled:cursor-not-allowed"
+          className="bg-emerald-500 hover:bg-emerald-600 disabled:bg-muted disabled:text-muted-foreground text-white p-3 rounded-xl transition-all duration-200 flex-shrink-0 shadow-sm hover:shadow-md disabled:cursor-not-allowed"</div>
           data-testid="button-send-message"
         >
           <Send className="h-4 w-4" />
