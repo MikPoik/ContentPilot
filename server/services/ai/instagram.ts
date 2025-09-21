@@ -48,6 +48,7 @@ DETECTION RULES:
 - Look for requests to "analyze", "check", "look at", "review" an Instagram account
 - Look for Instagram usernames (starting with @ or just mentioning a username)
 - Look for requests about Instagram engagement, followers, content style, competitors
+- Look for competitor analysis requests like "check my competitor", "analyze [brand name] Instagram", "what's [username] doing"
 - Be liberal - if someone mentions wanting insights about an Instagram account, they likely want analysis
 
 Return ONLY valid JSON:

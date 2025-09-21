@@ -111,6 +111,7 @@ function getPhaseSpecificGuidance(workflowPhase: WorkflowPhaseDecision): string 
 - Understand their primary social media platform preferences
 - Learn about their target audience and business goals
 - If they mention using Instagram, ask for their handle - this will trigger automatic profile analysis
+- Users can also request analysis of competitor accounts by mentioning specific handles
 - Explore their content creation experience and current challenges
 DO NOT suggest content ideas yet - focus purely on discovery and building rapport.`;
 
