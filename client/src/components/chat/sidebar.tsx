@@ -75,17 +75,17 @@ export default function Sidebar({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
             <span className="text-white text-sm">✨</span>
           </div>
-          <h1 className="text-lg font-semibold text-gray-900">ContentCraft AI</h1>
+          <h1 className="text-lg font-semibold text-foreground">ContentCraft AI</h1>
         </div>
         <Button
           variant="ghost"
           size="sm"
-          className="lg:hidden p-2 text-gray-500 hover:text-gray-700"
+          className="lg:hidden p-2"
           onClick={onClose}
           data-testid="button-close-sidebar"
         >
@@ -108,12 +108,12 @@ export default function Sidebar({
       {/* Conversation History */}
       <div className="flex-1 overflow-y-auto px-4 pb-4">
         <div className="space-y-2">
-          <div className="text-xs font-medium text-gray-500 mb-3 uppercase tracking-wide">
+          <div className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
             Recent Conversations
           </div>
 
           {conversations.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               <div className="text-sm">No conversations yet</div>
               <div className="text-xs mt-1">Start chatting to see your history</div>
             </div>
@@ -124,8 +124,8 @@ export default function Sidebar({
                 onClick={() => handleConversationClick(conversation.id)}
                 className={`block rounded-lg p-3 cursor-pointer transition-colors group ${
                   conversation.id === currentConversationId
-                    ? 'bg-emerald-50 border border-emerald-200'
-                    : 'bg-gray-50 hover:bg-gray-100'
+                    ? 'bg-emerald-50 border border-emerald-200 dark:bg-emerald-950 dark:border-emerald-800'
+                    : 'bg-muted hover:bg-muted/80'
                 }`}
                 data-testid={`conversation-item-${conversation.id}`}
               >
@@ -133,15 +133,15 @@ export default function Sidebar({
                   <div className="flex-1 min-w-0">
                     <h3 className={`text-sm font-medium truncate ${
                       conversation.id === currentConversationId
-                        ? 'text-emerald-900'
-                        : 'text-gray-900'
+                        ? 'text-emerald-900 dark:text-emerald-100'
+                        : 'text-foreground'
                     }`}>
                       {conversation.title}
                     </h3>
                     <p className={`text-xs mt-1 ${
                       conversation.id === currentConversationId
-                        ? 'text-emerald-600'
-                        : 'text-gray-500'
+                        ? 'text-emerald-600 dark:text-emerald-300'
+                        : 'text-muted-foreground'
                     }`}>
                       {formatTimeAgo(conversation.updatedAt)}
                     </p>
@@ -167,7 +167,7 @@ export default function Sidebar({
       </div>
 
       {/* User Profile Section */}
-      <div className="border-t border-gray-200 p-4 space-y-4">
+      <div className="border-t border-border p-4 space-y-4">
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Theme</span>
           <ThemeToggle />
@@ -187,19 +187,19 @@ export default function Sidebar({
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
+            <p className="text-sm font-medium text-foreground truncate">
               {user?.firstName && user?.lastName
                 ? `${user.firstName} ${user.lastName}`
                 : user?.email || "User"}
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               Content Creator
             </p>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            className="text-gray-400 hover:text-gray-600 p-1"
+            className="p-1"
             asChild
             data-testid="button-profile-settings"
           >
