@@ -206,6 +206,7 @@ CRITICAL RULES:
 
 INSTAGRAM ANALYSIS DETECTION:
 - If user mentions using Instagram as their platform or mentions their Instagram username during discovery, add "instagramUsername" to profilePatch
+- If this appears to be the user's OWN Instagram account, also add "ownInstagramUsername" to profilePatch with the same value
 - Look for patterns like "I use Instagram", "my Instagram is @username", "I post on IG", "my handle is @username"
 - Extract the username without @ symbol if mentioned
 

@@ -127,15 +127,31 @@ export async function performInstagramAnalysis(
     const user = await storage.getUser(userId);
     const existingData = user?.profileData as any;
     
+    // Check user's own profile first
     if (existingData?.instagramProfile?.username === username) {
       const cachedAt = new Date(existingData.instagramProfile.cached_at);
       const hoursSinceCache = (Date.now() - cachedAt.getTime()) / (1000 * 60 * 60);
       
       if (hoursSinceCache < 24) {
-        console.log(`📸 [INSTAGRAM_AI] Using cached analysis for @${username} (${hoursSinceCache.toFixed(1)}h old)`);
+        console.log(`📸 [INSTAGRAM_AI] Using cached user profile for @${username} (${hoursSinceCache.toFixed(1)}h old)`);
         return { 
           success: true,
           analysis: existingData.instagramProfile,
+          cached: true
+        };
+      }
+    }
+    
+    // Check competitor analyses
+    if (existingData?.competitorAnalyses?.[username]) {
+      const cachedAt = new Date(existingData.competitorAnalyses[username].cached_at);
+      const hoursSinceCache = (Date.now() - cachedAt.getTime()) / (1000 * 60 * 60);
+      
+      if (hoursSinceCache < 24) {
+        console.log(`📸 [INSTAGRAM_AI] Using cached competitor analysis for @${username} (${hoursSinceCache.toFixed(1)}h old)`);
+        return { 
+          success: true,
+          analysis: existingData.competitorAnalyses[username],
           cached: true
         };
       }
@@ -144,11 +160,28 @@ export async function performInstagramAnalysis(
     // Analyze the Instagram profile using HikerAPI
     const instagramProfile = await hikerApiService.analyzeInstagramProfile(username);
     
-    // Store the Instagram profile data in user's profileData
-    const updatedProfileData = {
-      ...existingData,
-      instagramProfile
-    };
+    // Determine if this is the user's own profile or a competitor analysis
+    const isOwnProfile = user?.profileData?.ownInstagramUsername === username;
+    
+    // Store the Instagram profile data appropriately
+    let updatedProfileData;
+    if (isOwnProfile) {
+      // Store as the user's main Instagram profile
+      updatedProfileData = {
+        ...existingData,
+        instagramProfile,
+        ownInstagramUsername: username
+      };
+    } else {
+      // Store competitor analyses separately without overwriting user's profile
+      const competitorAnalyses = existingData?.competitorAnalyses || {};
+      competitorAnalyses[username] = instagramProfile;
+      
+      updatedProfileData = {
+        ...existingData,
+        competitorAnalyses
+      };
+    }
 
     await storage.updateUserProfile(userId, {
       profileData: updatedProfileData
