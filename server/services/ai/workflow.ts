@@ -20,6 +20,97 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface UserStyleAnalysis {
+  toneKeywords: string[];
+  avgSentenceLength: number;
+  commonPhrases: string[];
+  punctuationStyle: string;
+  contentThemes: string[];
+  voiceCharacteristics: string;
+}
+
+/**
+ * Analyzes user's writing style from their Instagram post texts
+ */
+export function analyzeUserWritingStyle(postTexts: string[]): UserStyleAnalysis | null {
+  if (!postTexts || postTexts.length === 0) return null;
+
+  try {
+    // Combine all post texts for analysis
+    const combinedText = postTexts.join(' ').toLowerCase();
+    const sentences = postTexts.flatMap(text => 
+      text.split(/[.!?]+/).filter(s => s.trim().length > 5)
+    );
+
+    // Calculate average sentence length
+    const avgSentenceLength = sentences.length > 0 
+      ? sentences.reduce((sum, s) => sum + s.trim().split(' ').length, 0) / sentences.length 
+      : 0;
+
+    // Extract tone keywords (emotional and descriptive words)
+    const toneWords = combinedText.match(/\b(amazing|love|excited|passionate|grateful|inspired|incredible|awesome|beautiful|perfect|happy|blessed|thankful|proud|creative|innovative|fun|energetic|positive|authentic|genuine|honest|humble|confident|motivated|dedicated|focused|successful|growth|journey|learning|exploring|discovering|sharing|connecting|building|creating|transforming|achieving|celebrating|inspiring|empowering|supporting|encouraging|challenging|pushing|striving|dreaming|believing|hoping|trusting|caring|helping|giving|serving|leading|guiding|teaching|mentoring|coaching|advising)\b/g) || [];
+    
+    // Find common phrases (2-3 word combinations that appear multiple times)
+    const words = combinedText.replace(/[^\w\s]/g, '').split(/\s+/);
+    const phrases: Record<string, number> = {};
+    for (let i = 0; i < words.length - 1; i++) {
+      const phrase = `${words[i]} ${words[i + 1]}`;
+      if (phrase.length > 4) {
+        phrases[phrase] = (phrases[phrase] || 0) + 1;
+      }
+    }
+    const commonPhrases = Object.entries(phrases)
+      .filter(([_, count]) => count > 1)
+      .sort(([_, a], [__, b]) => b - a)
+      .slice(0, 5)
+      .map(([phrase]) => phrase);
+
+    // Analyze punctuation style
+    const exclamations = (combinedText.match(/!/g) || []).length;
+    const questions = (combinedText.match(/\?/g) || []).length;
+    const periods = (combinedText.match(/\./g) || []).length;
+    const totalPunctuation = exclamations + questions + periods;
+    
+    let punctuationStyle = 'casual';
+    if (totalPunctuation > 0) {
+      const exclamationRatio = exclamations / totalPunctuation;
+      if (exclamationRatio > 0.3) punctuationStyle = 'enthusiastic';
+      else if (exclamationRatio < 0.1 && periods > exclamations) punctuationStyle = 'formal';
+    }
+
+    // Extract content themes based on keywords
+    const themes: string[] = [];
+    if (/\b(workout|fitness|gym|health|exercise|training|diet|nutrition)\b/i.test(combinedText)) themes.push('fitness & health');
+    if (/\b(food|recipe|cooking|restaurant|delicious|tasty|meal)\b/i.test(combinedText)) themes.push('food & lifestyle');
+    if (/\b(business|entrepreneur|startup|success|growth|marketing|sales)\b/i.test(combinedText)) themes.push('business & entrepreneurship');
+    if (/\b(travel|adventure|explore|vacation|journey|destination)\b/i.test(combinedText)) themes.push('travel & adventure');
+    if (/\b(family|kids|mom|dad|parent|home|life|personal)\b/i.test(combinedText)) themes.push('family & personal life');
+    if (/\b(art|creative|design|photography|music|inspiration|aesthetic)\b/i.test(combinedText)) themes.push('creativity & arts');
+    if (/\b(fashion|style|outfit|beauty|makeup|skincare)\b/i.test(combinedText)) themes.push('fashion & beauty');
+    if (/\b(tech|technology|digital|innovation|future|AI|software)\b/i.test(combinedText)) themes.push('technology & innovation');
+
+    // Determine voice characteristics
+    let voiceCharacteristics = 'conversational';
+    if (avgSentenceLength > 15) voiceCharacteristics = 'detailed and explanatory';
+    else if (avgSentenceLength < 8) voiceCharacteristics = 'concise and punchy';
+    if (exclamations > periods) voiceCharacteristics += ', enthusiastic';
+    if (toneWords.length > postTexts.length * 2) voiceCharacteristics += ', emotionally expressive';
+
+    return {
+      toneKeywords: [...new Set(toneWords)].slice(0, 10),
+      avgSentenceLength: Math.round(avgSentenceLength),
+      commonPhrases,
+      punctuationStyle,
+      contentThemes: themes,
+      voiceCharacteristics
+    };
+
+  } catch (error) {
+    console.error('Error analyzing writing style:', error);
+    return null;
+  }
+}
+
 export function buildWorkflowAwareSystemPrompt(
   workflowPhase: WorkflowPhaseDecision, 
   user?: User, 
@@ -95,6 +186,41 @@ ${workflowPhase.shouldBlockContentGeneration ? '\n⚠️ CONTENT GENERATION BLOC
       if (analysis.similar_accounts?.length > 0) {
         userContext += `\n- Similar accounts: ${analysis.similar_accounts.slice(0, 3).map(acc => `@${acc.username}`).join(', ')}`;
       }
+
+      // Analyze user's writing style from their post texts
+      if (analysis.post_texts && analysis.post_texts.length > 0) {
+        const styleAnalysis = analyzeUserWritingStyle(analysis.post_texts);
+        if (styleAnalysis) {
+          userContext += `\n\nUSER'S AUTHENTIC WRITING STYLE ANALYSIS:`;
+          userContext += `\n- Voice: ${styleAnalysis.voiceCharacteristics}`;
+          userContext += `\n- Avg sentence length: ${styleAnalysis.avgSentenceLength} words (${
+            styleAnalysis.avgSentenceLength > 15 ? 'detailed posts' : 
+            styleAnalysis.avgSentenceLength < 8 ? 'concise posts' : 'moderate length posts'
+          })`;
+          userContext += `\n- Punctuation style: ${styleAnalysis.punctuationStyle}`;
+          if (styleAnalysis.toneKeywords.length > 0) {
+            userContext += `\n- Common tone words: ${styleAnalysis.toneKeywords.slice(0, 6).join(', ')}`;
+          }
+          if (styleAnalysis.commonPhrases.length > 0) {
+            userContext += `\n- Signature phrases: "${styleAnalysis.commonPhrases.slice(0, 3).join('", "')}"`;
+          }
+          if (styleAnalysis.contentThemes.length > 0) {
+            userContext += `\n- Content themes: ${styleAnalysis.contentThemes.join(', ')}`;
+          }
+
+          userContext += `\n\n🎯 CRITICAL INSTRUCTION FOR CONTENT GENERATION:`;
+          userContext += `\nWhen creating content suggestions (phases 3+), MATCH this authentic style:`;
+          userContext += `\n- Use similar sentence structure (${styleAnalysis.avgSentenceLength} word average)`;
+          userContext += `\n- Mirror their ${styleAnalysis.punctuationStyle} punctuation style`;
+          userContext += `\n- Incorporate their tone words naturally: ${styleAnalysis.toneKeywords.slice(0, 4).join(', ')}`;
+          if (styleAnalysis.commonPhrases.length > 0) {
+            userContext += `\n- Reference their signature phrases when relevant`;
+          }
+          userContext += `\n- Maintain their ${styleAnalysis.voiceCharacteristics} voice`;
+          userContext += `\nDO NOT use generic social media language - make it sound authentically like THEM.`;
+        }
+      }
+
       userContext += `\nProvide detailed insights and actionable recommendations based on this data.`;
     }
   }
@@ -131,6 +257,7 @@ Still avoid specific content ideas - focus on brand foundation.`;
 - Ask for their feedback on which ideas resonate
 - Explain how each idea targets their specific audience
 - Invite them to modify or reject suggestions
+- If Instagram analysis is available, suggest ideas that align with their existing content themes
 Be collaborative - don't overwhelm with too many ideas at once.`;
 
     case "Developing Chosen Ideas":
@@ -143,11 +270,14 @@ Be collaborative - don't overwhelm with too many ideas at once.`;
 
     case "Content Drafting & Iterative Review":
       return `Create actual content drafts for their approval:
-- Write specific captions, scripts, or post content
-- Provide multiple style options (long vs short, formal vs casual)
-- Ask for feedback and be ready to iterate
-- Include specific calls-to-action tailored to their goals
-- Suggest visual content directions when relevant`;
+- Write specific captions, scripts, or post content in THEIR authentic voice
+- If style analysis is available, match their sentence length, tone, and punctuation patterns
+- Use their signature phrases and tone words naturally when relevant
+- Provide multiple style variations while staying true to their brand voice
+- Ask for feedback and be ready to iterate on both content and style
+- Include specific calls-to-action tailored to their goals using their authentic voice
+- Suggest visual content directions when relevant
+CRITICAL: Make content sound like THEM, not generic social media copy.`;
 
     case "Finalization & Scheduling":
       return `Help finalize and optimize their content:
