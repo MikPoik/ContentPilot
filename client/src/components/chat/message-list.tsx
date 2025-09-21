@@ -129,7 +129,7 @@ export default function MessageList({
             <div className={`px-4 py-3 rounded-2xl ${
               message.role === 'user'
                 ? 'bg-emerald-500 text-white rounded-tr-md max-w-fit'
-                : 'bg-muted text-foreground rounded-tl-md'</div>
+                : 'bg-muted text-foreground rounded-tl-md'
             }`}>
               {message.role === 'user' ? (
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">
