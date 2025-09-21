@@ -84,7 +84,7 @@ export default function MessageList({
             <h3 className="text-xl font-semibold text-foreground mb-2">
               Welcome to ContentCraft AI!
             </h3>
-            <p className="text-muted-foreground text-sm leading-relaxed"></div>
+            <p className="text-muted-foreground text-sm leading-relaxed">
               I'm here to help you brainstorm amazing social media content ideas. 
               Let's start by getting to know your brand and interests!
             </p>
