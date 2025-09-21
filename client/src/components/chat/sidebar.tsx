@@ -6,6 +6,7 @@ import { useLocation, Link } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ThemeToggle } from "@/components/ui/theme-toggle"; // Import ThemeToggle
 
 interface SidebarProps {
   conversations: Conversation[];
@@ -15,12 +16,12 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-export default function Sidebar({ 
-  conversations, 
-  currentConversationId, 
-  user, 
-  onNewConversation, 
-  onClose 
+export default function Sidebar({
+  conversations,
+  currentConversationId,
+  user,
+  onNewConversation,
+  onClose
 }: SidebarProps) {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -46,12 +47,12 @@ export default function Sidebar({
     },
     onSuccess: (_, deletedConversationId) => {
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
-      
+
       // If we deleted the current conversation, navigate to home
       if (deletedConversationId === currentConversationId) {
         setLocation("/");
       }
-      
+
       toast({
         title: "Success",
         description: "Conversation deleted successfully",
@@ -118,7 +119,7 @@ export default function Sidebar({
             </div>
           ) : (
             conversations.map((conversation) => (
-              <div 
+              <div
                 key={conversation.id}
                 onClick={() => handleConversationClick(conversation.id)}
                 className={`block rounded-lg p-3 cursor-pointer transition-colors group ${
@@ -166,13 +167,17 @@ export default function Sidebar({
       </div>
 
       {/* User Profile Section */}
-      <div className="border-t border-gray-200 p-4">
+      <div className="border-t border-gray-200 p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Theme</span>
+          <ThemeToggle />
+        </div>
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
             {user?.profileImageUrl ? (
-              <img 
-                src={user.profileImageUrl} 
-                alt="Profile" 
+              <img
+                src={user.profileImageUrl}
+                alt="Profile"
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (
@@ -183,17 +188,17 @@ export default function Sidebar({
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {user?.firstName && user?.lastName 
-                ? `${user.firstName} ${user.lastName}` 
+              {user?.firstName && user?.lastName
+                ? `${user.firstName} ${user.lastName}`
                 : user?.email || "User"}
             </p>
             <p className="text-xs text-gray-500">
               Content Creator
             </p>
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             className="text-gray-400 hover:text-gray-600 p-1"
             asChild
             data-testid="button-profile-settings"

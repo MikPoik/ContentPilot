@@ -1,24 +1,34 @@
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Sparkles, TrendingUp, Users } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function Landing() {
+  const handleLogin = () => {
+    window.location.href = "/api/login";
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-blue-50 flex flex-col">
       {/* Header */}
-      <header className="px-4 py-6 flex justify-between items-center max-w-6xl mx-auto w-full">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-            <Sparkles className="h-5 w-5 text-white" />
+      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-xl font-bold text-gray-900">ContentCraft AI</span>
           </div>
-          <span className="text-xl font-bold text-gray-900">ContentCraft AI</span>
+          <div className="flex items-center space-x-4">
+            <ThemeToggle />
+            <Button
+              onClick={handleLogin}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2"
+              data-testid="button-login"
+            >
+              Sign In
+            </Button>
+          </div>
         </div>
-        <Button
-          onClick={() => window.location.href = "/api/login"}
-          className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2"
-          data-testid="button-login"
-        >
-          Sign In
-        </Button>
       </header>
 
       {/* Hero Section */}
@@ -28,15 +38,15 @@ export default function Landing() {
             AI-Powered Social Media
             <span className="text-emerald-500 block">Content Strategy</span>
           </h1>
-          
+
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Transform your social media presence with intelligent content ideas, 
+            Transform your social media presence with intelligent content ideas,
             platform-specific advice, and strategic planning powered by AI.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Button
-              onClick={() => window.location.href = "/api/login"}
+              onClick={handleLogin}
               size="lg"
               className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 text-lg"
               data-testid="button-get-started"
