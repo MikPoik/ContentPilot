@@ -147,7 +147,7 @@ export default function MessageList({
                       >
                         {message.content}
                       </ReactMarkdown>
-                      <span className="w-2 h-4 bg-muted-foreground ml-1 animate-pulse inline-block align-baseline" /></div>
+                      <span className="w-2 h-4 bg-muted-foreground ml-1 animate-pulse inline-block align-baseline" />
                     </span>
                   ) : (
                     <ReactMarkdown>{message.content}</ReactMarkdown>
