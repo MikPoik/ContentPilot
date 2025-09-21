@@ -167,7 +167,7 @@ export default function MessageList({
             {/* Timestamp and activity indicators */}
             {message.role === 'user' ? (
               /* User messages: timestamp below the message, right-aligned */
-              <div className="text-xs text-muted-foreground mt-1 px-1"></div>
+              <div className="text-xs text-muted-foreground mt-1 px-1">
                 {new Date(message.createdAt).toLocaleTimeString([], { 
                   hour: '2-digit', 
                   minute: '2-digit' 
@@ -175,7 +175,7 @@ export default function MessageList({
               </div>
             ) : (
               /* Assistant messages: timestamp with activity indicators */
-              <div className="text-xs text-muted-foreground mt-1 px-1 flex items-center gap-2"></div>
+              <div className="text-xs text-muted-foreground mt-1 px-1 flex items-center gap-2">
                 <span>
                   {new Date(message.createdAt).toLocaleTimeString([], { 
                     hour: '2-digit', 
