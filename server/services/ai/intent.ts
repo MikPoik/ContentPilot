@@ -5,54 +5,12 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
 });
 
+// Shared types for AI services (centralized in intent.ts)
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
 
-// Unified interface that combines all existing decision types
-export interface UnifiedIntentDecision {
-  // Web Search Decision
-  webSearch: {
-    shouldSearch: boolean;
-    confidence: number;
-    reason: string;
-    refinedQuery: string;
-    recency: 'hour' | 'day' | 'week' | 'month' | 'year';
-    domains: string[];
-    searchService: 'perplexity' | 'grok';
-    socialHandles?: string[];
-  };
-  
-  // Instagram Analysis Decision
-  instagramAnalysis: {
-    shouldAnalyze: boolean;
-    username?: string;
-    confidence: number;
-    reason: string;
-  };
-  
-  // Blog Analysis Decision
-  blogAnalysis: {
-    shouldAnalyze: boolean;
-    urls: string[];
-    confidence: number;
-    reason: string;
-  };
-  
-  // Workflow Phase Decision
-  workflowPhase: {
-    currentPhase: string;
-    missingFields: string[];
-    readyToAdvance: boolean;
-    suggestedPrompts: string[];
-    profilePatch: any;
-    shouldBlockContentGeneration: boolean;
-    confidence: number;
-  };
-}
-
-// Backward compatibility interfaces - these extract specific decisions from unified result
 export interface WebSearchDecision {
   shouldSearch: boolean;
   confidence: number;
@@ -88,23 +46,119 @@ export interface WorkflowPhaseDecision {
   confidence: number;
 }
 
+export interface UnifiedIntentDecision {
+  webSearch: WebSearchDecision;
+  instagramAnalysis: InstagramAnalysisDecision;
+  blogAnalysis: BlogAnalysisDecision;
+  workflowPhase: WorkflowPhaseDecision;
+}
+
+export interface UserStyleAnalysis {
+  toneKeywords: string[];
+  avgSentenceLength: number;
+  commonPhrases: string[];
+  punctuationStyle: string;
+  contentThemes: string[];
+  voiceCharacteristics: string;
+}
+
+export interface BlogProfile {
+  analyzedUrls: string[];
+  writingStyle: string;
+  averagePostLength: string;
+  commonTopics: string[];
+  toneKeywords: string[];
+  contentThemes: string[];
+  brandVoice: string;
+  targetAudience?: string;
+  postingPattern?: string;
+  cached_at: string;
+}
+
+export interface BlogAnalysisResult {
+  success: boolean;
+  analysis?: BlogProfile;
+  cached?: boolean;
+  error?: string;
+}
+
+/**
+ * Safe JSON parsing utility with proper error handling and sanitization
+ */
+export function safeJsonParse<T>(
+  jsonString: string,
+  fallback: T,
+  options: {
+    removeBrackets?: boolean;
+    removeCodeBlocks?: boolean;
+    timeout?: number;
+  } = {}
+): T {
+  try {
+    let sanitized = jsonString.trim();
+    
+    // Remove code blocks if present
+    if (options.removeCodeBlocks !== false) {
+      if (sanitized.startsWith('```') && sanitized.endsWith('```')) {
+        const lines = sanitized.split('\n');
+        sanitized = lines.slice(1, -1).join('\n');
+      }
+      
+      if (sanitized.startsWith('json\n')) {
+        sanitized = sanitized.replace('json\n', '');
+      }
+    }
+    
+    // Find the first complete JSON object
+    if (options.removeBrackets !== false) {
+      const firstBraceIndex = sanitized.indexOf('{');
+      if (firstBraceIndex !== -1) {
+        let braceCount = 0;
+        let endIndex = firstBraceIndex;
+
+        for (let i = firstBraceIndex; i < sanitized.length; i++) {
+          if (sanitized[i] === '{') braceCount++;
+          else if (sanitized[i] === '}') braceCount--;
+
+          if (braceCount === 0) {
+            endIndex = i;
+            break;
+          }
+        }
+
+        if (braceCount === 0) {
+          sanitized = sanitized.substring(firstBraceIndex, endIndex + 1);
+        }
+      }
+    }
+    
+    return JSON.parse(sanitized.trim()) as T;
+  } catch (error) {
+    console.error('JSON parsing failed:', error, 'Input:', jsonString);
+    return fallback;
+  }
+}
+
 /**
  * Unified intent classification system that analyzes conversation context once 
- * and returns decisions for all four decision types in a single AI call
+ * and returns decisions for all four decision types in a single AI call.
+ * Uses semantic understanding for truly language-agnostic pattern detection.
  */
 export async function analyzeUnifiedIntent(
   messages: ChatMessage[],
   user?: User
 ): Promise<UnifiedIntentDecision> {
   const startTime = Date.now();
+  const timeoutMs = 8000; // 8 second timeout for performance
+  
   try {
     console.log(`🧠 [UNIFIED_INTENT] Starting unified intent analysis...`);
 
-    // Get last 8 messages for context
-    const contextMessages = messages.slice(-8);
+    // Get last 6 messages for context (optimized for performance)
+    const contextMessages = messages.slice(-6);
     const currentDate = new Date().toISOString().split('T')[0];
 
-    // Build user context
+    // Build user context efficiently
     let userContext = 'User Profile: ';
     if (user) {
       const currentProfile = {
@@ -137,83 +191,99 @@ export async function analyzeUnifiedIntent(
       .map(msg => `${msg.role}: ${msg.content}`)
       .join('\n');
 
-    const response = await openai.chat.completions.create({
+    // Create timeout promise for robust error handling
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('AI request timeout')), timeoutMs);
+    });
+
+    const aiPromise = openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {
           role: 'system',
-          content: `You are a unified intent classifier for ContentCraft AI. Analyze the conversation context and user profile to make ALL four decision types simultaneously. Use semantic understanding rather than keyword matching for language-agnostic pattern detection.
+          content: `You are a unified intent classifier for ContentCraft AI. Analyze conversation context using SEMANTIC UNDERSTANDING, not keyword matching, to work across ALL languages and cultures.
 
-Current date: ${currentDate}
+Date: ${currentDate}
 
-ANALYZE FOR FOUR DECISION TYPES:
+SEMANTIC INTENT DETECTION (Language-Agnostic):
 
-1. WEB SEARCH DECISION:
-- Only recommend search for queries needing current, factual, or time-sensitive information
-- DO NOT search for: greetings, social conversation, general questions, personal opinions, basic how-to questions
-- DO search for: current events, news, recent developments, pricing info, algorithm changes, time-sensitive info, company/product info, website content analysis
-- For specific website analysis, use simple "site:domain.com" searches
-- Adapt search terms to website's primary language context
+1. WEB SEARCH - Semantic patterns indicating need for current information:
+• User expresses uncertainty about recent information
+• Questions about current events, prices, or status  
+• Requests for website content examination
+• Need for verification of facts or data
+• Mentions of specific companies/websites for analysis
 
-2. INSTAGRAM ANALYSIS DECISION:
-- Look for requests to "analyze", "check", "look at", "review" Instagram accounts
-- Detect Instagram usernames (with @ or mentioned usernames)
-- Look for competitor analysis requests, Instagram engagement questions
-- Be liberal - if someone mentions wanting insights about Instagram accounts, they likely want analysis
+EXAMPLES (multilingual):
+- "What's happening with Tesla stock?" / "¿Qué pasa con las acciones de Tesla?" / "Tesla股价怎么样?"
+- "Check my competitor's website" / "Vérifiez le site de mon concurrent" / "競合サイトを確認して"
+- "Latest Instagram algorithm" / "Último algoritmo Instagram" / "Instagram最新算法"
 
-3. BLOG ANALYSIS DECISION:  
-- Look for requests to analyze, read, check, review blog posts or blog content
-- Detect blog URLs or mentions of "my blog", "blog posts", "my website"
-- Look for requests about writing style, tone, content analysis of blogs
-- Include competitor blog analysis requests
+2. INSTAGRAM ANALYSIS - Semantic patterns for profile examination:
+• Intent to examine someone's social media presence
+• Requests for competitor intelligence on Instagram
+• Desire to understand engagement patterns
+• Username references with analysis intent
 
-4. WORKFLOW PHASE ANALYSIS:
-The 6-step workflow phases:
-1. "Discovery & Personalization" - Getting name, niche, platform, audience, business goals
-2. "Brand Voice & Positioning" - Understanding brand voice, positioning, do's/don'ts  
-3. "Collaborative Idea Generation" - Presenting content ideas, getting feedback
-4. "Developing Chosen Ideas" - Working on specific selected ideas, formats, angles
-5. "Content Drafting & Iterative Review" - Creating content drafts, refining based on feedback
-6. "Finalization & Scheduling" - Finalizing content, adding hashtags, scheduling
+EXAMPLES (multilingual):
+- "Look at @nike's content" / "Mira el contenido de @nike" / "@nikeのコンテンツを見て"
+- "Analyze my competitor Instagram" / "Analysez Instagram de mon concurrent" / "分析竞争对手的Instagram"
 
-CRITICAL WORKFLOW RULES:
-- DO NOT allow content generation (phases 3+) until Discovery is substantially complete
-- Block content generation if confidence is low that user profile is sufficient
-- If user mentions Instagram username during discovery, add "instagramUsername" to profilePatch
-- If this appears to be user's OWN Instagram account, also add "ownInstagramUsername"
+3. BLOG ANALYSIS - Semantic patterns for content examination:
+• Intent to understand writing style or approach
+• Requests for content strategy analysis
+• Blog URL mentions with analytical intent  
+• Desire to examine competitor blog content
 
-Return ONLY valid JSON with this exact structure:
+EXAMPLES (multilingual):
+- "Study my blog writing" / "Estudia mi escritura de blog" / "私のブログ記事を分析"
+- "What's their content strategy?" / "¿Cuál es su estrategia de contenido?" / "彼らのコンテンツ戦略は?"
+
+4. WORKFLOW PHASE - Semantic understanding of user journey:
+• Discovery: Information gathering, getting to know user
+• Positioning: Brand voice, identity clarification  
+• Ideas: Content concept development
+• Development: Specific content creation
+• Review: Content refinement and feedback
+• Finalization: Publishing preparation
+
+CRITICAL RULES:
+- Block content creation until basic profile complete
+- Detect Instagram username mentions in any language
+- Use semantic understanding, NOT keyword matching
+
+Return ONLY this JSON structure:
 {
   "webSearch": {
     "shouldSearch": boolean,
-    "confidence": number (0.0-1.0),
+    "confidence": number,
     "reason": "brief explanation",
-    "refinedQuery": "search query or empty string",
+    "refinedQuery": "search query or empty",
     "recency": "hour|day|week|month|year",
-    "domains": ["array of specific domains if any"],
+    "domains": ["specific domains if any"],
     "searchService": "perplexity|grok",
-    "socialHandles": ["array of social handles if relevant"]
+    "socialHandles": ["social handles if relevant"]
   },
   "instagramAnalysis": {
     "shouldAnalyze": boolean,
-    "username": "extracted username without @ or null",
-    "confidence": number (0.0-1.0),
+    "username": "username without @ or null",
+    "confidence": number,
     "reason": "brief explanation"
   },
   "blogAnalysis": {
     "shouldAnalyze": boolean,
-    "urls": ["array of blog URLs if mentioned"],
-    "confidence": number (0.0-1.0),
+    "urls": ["blog URLs if mentioned"],
+    "confidence": number,
     "reason": "brief explanation"
   },
   "workflowPhase": {
     "currentPhase": "Discovery & Personalization|Brand Voice & Positioning|Collaborative Idea Generation|Developing Chosen Ideas|Content Drafting & Iterative Review|Finalization & Scheduling",
-    "missingFields": ["array of missing info like name, niche, platform, etc"],
+    "missingFields": ["missing info like name, niche, platform"],
     "readyToAdvance": boolean,
     "suggestedPrompts": ["1-2 specific questions to ask next"],
-    "profilePatch": {"any new profile data to store"},
+    "profilePatch": {"new profile data to store"},
     "shouldBlockContentGeneration": boolean,
-    "confidence": number (0.0-1.0)
+    "confidence": number
   }
 }`
         },
@@ -224,12 +294,14 @@ Return ONLY valid JSON with this exact structure:
 RECENT CONVERSATION:
 ${conversationContext}
 
-Analyze this conversation and provide unified intent classification for all four decision types. Use semantic understanding for language-agnostic pattern detection.`
+Analyze this conversation using semantic understanding for language-agnostic intent detection.`
         }
       ],
-      max_tokens: 800,
-      temperature: 0.1,
+      max_tokens: 500,  // Reduced for performance
+      temperature: 0.05,  // Lower for more consistent results
     });
+
+    const response = await Promise.race([aiPromise, timeoutPromise]) as any;
 
     const result = response.choices[0]?.message?.content?.trim();
     if (!result) {
@@ -237,53 +309,33 @@ Analyze this conversation and provide unified intent classification for all four
       return getDefaultUnifiedDecision();
     }
 
-    // Parse JSON with robust parsing
-    let sanitizedResult = result.trim();
-
-    if (sanitizedResult.startsWith('```') && sanitizedResult.endsWith('```')) {
-      const lines = sanitizedResult.split('\n');
-      sanitizedResult = lines.slice(1, -1).join('\n');
-    }
-
-    if (sanitizedResult.startsWith('json\n')) {
-      sanitizedResult = sanitizedResult.replace('json\n', '');
-    }
-
-    // Extract JSON object using brace matching
-    const firstBraceIndex = sanitizedResult.indexOf('{');
-    if (firstBraceIndex !== -1) {
-      let braceCount = 0;
-      let endIndex = firstBraceIndex;
-
-      for (let i = firstBraceIndex; i < sanitizedResult.length; i++) {
-        if (sanitizedResult[i] === '{') braceCount++;
-        else if (sanitizedResult[i] === '}') braceCount--;
-
-        if (braceCount === 0) {
-          endIndex = i;
-          break;
-        }
-      }
-
-      if (braceCount === 0) {
-        sanitizedResult = sanitizedResult.substring(firstBraceIndex, endIndex + 1);
-      }
-    }
-
-    const decision: UnifiedIntentDecision = JSON.parse(sanitizedResult);
+    // Use the safe JSON parser with proper error handling
+    const decision = safeJsonParse<UnifiedIntentDecision>(
+      result, 
+      getDefaultUnifiedDecision(),
+      { timeout: timeoutMs }
+    );
     
     console.log(`🧠 [UNIFIED_INTENT] Analysis complete: ${Date.now() - startTime}ms - webSearch: ${decision.webSearch.shouldSearch}, instagram: ${decision.instagramAnalysis.shouldAnalyze}, blog: ${decision.blogAnalysis.shouldAnalyze}, phase: ${decision.workflowPhase.currentPhase}`);
     
     return decision;
 
   } catch (error) {
-    console.error(`❌ [UNIFIED_INTENT] Error after ${Date.now() - startTime}ms:`, error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`❌ [UNIFIED_INTENT] Error after ${Date.now() - startTime}ms:`, errorMessage);
+    
+    // Return appropriate fallback based on error type
+    if (errorMessage.includes('timeout')) {
+      console.log(`⏱️ [UNIFIED_INTENT] Request timed out after ${timeoutMs}ms - using safe fallback`);
+    }
+    
     return getDefaultUnifiedDecision();
   }
 }
 
 /**
  * Returns a safe default unified decision when analysis fails
+ * Optimized for conservative behavior and user safety
  */
 function getDefaultUnifiedDecision(): UnifiedIntentDecision {
   return {
@@ -299,6 +351,7 @@ function getDefaultUnifiedDecision(): UnifiedIntentDecision {
     },
     instagramAnalysis: {
       shouldAnalyze: false,
+      username: undefined,
       confidence: 0.0,
       reason: "Error in analysis"
     },

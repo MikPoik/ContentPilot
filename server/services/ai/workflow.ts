@@ -1,33 +1,16 @@
 import OpenAI from "openai";
 import { type User } from "@shared/schema";
+import {
+  ChatMessage,
+  WorkflowPhaseDecision,
+  UserStyleAnalysis,
+  safeJsonParse
+} from "./intent";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
 });
 
-export interface WorkflowPhaseDecision {
-  currentPhase: string;
-  missingFields: string[];
-  readyToAdvance: boolean;
-  suggestedPrompts: string[];
-  profilePatch: any;
-  shouldBlockContentGeneration: boolean;
-  confidence: number;
-}
-
-export interface ChatMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-}
-
-export interface UserStyleAnalysis {
-  toneKeywords: string[];
-  avgSentenceLength: number;
-  commonPhrases: string[];
-  punctuationStyle: string;
-  contentThemes: string[];
-  voiceCharacteristics: string;
-}
 
 /**
  * Analyzes user's writing style from their Instagram post texts using AI
@@ -169,7 +152,7 @@ ${workflowPhase.shouldBlockContentGeneration ? '\n⚠️ CONTENT GENERATION BLOC
       userContext += `\n- Top hashtags: ${analysis.top_hashtags.slice(0, 5).join(', ')}`;
       userContext += `\n- Avg engagement: ${Math.round(analysis.avg_likes).toLocaleString()} likes, ${Math.round(analysis.avg_comments).toLocaleString()} comments`;
       if (analysis.similar_accounts?.length > 0) {
-        userContext += `\n- Similar accounts: ${analysis.similar_accounts.slice(0, 3).map(acc => `@${acc.username}`).join(', ')}`;
+        userContext += `\n- Similar accounts: ${analysis.similar_accounts.slice(0, 3).map((acc: { username: string }) => `@${acc.username}`).join(', ')}`;
       }
 
       // Analyze user's writing style from their post texts

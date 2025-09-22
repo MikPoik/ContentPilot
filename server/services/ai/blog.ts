@@ -4,30 +4,15 @@ import { type User } from "@shared/schema";
 import { perplexityService } from "../perplexity.js";
 import { storage } from "../../storage.js";
 import { generateEmbedding } from "../openai.js";
+import {
+  BlogProfile,
+  BlogAnalysisResult,
+  safeJsonParse
+} from "./intent";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key",
 });
-
-export interface BlogAnalysisResult {
-  success: boolean;
-  analysis?: BlogProfile;
-  cached?: boolean;
-  error?: string;
-}
-
-export interface BlogProfile {
-  analyzedUrls: string[];
-  writingStyle: string;
-  averagePostLength: string;
-  commonTopics: string[];
-  toneKeywords: string[];
-  contentThemes: string[];
-  brandVoice: string;
-  targetAudience?: string;
-  postingPattern?: string;
-  cached_at: string;
-}
 
 /**
  * Performs blog analysis by reading blog posts via Perplexity and analyzing content

@@ -1,32 +1,15 @@
 import OpenAI from "openai";
 import { type User } from "@shared/schema";
+import {
+  ChatMessage,
+  WebSearchDecision,
+  BlogAnalysisDecision,
+  safeJsonParse
+} from "./intent";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
 });
-
-export interface WebSearchDecision {
-  shouldSearch: boolean;
-  confidence: number;
-  reason: string;
-  refinedQuery: string;
-  recency: 'hour' | 'day' | 'week' | 'month' | 'year';
-  domains: string[];
-  searchService: 'perplexity' | 'grok';
-  socialHandles?: string[];
-}
-
-export interface ChatMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-}
-
-export interface BlogAnalysisDecision {
-  shouldAnalyze: boolean;
-  urls: string[];
-  confidence: number;
-  reason: string;
-}
 
 export async function decideBlogAnalysis(
   messages: ChatMessage[],

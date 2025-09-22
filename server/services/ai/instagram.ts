@@ -3,22 +3,15 @@ import { type User } from "@shared/schema";
 import { hikerApiService } from "../hikerapi.js";
 import { storage } from "../../storage.js";
 import { generateEmbedding } from "../openai.js";
+import {
+  ChatMessage,
+  InstagramAnalysisDecision,
+  safeJsonParse
+} from "./intent";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key",
 });
-
-export interface InstagramAnalysisDecision {
-  shouldAnalyze: boolean;
-  username?: string;
-  confidence: number;
-  reason: string;
-}
-
-export interface ChatMessage {
-  role: "user" | "assistant" | "system";
-  content: string;
-}
 
 /**
  * Detects if the user is asking for Instagram profile analysis
@@ -298,13 +291,13 @@ export function formatInstagramAnalysisForChat(analysis: any, cached: boolean = 
 • ${Math.round(analysis.avg_comments).toLocaleString()} avg comments per post
 
 🏷️ **Top Hashtags:**
-${analysis.top_hashtags.slice(0, 5).map(tag => `#${tag}`).join(' • ')}
+${analysis.top_hashtags.slice(0, 5).map((tag: string) => `#${tag}`).join(' • ')}
 
 🎯 **Content Style:**
-${analysis.post_texts.slice(0, 2).map(text => `"${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`).join('\n')}
+${analysis.post_texts.slice(0, 2).map((text: string) => `"${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`).join('\n')}
 
 👥 **Similar Accounts:**
-${analysis.similar_accounts.slice(0, 3).map(acc => `@${acc.username} (${acc.followers.toLocaleString()} followers)`).join(' • ')}
+${analysis.similar_accounts.slice(0, 3).map((acc: { username: string; followers: number }) => `@${acc.username} (${acc.followers.toLocaleString()} followers)`).join(' • ')}
 
 ${analysis.biography ? `\n📝 **Bio:** ${analysis.biography}` : ''}`;
 }

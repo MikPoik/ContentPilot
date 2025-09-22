@@ -4,9 +4,11 @@ import { perplexityService } from "../perplexity";
 import { grokService } from "../grok";
 import {
   buildWorkflowAwareSystemPrompt,
-  type WorkflowPhaseDecision,
 } from "./workflow";
-import { type WebSearchDecision } from "./intent";
+import { 
+  type WebSearchDecision,
+  type WorkflowPhaseDecision
+} from "./intent";
 // Import functions to be used internally
 
 // the newest OpenAI model is "gpt-4.1" which was released May 13, 2025. do not change this unless explicitly requested by the user
