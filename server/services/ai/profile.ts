@@ -168,6 +168,28 @@ Extract only new/changed BUSINESS info. Ignore any AI content entirely.`
       const profileUpdates = JSON.parse(cleanResult);
       console.log(`👤 [PROFILE_EXTRACT] Parsed updates:`, profileUpdates);
 
+      // Post-parse validation guards to prevent personal demographics mapping to business fields
+      if (profileUpdates.profileData?.targetAudience) {
+        const messageText = userMessage.toLowerCase();
+        
+        // Audience-intent keyword patterns (English and Finnish)
+        const audienceIntentRegex = /(my\s+audience|target\s+audience|kohderyhmä(ni)?|yleisö(ni)?|suunnattu|kohde)/i;
+        
+        // Personal age statement patterns  
+        const personalAgeRegex = /(i am|i'm|olen)\s+\d{1,3}\s*(yo|vuotias|years?\s*old|v)/i;
+        
+        // Remove targetAudience if no audience-intent keywords found OR personal age detected
+        if (!audienceIntentRegex.test(messageText) || personalAgeRegex.test(messageText)) {
+          console.log(`👤 [PROFILE_EXTRACT] Rejecting targetAudience update - lacks audience-intent keywords or contains personal age statement`);
+          delete profileUpdates.profileData.targetAudience;
+          
+          // Clean up empty profileData object
+          if (Object.keys(profileUpdates.profileData).length === 0) {
+            delete profileUpdates.profileData;
+          }
+        }
+      }
+
       // Only return non-empty updates
       const hasUpdates = Object.keys(profileUpdates).some(key => {
         const value = profileUpdates[key];
