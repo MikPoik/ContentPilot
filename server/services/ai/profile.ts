@@ -84,24 +84,24 @@ Return ONLY a JSON object with the fields that were mentioned. If no new info is
 
 Example outputs:
 {
-  "firstName": "Sarah",
-  "contentNiche": ["fitness", "nutrition"],
+  "firstName": "User",
+  "contentNiche": ["wellness", "lifestyle"],
   "primaryPlatform": "Instagram",
   "profileData": {
-    "targetAudience": "busy professionals",
-    "brandVoice": "encouraging but practical",
+    "targetAudience": "working professionals",
+    "brandVoice": "supportive and practical",
     "blogProfile": {
       "writingStyle": "conversational",
       "averagePostLength": "medium",
-      "commonTopics": ["fitness tips", "nutrition advice"],
-      "toneKeywords": ["motivating", "practical", "encouraging"]
+      "commonTopics": ["wellness tips", "lifestyle advice"],
+      "toneKeywords": ["supportive", "practical", "encouraging"]
     }
   }
 }
 
 {
   "profileData": {
-    "businessType": "therapy business"
+    "businessType": "consulting business"
   }
 }`
         }

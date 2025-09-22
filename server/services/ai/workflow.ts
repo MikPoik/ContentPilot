@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { type User } from "@shared/schema";
 
-const openai = new OpenAI({ 
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
 });
 
@@ -38,18 +38,20 @@ export function analyzeUserWritingStyle(postTexts: string[]): UserStyleAnalysis 
   try {
     // Combine all post texts for analysis
     const combinedText = postTexts.join(' ').toLowerCase();
-    const sentences = postTexts.flatMap(text => 
+    const sentences = postTexts.flatMap(text =>
       text.split(/[.!?]+/).filter(s => s.trim().length > 5)
     );
 
     // Calculate average sentence length
-    const avgSentenceLength = sentences.length > 0 
-      ? sentences.reduce((sum, s) => sum + s.trim().split(' ').length, 0) / sentences.length 
+    const avgSentenceLength = sentences.length > 0
+      ? sentences.reduce((sum, s) => sum + s.trim().split(' ').length, 0) / sentences.length
       : 0;
 
     // Extract tone keywords (emotional and descriptive words)
-    const toneWords = combinedText.match(/\b(amazing|love|excited|passionate|grateful|inspired|incredible|awesome|beautiful|perfect|happy|blessed|thankful|proud|creative|innovative|fun|energetic|positive|authentic|genuine|honest|humble|confident|motivated|dedicated|focused|successful|growth|journey|learning|exploring|discovering|sharing|connecting|building|creating|transforming|achieving|celebrating|inspiring|empowering|supporting|encouraging|challenging|pushing|striving|dreaming|believing|hoping|trusting|caring|helping|giving|serving|leading|guiding|teaching|mentoring|coaching|advising)\b/g) || [];
-    
+    // Universal positive sentiment words and phrases
+    const positivePattern = /\b\w*(?:amazing|love|excited|passionate|grateful|inspired|incredible|awesome|beautiful|perfect|happy|blessed|thankful|proud|creative|innovative|fun|energetic|positive|authentic|genuine|honest|humble|confident|motivated|dedicated|focused|successful|growth|journey|learning|exploring|discovering|sharing|connecting|building|creating|transforming|achieving|celebrating|inspiring|empowering|supporting|encouraging|challenging|pushing|striving|dreaming|believing|hoping|trusting|caring|helping|giving|serving|leading|guiding|teaching|mentoring|coaching|advising)\w*\b/gi;
+    const toneWords = combinedText.match(positivePattern) || [];
+
     // Find common phrases (2-3 word combinations that appear multiple times)
     const words = combinedText.replace(/[^\w\s]/g, '').split(/\s+/);
     const phrases: Record<string, number> = {};
@@ -70,7 +72,7 @@ export function analyzeUserWritingStyle(postTexts: string[]): UserStyleAnalysis 
     const questions = (combinedText.match(/\?/g) || []).length;
     const periods = (combinedText.match(/\./g) || []).length;
     const totalPunctuation = exclamations + questions + periods;
-    
+
     let punctuationStyle = 'casual';
     if (totalPunctuation > 0) {
       const exclamationRatio = exclamations / totalPunctuation;
@@ -112,9 +114,9 @@ export function analyzeUserWritingStyle(postTexts: string[]): UserStyleAnalysis 
 }
 
 export function buildWorkflowAwareSystemPrompt(
-  workflowPhase: WorkflowPhaseDecision, 
-  user?: User, 
-  memories?: any[], 
+  workflowPhase: WorkflowPhaseDecision,
+  user?: User,
+  memories?: any[],
   webSearchContext?: { context: string; citations: string[] },
   instagramAnalysisContext?: { analysis: any; cached: boolean; error?: string }
 ): string {
@@ -194,7 +196,7 @@ ${workflowPhase.shouldBlockContentGeneration ? '\n⚠️ CONTENT GENERATION BLOC
           userContext += `\n\nUSER'S AUTHENTIC WRITING STYLE ANALYSIS:`;
           userContext += `\n- Voice: ${styleAnalysis.voiceCharacteristics}`;
           userContext += `\n- Avg sentence length: ${styleAnalysis.avgSentenceLength} words (${
-            styleAnalysis.avgSentenceLength > 15 ? 'detailed posts' : 
+            styleAnalysis.avgSentenceLength > 15 ? 'detailed posts' :
             styleAnalysis.avgSentenceLength < 8 ? 'concise posts' : 'moderate length posts'
           })`;
           userContext += `\n- Punctuation style: ${styleAnalysis.punctuationStyle}`;
@@ -236,7 +238,7 @@ function getPhaseSpecificGuidance(workflowPhase: WorkflowPhaseDecision): string 
 - Discover their content niche and expertise areas through thoughtful questions
 - Understand their primary social media platform preferences
 - Learn about their target audience and business goals
-- If they mention using Instagram, ask for their handle - this will trigger automatic profile analysis
+- If they mention using Instagram, ask for their handle if not provided - this will trigger automatic profile analysis
 - Users can also request analysis of competitor accounts by mentioning specific handles
 - Explore their content creation experience and current challenges
 DO NOT suggest content ideas yet - focus purely on discovery and building rapport.`;
@@ -322,7 +324,7 @@ export async function decideWorkflowPhase(messages: ChatMessage[], user?: User):
 
 The 6-step workflow phases are:
 1. "Discovery & Personalization" - Getting to know user's name, niche, platform, audience, business goals
-2. "Brand Voice & Positioning" - Understanding how they want to be perceived, brand voice, do's/don'ts  
+2. "Brand Voice & Positioning" - Understanding how they want to be perceived, brand voice, do's/don'ts
 3. "Collaborative Idea Generation" - Presenting tailored content ideas with rationale, getting feedback
 4. "Developing Chosen Ideas" - Working on specific selected ideas, formats, angles
 5. "Content Drafting & Iterative Review" - Creating actual content drafts, refining based on feedback
@@ -352,7 +354,7 @@ Return ONLY valid JSON:
 }`
         },
         {
-          role: 'user', 
+          role: 'user',
           content: `CURRENT USER PROFILE:
 ${JSON.stringify(currentProfile, null, 2)}
 

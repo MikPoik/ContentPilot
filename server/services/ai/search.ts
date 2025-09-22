@@ -156,12 +156,11 @@ Current date: ${currentDate}
 
 IMPORTANT: Be CONSERVATIVE with search decisions. Only recommend search for queries that genuinely need current, factual, or time-sensitive information.
 
-LANGUAGE MATCHING: When searching specific websites, match the search terms to the website's primary language:
-- Finnish sites (.fi domains): Use Finnish search terms (e.g., "yritys", "palvelut", "tietoa", "mielenterveys", "hyvinvointi", "koulutus")
-- Swedish sites (.se domains): Use Swedish search terms
-- German sites (.de domains): Use German search terms
-- For site-specific searches, prioritize using just the domain URL (e.g., "site:example.fi") rather than complex keyword combinations
+LANGUAGE MATCHING: When searching specific websites, adapt search terms to the website's primary language context:
+- For non-English sites: Use site-specific searches with minimal language-specific terms
+- For site-specific searches, prioritize using just the domain URL (e.g., "site:example.com") rather than complex keyword combinations
 - When user asks to "read" or "analyze" a specific website, use simple site: search with minimal additional terms
+- Let the search service handle language detection and content extraction automatically
 
 DO NOT search for:
 - Greetings ("Hi", "Hello", "Thanks", "Goodbye")
@@ -191,12 +190,12 @@ PLATFORM-SPECIFIC PRIORITY RULES:
 
 SEARCH QUERY RULES:
 - For X (Twitter) searches: Use specific X-focused terms like "site:x.com" or handle-based queries
-- For Finnish websites (.fi): Use simple, effective approaches:
-  1. Use "site:domain.fi" (Perplexity service will automatically try multiple fallback strategies)
-  2. For business analysis, add Finnish business terms: "site:domain.fi palvelut liiketoiminta"
-  3. Match Finnish keywords to business type (terapia, valmennus, koulutus, etc.)
-- For website content requests: Use "site:domain.com" - let Perplexity service handle fallbacks
-- Match the language of the target website in your search terms
+- For any website: Use simple, effective approaches:
+  1. Use "site:domain.com" (Search service will automatically try multiple fallback strategies)
+  2. For business analysis, add universal business terms: "site:domain.com services business"
+  3. Use universal keywords that apply across languages and cultures
+- For website content requests: Use "site:domain.com" - let search service handle fallbacks and language detection
+- Keep search terms simple and universal
 - Keep queries simple and let advanced search parameters do the work
 
 Return ONLY valid JSON with these exact fields:
