@@ -106,7 +106,7 @@ export async function generateChatResponse(
           searchQuery || "",
           "Provide current, relevant information that would help a social media content strategist give accurate advice. Focus on recent trends, current events, or factual data mentioned in the query.",
           searchDecision.recency,
-          searchDecision.domains,
+          searchDecision.domains
         );
       } else {
         throw new Error(`${searchDecision.searchService} service not configured`);

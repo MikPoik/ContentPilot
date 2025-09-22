@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { type User } from "@shared/schema";
 
-const openai = new OpenAI({ 
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
 });
 
@@ -25,11 +25,11 @@ export async function decideWebSearch(messages: ChatMessage[], user?: User): Pro
   const startTime = Date.now();
   try {
     console.log(`🧠 [AI_SERVICE] Analyzing search decision with GPT-4.1-mini...`);
-    
+
     // Get last 5-8 messages for context
     const contextMessages = messages.slice(-8);
     const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-    
+
     // Build user context
     let userContext = '';
     if (user) {
@@ -37,14 +37,14 @@ export async function decideWebSearch(messages: ChatMessage[], user?: User): Pro
 - Name: ${user.firstName || 'Not provided'}${user.lastName ? ' ' + user.lastName : ''}
 - Content Niche: ${user.contentNiche?.join(', ') || 'Not specified'}
 - Primary Platform: ${user.primaryPlatform || 'Not specified'}`;
-      
+
       if (user.profileData) {
         const data = user.profileData as any;
         if (data.targetAudience) userContext += `\n- Target Audience: ${data.targetAudience}`;
         if (data.businessType) userContext += `\n- Business Type: ${data.businessType}`;
       }
     }
-    
+
     const conversationContext = contextMessages
       .map(msg => `${msg.role}: ${msg.content}`)
       .join('\n');
@@ -95,9 +95,13 @@ PLATFORM-SPECIFIC PRIORITY RULES:
 
 SEARCH QUERY RULES:
 - For X (Twitter) searches: Use specific X-focused terms like "site:x.com" or handle-based queries
-- For Finnish websites (.fi): Use Finnish terms or just "site:domain.fi"
-- For website content requests: Prefer "site:domain.com" over complex keyword combinations
+- For Finnish websites (.fi): Use simple, effective approaches:
+  1. Use "site:domain.fi" (Perplexity service will automatically try multiple fallback strategies)
+  2. For business analysis, add Finnish business terms: "site:domain.fi palvelut liiketoiminta"
+  3. Match Finnish keywords to business type (terapia, valmennus, koulutus, etc.)
+- For website content requests: Use "site:domain.com" - let Perplexity service handle fallbacks
 - Match the language of the target website in your search terms
+- Keep queries simple and let advanced search parameters do the work
 
 Return ONLY valid JSON with these exact fields:
 {
@@ -142,41 +146,41 @@ Analyze the LATEST user message and decide if web search is needed.`
 
     // Robust JSON parsing with bracket-scanning to extract first top-level object
     let sanitizedResult = result.trim();
-    
+
     // Remove code fences if present
     if (sanitizedResult.startsWith('```') && sanitizedResult.endsWith('```')) {
       const lines = sanitizedResult.split('\n');
       sanitizedResult = lines.slice(1, -1).join('\n');
     }
-    
+
     // Remove json language identifier if present
     if (sanitizedResult.startsWith('json\n')) {
       sanitizedResult = sanitizedResult.replace('json\n', '');
     }
-    
+
     sanitizedResult = sanitizedResult.trim();
-    
+
     // Extract first top-level JSON object using bracket scanning
     const firstBraceIndex = sanitizedResult.indexOf('{');
     if (firstBraceIndex !== -1) {
       let braceCount = 0;
       let endIndex = firstBraceIndex;
-      
+
       for (let i = firstBraceIndex; i < sanitizedResult.length; i++) {
         if (sanitizedResult[i] === '{') braceCount++;
         else if (sanitizedResult[i] === '}') braceCount--;
-        
+
         if (braceCount === 0) {
           endIndex = i;
           break;
         }
       }
-      
+
       if (braceCount === 0) {
         sanitizedResult = sanitizedResult.substring(firstBraceIndex, endIndex + 1);
       }
     }
-    
+
     const decision: WebSearchDecision = JSON.parse(sanitizedResult);
     console.log(`🧠 [AI_SERVICE] Search decision: ${Date.now() - startTime}ms - shouldSearch: ${decision.shouldSearch}, confidence: ${decision.confidence}`);
     return decision;

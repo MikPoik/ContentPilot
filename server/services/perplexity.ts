@@ -81,16 +81,16 @@ export class PerplexityService {
    * Generate cache key for a query, recency filter, domains, and context prompt
    */
   private generateCacheKey(
-    query: string, 
-    recency?: string, 
-    domains?: string[], 
+    query: string,
+    recency?: string,
+    domains?: string[],
     contextPrompt?: string
   ): string {
     const normQuery = query.trim().toLowerCase().replace(/:/g, '_');
     const normalizedRecency = recency || 'week';
     const domainsPart = domains?.length ? domains.slice().sort().join(',').replace(/:/g, '_') : '*';
     const contextHash = contextPrompt ? this.simpleHash(contextPrompt) : 'default';
-    
+
     return `${normQuery}|${normalizedRecency}|${domainsPart}|${contextHash}`;
   }
 
@@ -120,14 +120,14 @@ export class PerplexityService {
   private cleanupExpiredEntries(): void {
     const now = Date.now();
     const keysToDelete: string[] = [];
-    
+
     // Convert Map.entries() to array for iteration compatibility
     Array.from(this.cache.entries()).forEach(([key, entry]) => {
       if (now - entry.timestamp >= this.CACHE_TTL_MS) {
         keysToDelete.push(key);
       }
     });
-    
+
     if (keysToDelete.length > 0) {
       keysToDelete.forEach(key => this.cache.delete(key));
       console.log(`🧹 [PERPLEXITY CACHE] Cleaned up ${keysToDelete.length} expired entries`);
@@ -139,7 +139,7 @@ export class PerplexityService {
    */
   private getCachedResult(cacheKey: string): { context: string; citations: string[] } | null {
     this.cleanupExpiredEntries(); // Clean up expired entries first
-    
+
     const cachedEntry = this.cache.get(cacheKey);
     if (cachedEntry && this.isCacheEntryValid(cachedEntry)) {
       // Update last accessed time for LRU
@@ -150,13 +150,13 @@ export class PerplexityService {
         citations: cachedEntry.citations
       };
     }
-    
+
     if (cachedEntry) {
       // Entry exists but is expired, remove it
       this.cache.delete(cacheKey);
       console.log(`⏰ [PERPLEXITY CACHE] Expired entry removed for key: ${cacheKey}`);
     }
-    
+
     console.log(`❌ [PERPLEXITY CACHE] Cache MISS for key: ${cacheKey}`);
     return null;
   }
@@ -166,12 +166,12 @@ export class PerplexityService {
    */
   private setCachedResult(cacheKey: string, context: string, citations: string[]): void {
     const now = Date.now();
-    
+
     // Enforce LRU capacity limit
     if (this.cache.size >= this.MAX_CACHE_SIZE) {
       this.evictLeastRecentlyUsed();
     }
-    
+
     this.cache.set(cacheKey, {
       context,
       citations,
@@ -186,10 +186,10 @@ export class PerplexityService {
    */
   private evictLeastRecentlyUsed(): void {
     if (this.cache.size === 0) return;
-    
+
     let oldestKey: string | null = null;
     let oldestAccess = Date.now();
-    
+
     // Find the least recently used entry
     Array.from(this.cache.entries()).forEach(([key, entry]) => {
       if (entry.lastAccessed < oldestAccess) {
@@ -197,7 +197,7 @@ export class PerplexityService {
         oldestKey = key;
       }
     });
-    
+
     if (oldestKey) {
       this.cache.delete(oldestKey);
       console.log(`🗑️ [PERPLEXITY CACHE] Evicted LRU entry: ${oldestKey} (cache size: ${this.cache.size})`);
@@ -206,12 +206,12 @@ export class PerplexityService {
 
   /**
    * Perform a web search query using Perplexity
-   * 
+   *
    * @param query - The search query or question to ask
    * @param options - Optional configuration for the search
    */
   async search(
-    query: string, 
+    query: string,
     options?: {
       model?: 'sonar' | 'llama-3.1-sonar-large-128k-online' | 'llama-3.1-sonar-huge-128k-online';
       temperature?: number;
@@ -231,7 +231,7 @@ export class PerplexityService {
 
     try {
       const messages: PerplexityMessage[] = [];
-      
+
       // Add system prompt if provided
       if (options?.systemPrompt) {
         messages.push({
@@ -296,7 +296,7 @@ export class PerplexityService {
 
   /**
    * Search for information and format it for use in chat context
-   * 
+   *
    * @param query - The search query
    * @param contextPrompt - How to format the results for chat context
    * @param recency - Time recency filter for search results
@@ -311,7 +311,7 @@ export class PerplexityService {
     // Generate cache key including all parameters to ensure correctness
     const effectiveRecency = recency || 'week';
     const cacheKey = this.generateCacheKey(query, effectiveRecency, domains, contextPrompt);
-    
+
     // Check cache first
     const cachedResult = this.getCachedResult(cacheKey);
     if (cachedResult) {
@@ -319,12 +319,104 @@ export class PerplexityService {
     }
 
     // Cache miss - perform actual search
-    const result = await this.search(query, {
+    let result = await this.search(query, {
       systemPrompt: contextPrompt,
       temperature: 0.1,
       searchRecencyFilter: effectiveRecency,
       searchDomainFilter: domains?.length ? domains : undefined
     });
+
+    // If no citations found and query is a site search, try multiple fallback strategies
+    if (result.citations.length === 0 && query.includes('site:')) {
+      console.log(`🔍 [PERPLEXITY] No results for site search, trying enhanced fallback strategies...`);
+
+      // Extract domain from site: query
+      const siteMatch = query.match(/site:([^\s]+)/);
+      if (siteMatch) {
+        const domain = siteMatch[1];
+
+        // Strategy 1: Try with longer recency
+        if (effectiveRecency === 'week') {
+          console.log(`🔍 [PERPLEXITY] Strategy 1: Trying with month recency...`);
+          try {
+            const monthResult = await this.search(query, {
+              systemPrompt: contextPrompt,
+              temperature: 0.1,
+              searchRecencyFilter: 'month',
+              searchDomainFilter: domains?.length ? domains : undefined
+            });
+
+            if (monthResult.citations.length > 0) {
+              result = monthResult;
+              console.log(`✅ [PERPLEXITY] Strategy 1 successful: ${monthResult.citations.length} citations found`);
+            }
+          } catch (error) {
+            console.error(`❌ [PERPLEXITY] Strategy 1 failed:`, error);
+          }
+        }
+
+        // Strategy 2: Try with year recency if still no results
+        if (result.citations.length === 0) {
+          console.log(`🔍 [PERPLEXITY] Strategy 2: Trying with year recency...`);
+          try {
+            const yearResult = await this.search(query, {
+              systemPrompt: contextPrompt,
+              temperature: 0.1,
+              searchRecencyFilter: 'year',
+              searchDomainFilter: domains?.length ? domains : undefined
+            });
+
+            if (yearResult.citations.length > 0) {
+              result = yearResult;
+              console.log(`✅ [PERPLEXITY] Strategy 2 successful: ${yearResult.citations.length} citations found`);
+            }
+          } catch (error) {
+            console.error(`❌ [PERPLEXITY] Strategy 2 failed:`, error);
+          }
+        }
+
+        // Strategy 3: Try domain name search without site: operator
+        if (result.citations.length === 0) {
+          console.log(`🔍 [PERPLEXITY] Strategy 3: Trying domain name search without site: operator...`);
+          try {
+            const domainOnlyQuery = domain.replace(/\.(fi|com|org|net|se|de)$/, '');
+            const fallbackResult = await this.search(domainOnlyQuery, {
+              systemPrompt: contextPrompt,
+              temperature: 0.1,
+              searchRecencyFilter: 'year',
+              searchDomainFilter: [domain] // Use the domain as filter instead
+            });
+
+            if (fallbackResult.citations.length > 0) {
+              result = fallbackResult;
+              console.log(`✅ [PERPLEXITY] Strategy 3 successful: ${fallbackResult.citations.length} citations found`);
+            }
+          } catch (error) {
+            console.error(`❌ [PERPLEXITY] Strategy 3 failed:`, error);
+          }
+        }
+
+        // Strategy 4: Try without recency filter for maximum coverage
+        if (result.citations.length === 0) {
+          console.log(`🔍 [PERPLEXITY] Strategy 4: Trying without recency filter...`);
+          try {
+            const noRecencyResult = await this.search(query, {
+              systemPrompt: contextPrompt,
+              temperature: 0.1,
+              // No recency filter
+              searchDomainFilter: domains?.length ? domains : undefined
+            });
+
+            if (noRecencyResult.citations.length > 0) {
+              result = noRecencyResult;
+              console.log(`✅ [PERPLEXITY] Strategy 4 successful: ${noRecencyResult.citations.length} citations found`);
+            }
+          } catch (error) {
+            console.error(`❌ [PERPLEXITY] Strategy 4 failed:`, error);
+          }
+        }
+      }
+    }
 
     const searchResult = {
       context: result.content,
@@ -339,7 +431,7 @@ export class PerplexityService {
 
   /**
    * Check if a query likely needs web search (contains current events, specific facts, etc.)
-   * 
+   *
    * @param query - The user query to analyze
    */
   shouldUseWebSearch(query: string): boolean {
@@ -347,17 +439,17 @@ export class PerplexityService {
       // Current events and time-sensitive queries
       /\b(today|now|current|latest|recent|new|2024|2025)\b/i,
       /\b(this (year|month|week)|last (year|month|week))\b/i,
-      
+
       // Factual queries that might need current data
       /\b(price|cost|stock|market|news|weather)\b/i,
       /\b(who is|what is|where is|when is|how much)\b/i,
-      
+
       // Company/product specific queries
       /\b(company|startup|business|product|service)\b/i,
-      
+
       // Statistics and data
       /\b(statistics|data|numbers|percentage|rate)\b/i,
-      
+
       // Questions about specific people, places, events
       /\b(CEO|founder|headquarters|launched|released)\b/i
     ];
