@@ -4,8 +4,9 @@ import { isAuthenticated } from "../replitAuth";
 import { generateChatResponse, generateConversationTitle, generateEmbedding, type ChatResponseWithMetadata } from "../services/ai/chat";
 import { extractProfileInfo } from "../services/ai/profile";
 import { extractMemoriesFromConversation, rephraseQueryForEmbedding } from "../services/ai/memory";
-import { decideWebSearch } from "../services/ai/search"; // Added import
+import { decideWebSearch, decideBlogAnalysis } from "../services/ai/search"; // Added import
 import { decideInstagramAnalysis, performInstagramAnalysis, formatInstagramAnalysisForChat } from "../services/ai/instagram"; // Added Instagram integration
+import { performBlogAnalysis, formatBlogAnalysisForChat } from "../services/ai/blog"; // Added blog analysis
 
 export function registerMessageRoutes(app: Express) {
   // Get messages for a conversation
@@ -145,6 +146,23 @@ export function registerMessageRoutes(app: Express) {
         console.log(`❌ [CHAT_FLOW] Instagram analysis error: ${error}`);
       }
 
+      // Check for blog analysis requests
+      const blogAnalysisStart = Date.now();
+      let blogAnalysisResult: any = null;
+      try {
+        const blogDecision = await decideBlogAnalysis(chatHistory, user);
+        console.log(`📝 [CHAT_FLOW] Blog analysis decision: ${Date.now() - blogAnalysisStart}ms - shouldAnalyze: ${blogDecision.shouldAnalyze}, confidence: ${blogDecision.confidence}`);
+        
+        if (blogDecision.shouldAnalyze && blogDecision.urls.length > 0 && blogDecision.confidence >= 0.7) {
+          console.log(`📝 [CHAT_FLOW] Performing blog analysis for ${blogDecision.urls.length} URLs...`);
+          const analysisStart = Date.now();
+          blogAnalysisResult = await performBlogAnalysis(blogDecision.urls, userId);
+          console.log(`📝 [CHAT_FLOW] Blog analysis completed: ${Date.now() - analysisStart}ms - success: ${blogAnalysisResult.success}`);
+        }
+      } catch (error) {
+        console.log(`❌ [CHAT_FLOW] Blog analysis error: ${error}`);
+      }
+
       // Make search decision first, before generating response
       const searchDecision = await decideWebSearch(chatHistory, user); // Used the imported function
 
@@ -182,7 +200,7 @@ export function registerMessageRoutes(app: Express) {
       // Generate AI response stream with user profile and memories
       const aiResponseStart = Date.now();
       console.log(`🤖 [CHAT_FLOW] Starting AI response generation...`);
-      const responseWithMetadata: ChatResponseWithMetadata = await generateChatResponse(chatHistory, user, relevantMemories, searchDecision, instagramAnalysisResult); // Pass Instagram analysis result
+      const responseWithMetadata: ChatResponseWithMetadata = await generateChatResponse(chatHistory, user, relevantMemories, searchDecision, instagramAnalysisResult, blogAnalysisResult); // Pass both analysis results
       let fullResponse = '';
 
       // Send search metadata immediately when search is performed (even with 0 citations)

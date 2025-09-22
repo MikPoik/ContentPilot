@@ -46,9 +46,10 @@ export interface ChatResponseWithMetadata {
 export async function generateChatResponse(
   messages: ChatMessage[],
   user?: User,
-  memories?: any[],
-  searchDecision?: WebSearchDecision,
-  instagramAnalysisResult?: { analysis: any; cached: boolean; error?: string },
+  relevantMemories: any[] = [],
+  searchDecision?: any,
+  instagramAnalysisResult?: any,
+  blogAnalysisResult?: any
 ): Promise<ChatResponseWithMetadata> {
   const startTime = Date.now();
   console.log(`🤖 [AI_SERVICE] Building workflow-aware response...`);
@@ -115,7 +116,7 @@ export async function generateChatResponse(
       console.log(
         `🔍 [AI_SERVICE] ${searchDecision.searchService} search completed: ${Date.now() - searchStart}ms (${webSearchContext.citations.length} sources)`,
       );
-      
+
       // Even if no sources found, we still performed a search
       if (webSearchContext.citations.length === 0) {
         console.log(`⚠️ [AI_SERVICE] Web search returned no results, but search was attempted`);
@@ -141,13 +142,20 @@ export async function generateChatResponse(
   const systemPrompt = buildWorkflowAwareSystemPrompt(
     workflowDecision,
     user,
-    memories,
+    relevantMemories,
     webSearchContext,
     instagramAnalysisResult,
   );
   console.log(
     `🤖 [AI_SERVICE] Workflow-aware system prompt built: ${Date.now() - promptBuildStart}ms (length: ${systemPrompt.length} chars)`,
   );
+
+  // Add blog analysis result to context if available
+  if (blogAnalysisResult?.success && blogAnalysisResult.analysis) {
+    const { formatBlogAnalysisForChat } = await import('./blog.js');
+    systemPrompt += `\n\n=== RECENT BLOG ANALYSIS ===\n${formatBlogAnalysisForChat(blogAnalysisResult.analysis, blogAnalysisResult.cached)}`;
+  }
+
 
   const chatMessages: ChatMessage[] = [
     { role: "system", content: systemPrompt },

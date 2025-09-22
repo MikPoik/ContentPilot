@@ -21,7 +21,103 @@ export interface ChatMessage {
   content: string;
 }
 
-export async function decideWebSearch(messages: ChatMessage[], user?: User): Promise<WebSearchDecision> {
+export interface BlogAnalysisDecision {
+  shouldAnalyze: boolean;
+  urls: string[];
+  confidence: number;
+  reason: string;
+}
+
+export async function decideBlogAnalysis(
+  messages: ChatMessage[],
+  user?: User
+): Promise<BlogAnalysisDecision> {
+  const startTime = Date.now();
+  try {
+    console.log(`📝 [BLOG_AI] Analyzing if user wants blog analysis...`);
+
+    // Get last 3 messages for context
+    const contextMessages = messages.slice(-3);
+    const conversationContext = contextMessages
+      .map(msg => `${msg.role}: ${msg.content}`)
+      .join('\n');
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a blog analysis detector. Determine if the user is asking to analyze their blog posts or blog content.
+
+DETECTION RULES:
+- Look for requests to "analyze", "read", "check", "review" blog posts or blog content
+- Look for blog URLs or mentions of "my blog", "blog posts", "my website"
+- Look for requests about writing style, tone, content analysis of blogs
+- Look for competitor blog analysis requests
+- Be liberal - if someone mentions wanting insights about blog content, they likely want analysis
+
+Return ONLY valid JSON:
+{
+  "shouldAnalyze": boolean,
+  "urls": ["array of blog URLs if mentioned, or empty array"],
+  "confidence": number (0.0 to 1.0),
+  "reason": "brief explanation of the decision"
+}`
+        },
+        {
+          role: 'user',
+          content: `RECENT CONVERSATION:
+${conversationContext}
+
+Should I analyze blog posts based on this conversation?`
+        }
+      ],
+      max_tokens: 150,
+      temperature: 0.1,
+    });
+
+    const result = response.choices[0]?.message?.content?.trim();
+    if (!result) {
+      console.log(`❌ [BLOG_AI] No response from GPT-4o-mini after ${Date.now() - startTime}ms`);
+      return {
+        shouldAnalyze: false,
+        urls: [],
+        confidence: 0.0,
+        reason: "No response from AI"
+      };
+    }
+
+    // Parse JSON with robust parsing
+    let sanitizedResult = result.trim();
+
+    if (sanitizedResult.startsWith('```') && sanitizedResult.endsWith('```')) {
+      const lines = sanitizedResult.split('\n');
+      sanitizedResult = lines.slice(1, -1).join('\n');
+    }
+
+    if (sanitizedResult.startsWith('json\n')) {
+      sanitizedResult = sanitizedResult.replace('json\n', '');
+    }
+
+    const decision: BlogAnalysisDecision = JSON.parse(sanitizedResult.trim());
+    console.log(`📝 [BLOG_AI] Analysis decision: ${Date.now() - startTime}ms - shouldAnalyze: ${decision.shouldAnalyze}, urls: ${decision.urls.length}, confidence: ${decision.confidence}`);
+    return decision;
+
+  } catch (error) {
+    console.error(`❌ [BLOG_AI] Blog analysis detection error after ${Date.now() - startTime}ms:`, error);
+    return {
+      shouldAnalyze: false,
+      urls: [],
+      confidence: 0.0,
+      reason: "Error in analysis detection"
+    };
+  }
+}
+
+export async function decideWebSearch(
+  messages: ChatMessage[],
+  user?: User
+): Promise<WebSearchDecision> {
   const startTime = Date.now();
   try {
     console.log(`🧠 [AI_SERVICE] Analyzing search decision with GPT-4.1-mini...`);
