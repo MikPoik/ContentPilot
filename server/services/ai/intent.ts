@@ -225,7 +225,9 @@ INTENT DETECTION:
 1. WEB SEARCH - Need for current information:
 • Questions about recent events, prices, status
 • Website/competitor analysis requests
+• General website reading requests ("read my website", "check this site")
 • Fact verification needs
+• ANY request to read/understand website content (unless specifically about blog analysis)
 Use GROK for X/Twitter content, PERPLEXITY for general web
 
 2. INSTAGRAM ANALYSIS - Profile examination:
@@ -233,9 +235,10 @@ Use GROK for X/Twitter content, PERPLEXITY for general web
 • Content/engagement pattern requests
 
 3. BLOG ANALYSIS - Content strategy examination:
-• EXPLICIT blog URL mentions with analytical intent ("analyze my blog", "check this post", etc.)
-• EXPLICIT writing style/strategy analysis requests for blogs
-• MUST have actual URLs mentioned in conversation or clear blog analysis request
+• EXPLICIT blog analysis requests with phrases like "analyze my blog", "check my blog posts", "review my writing style"
+• MUST be specifically about analyzing BLOG CONTENT, not just reading a website
+• For general website reading requests, use web search instead
+• Only trigger for URLs that are clearly blog posts or when user explicitly asks for blog content analysis
 
 4. WORKFLOW PHASE - User journey stage:
 • Discovery & Personalization: Getting to know user (name, niche, platform)

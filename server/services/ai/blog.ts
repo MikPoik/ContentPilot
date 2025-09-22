@@ -48,8 +48,14 @@ export async function performBlogAnalysis(
       try {
         console.log(`📝 [BLOG_AI] Fetching content from: ${url}`);
         
+        // Ensure URL has protocol for proper parsing
+        let fullUrl = url;
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          fullUrl = `https://${url}`;
+        }
+        
         const searchResult = await perplexityService.searchForChatContext(
-          `site:${new URL(url).hostname} blog content text`,
+          `site:${new URL(fullUrl).hostname} blog content text`,
           "Extract and provide the full text content of blog posts, including headlines, main content, and any key information about writing style and topics.",
           'month'
         );
