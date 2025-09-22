@@ -145,43 +145,18 @@ export async function analyzeUnifiedIntent(
   user?: User
 ): Promise<UnifiedIntentDecision> {
   const startTime = Date.now();
-  const timeoutMs = 8000; // 8 second timeout for performance
+  const timeoutMs = 4000; // Reduced to 4 seconds for faster response
   
   try {
     console.log(`🧠 [UNIFIED_INTENT] Starting unified intent analysis...`);
 
-    // Get last 6 messages for context (optimized for performance)
-    const contextMessages = messages.slice(-6);
-    const currentDate = new Date().toISOString().split('T')[0];
+    // Get last 3 messages for context (reduced for speed)
+    const contextMessages = messages.slice(-3);
+    const latestMessage = messages[messages.length - 1]?.content || '';
 
-    // Build user context efficiently
-    let userContext = 'User Profile: ';
-    if (user) {
-      const currentProfile = {
-        firstName: user?.firstName || null,
-        lastName: user?.lastName || null,
-        contentNiche: user?.contentNiche || [],
-        primaryPlatform: user?.primaryPlatform || null,
-        profileData: user?.profileData || {}
-      };
-
-      userContext += `
-- Name: ${user.firstName || 'Not provided'}${user.lastName ? ' ' + user.lastName : ''}
-- Content Niche: ${user.contentNiche?.join(', ') || 'Not specified'}
-- Primary Platform: ${user.primaryPlatform || 'Not specified'}`;
-
-      if (user.profileData) {
-        const data = user.profileData as any;
-        if (data.targetAudience) userContext += `\n- Target Audience: ${data.targetAudience}`;
-        if (data.businessType) userContext += `\n- Business Type: ${data.businessType}`;
-        if (data.brandVoice) userContext += `\n- Brand Voice: ${data.brandVoice}`;
-        if (data.contentGoals?.length) userContext += `\n- Content Goals: ${data.contentGoals.join(', ')}`;
-      }
-
-      userContext += `\n\nCURRENT PROFILE DATA:\n${JSON.stringify(currentProfile, null, 2)}`;
-    } else {
-      userContext += 'No user profile available';
-    }
+    // Minimal user context
+    const hasBasicInfo = user?.firstName && user?.contentNiche?.length;
+    const userSummary = user ? `${user.firstName || 'User'} - ${user.primaryPlatform || 'Unknown platform'} - ${user.contentNiche?.join(', ') || 'No niche'}` : 'No profile';
 
     const conversationContext = contextMessages
       .map(msg => `${msg.role}: ${msg.content}`)
@@ -193,115 +168,40 @@ export async function analyzeUnifiedIntent(
     });
 
     const aiPromise = openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini', // Faster model for simple decisions
       messages: [
         {
           role: 'system',
-          content: `You are a unified intent classifier for ContentCraft AI. Analyze conversation context using SEMANTIC UNDERSTANDING, not keyword matching, to work across ALL languages and cultures.
+          content: `Analyze intent quickly. Return JSON with:
+- webSearch: need current info? (websites, news, prices)
+- instagramAnalysis: mentions @username or competitor Instagram?
+- blogAnalysis: mentions blog URLs or content analysis?
+- workflowPhase: user stage (Discovery if no basic info, Idea Generation if ready)
 
-Date: ${currentDate}
-
-SEMANTIC INTENT DETECTION (Language-Agnostic):
-
-1. WEB SEARCH - Semantic patterns indicating need for current information:
-• User expresses uncertainty about recent information
-• Questions about current events, prices, or status  
-• Requests for website content examination
-• Need for verification of facts or data
-• Mentions of specific companies/websites for analysis
-
-EXAMPLES (multilingual):
-- "What's happening with Tesla stock?" / "¿Qué pasa con las acciones de Tesla?" / "Tesla股价怎么样?"
-- "Check my competitor's website" / "Vérifiez le site de mon concurrent" / "競合サイトを確認して"
-- "Latest Instagram algorithm" / "Último algoritmo Instagram" / "Instagram最新算法"
-
-2. INSTAGRAM ANALYSIS - Semantic patterns for profile examination:
-• Intent to examine someone's social media presence
-• Requests for competitor intelligence on Instagram
-• Desire to understand engagement patterns
-• Username references with analysis intent
-
-EXAMPLES (multilingual):
-- "Look at @nike's content" / "Mira el contenido de @nike" / "@nikeのコンテンツを見て"
-- "Analyze my competitor Instagram" / "Analysez Instagram de mon concurrent" / "分析竞争对手的Instagram"
-
-3. BLOG ANALYSIS - Semantic patterns for content examination:
-• Intent to understand writing style or approach
-• Requests for content strategy analysis
-• Blog URL mentions with analytical intent  
-• Desire to examine competitor blog content
-
-EXAMPLES (multilingual):
-- "Study my blog writing" / "Estudia mi escritura de blog" / "私のブログ記事を分析"
-- "What's their content strategy?" / "¿Cuál es su estrategia de contenido?" / "彼らのコンテンツ戦略は?"
-
-4. WORKFLOW PHASE - Semantic understanding of user journey:
-• Discovery: Information gathering, getting to know user
-• Positioning: Brand voice, identity clarification  
-• Ideas: Content concept development
-• Development: Specific content creation
-• Review: Content refinement and feedback
-• Finalization: Publishing preparation
-
-CRITICAL RULES:
-- Block content creation until basic profile complete
-- Detect Instagram username mentions in any language
-- Use semantic understanding, NOT keyword matching
-
-Return ONLY this JSON structure:
 {
-  "webSearch": {
-    "shouldSearch": boolean,
-    "confidence": number,
-    "reason": "brief explanation",
-    "refinedQuery": "search query or empty",
-    "recency": "hour|day|week|month|year",
-    "domains": ["specific domains if any"],
-    "searchService": "perplexity|grok",
-    "socialHandles": ["social handles if relevant"]
-  },
-  "instagramAnalysis": {
-    "shouldAnalyze": boolean,
-    "username": "username without @ or null",
-    "confidence": number,
-    "reason": "brief explanation"
-  },
-  "blogAnalysis": {
-    "shouldAnalyze": boolean,
-    "urls": ["blog URLs if mentioned"],
-    "confidence": number,
-    "reason": "brief explanation"
-  },
-  "workflowPhase": {
-    "currentPhase": "Discovery & Personalization|Brand Voice & Positioning|Collaborative Idea Generation|Developing Chosen Ideas|Content Drafting & Iterative Review|Finalization & Scheduling",
-    "missingFields": ["missing info like name, niche, platform"],
-    "readyToAdvance": boolean,
-    "suggestedPrompts": ["1-2 specific questions to ask next"],
-    "profilePatch": {"new profile data to store"},
-    "shouldBlockContentGeneration": boolean,
-    "confidence": number
-  }
+  "webSearch": {"shouldSearch": boolean, "confidence": 0.8, "reason": "", "refinedQuery": "", "recency": "week", "domains": [], "searchService": "perplexity"},
+  "instagramAnalysis": {"shouldAnalyze": boolean, "username": null, "confidence": 0.8, "reason": ""},
+  "blogAnalysis": {"shouldAnalyze": boolean, "urls": [], "confidence": 0.8, "reason": ""},
+  "workflowPhase": {"currentPhase": "Discovery & Personalization", "missingFields": [], "readyToAdvance": false, "suggestedPrompts": [], "profilePatch": {}, "shouldBlockContentGeneration": true, "confidence": 0.8}
 }`
         },
         {
           role: 'user',
-          content: `${userContext}
-
-RECENT CONVERSATION:
-${conversationContext}
-
-Analyze this conversation using semantic understanding for language-agnostic intent detection.`
+          content: `User: ${userSummary}
+Has basic info: ${hasBasicInfo}
+Latest: "${latestMessage}"
+Context: ${conversationContext}`
         }
       ],
-      max_tokens: 500,  // Reduced for performance
-      temperature: 0.05,  // Lower for more consistent results
+      max_tokens: 300,  // Much smaller for speed
+      temperature: 0,   // Deterministic for consistency
     });
 
     const response = await Promise.race([aiPromise, timeoutPromise]) as any;
 
     const result = response.choices[0]?.message?.content?.trim();
     if (!result) {
-      console.log(`❌ [UNIFIED_INTENT] No response from GPT-4o after ${Date.now() - startTime}ms`);
+      console.log(`❌ [UNIFIED_INTENT] No response from GPT-4o-mini after ${Date.now() - startTime}ms`);
       return getDefaultUnifiedDecision();
     }
 
