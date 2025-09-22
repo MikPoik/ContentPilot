@@ -266,18 +266,24 @@ STRICT VALIDATION RULES:
 - Be conservative - when in doubt, don't trigger analysis
 - Use semantic patterns, not keywords, but don't invent data
 
+LANGUAGE MATCHING AND SEARCH OPTIMIZATION:
+- For website analysis requests: Use ONLY "site:domain.com" without additional keywords to avoid language mismatches
+- The search service will automatically extract all relevant content from the domain
+- Adding keywords like "services business" can fail if they don't match the website's language
+- Let Perplexity's natural language processing handle content extraction and understanding
+- For Finnish sites (.fi domains): Use just "site:domain.fi" 
+- For any non-English domain: Use minimal search terms to avoid language conflicts
+
 SEARCH QUERY RULES:
-- ALWAYS extract actual URLs/domains mentioned in the conversation - DO NOT use generic terms
-- If user mentions specific websites (like "oivallusakatemia.fi"), use "site:oivallusakatemia.fi" format
 - For X (Twitter) searches: Use specific X-focused terms like "site:x.com" or handle-based queries
-- For any website: Use simple, effective approaches:
-  1. Use "site:domain.com" (Search service will automatically try multiple fallback strategies)  
-  2. For business analysis, add universal business terms: "site:domain.com services business"
-  3. Use universal keywords that apply across languages and cultures
-- For website content requests: Use "site:domain.com" - let search service handle fallbacks and language detection
+- For website analysis requests: Use ONLY "site:domain.com" without additional keywords
+  - DO NOT add terms like "services business" which may not match the site's language
+  - Let Perplexity extract and understand all content from the domain automatically
+  - This prevents language mismatches that cause zero results
+- For website content requests: Use simple "site:domain.com" format
 - CRITICAL: Extract actual domain names from user messages, don't use generic keywords like "yritykseni sivut"
-- Keep search terms simple and universal
-- Keep queries simple and let advanced search parameters do the work
+- Avoid adding English keywords to non-English websites - this causes search failures
+- Keep queries minimal and let search service handle content extraction
 
 Return JSON (only include fields when true/relevant):
 {
