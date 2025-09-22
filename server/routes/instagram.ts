@@ -20,13 +20,13 @@ export function registerInstagramRoutes(app: Express): void {
       // Check if profile was analyzed recently (within 24 hours)
       const user = await storage.getUser(userId);
       const existingData = user?.profileData as any;
-      
+
       if (existingData?.instagramProfile?.username === username) {
         const cachedAt = new Date(existingData.instagramProfile.cached_at);
         const hoursSinceCache = (Date.now() - cachedAt.getTime()) / (1000 * 60 * 60);
-        
+
         if (hoursSinceCache < 24) { //24 default
-          return res.json({ 
+          return res.json({
             profile: existingData.instagramProfile,
             cached: true,
             message: 'Using cached profile data (less than 24 hours old)'
@@ -36,7 +36,7 @@ export function registerInstagramRoutes(app: Express): void {
 
       // Analyze the Instagram profile using HikerAPI
       const instagramProfile = await hikerApiService.analyzeInstagramProfile(username);
-      
+
       // Store the Instagram profile data in user's profileData
       const updatedProfileData = {
         ...existingData,
@@ -47,13 +47,32 @@ export function registerInstagramRoutes(app: Express): void {
         profileData: updatedProfileData
       });
 
-      // Create memory entries for key insights
-      const memoryTexts = [
-        `Instagram profile analysis for ${username}: ${instagramProfile.followers} followers, ${instagramProfile.engagement_rate.toFixed(2)}% engagement rate`,
-        `Top hashtags for ${username}: ${instagramProfile.top_hashtags.join(', ')}`,
-        `Content style insights for ${username}: ${instagramProfile.post_texts.slice(0, 3).join(' | ')}`,
-        `Similar accounts to ${username}: ${instagramProfile.similar_accounts.map(acc => `${acc.username} (${acc.followers} followers)`).join(', ')}`
-      ];
+      // Create memory entries for key insights with sanitized content
+        const sanitizedPostSamples = instagramProfile.post_texts
+          .slice(0, 3) // Take only first 3 posts
+          .map(text => {
+            // Remove contact details, links, and repetitive content
+            let clean = text
+              .replace(/📞\d+/g, '') // Remove phone numbers
+              .replace(/📨\S+@\S+/g, '') // Remove emails
+              .replace(/www\.\S+/g, '') // Remove websites
+              .replace(/https?:\/\/\S+/g, '') // Remove URLs
+              .replace(/⭐+/g, '') // Remove star bullets
+              .replace(/👉/g, '') // Remove pointing emojis
+              .split('|')[0] // Take only first part if pipe-separated
+              .trim();
+
+            // Truncate to max 150 characters and add ellipsis if needed
+            return clean.length > 150 ? clean.substring(0, 150) + '...' : clean;
+          })
+          .filter(text => text.length > 20); // Only keep meaningful samples
+
+        const memoryTexts = [
+          `Instagram profile analysis for ${username}: ${instagramProfile.followers} followers, ${instagramProfile.engagement_rate.toFixed(2)}% engagement rate`,
+          `Top hashtags for ${username}: ${instagramProfile.top_hashtags.join(', ')}`,
+          sanitizedPostSamples.length > 0 ? `Content style samples for ${username}: ${sanitizedPostSamples.join(' | ')}` : `Content style for ${username}: ${instagramProfile.top_hashtags.slice(0, 3).join(', ')} focused content`,
+          `Similar accounts to ${username}: ${instagramProfile.similar_accounts.map(acc => `${acc.username} (${acc.followers} followers)`).join(', ')}`
+        ];
 
       // Generate embeddings and store memories with deduplication
       for (const text of memoryTexts) {
@@ -63,7 +82,7 @@ export function registerInstagramRoutes(app: Express): void {
             userId,
             content: text,
             embedding,
-            metadata: { 
+            metadata: {
               source: 'instagram_analysis',
               username: username,
               analysisDate: instagramProfile.cached_at
@@ -74,7 +93,7 @@ export function registerInstagramRoutes(app: Express): void {
         }
       }
 
-      res.json({ 
+      res.json({
         profile: instagramProfile,
         cached: false,
         message: 'Instagram profile analyzed successfully'
@@ -82,29 +101,29 @@ export function registerInstagramRoutes(app: Express): void {
 
     } catch (error) {
       console.error('Instagram analysis error:', error);
-      
+
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Invalid username format',
-          details: error.errors 
+          details: error.errors
         });
       }
 
       if (error instanceof Error && error.message.includes('User not found')) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           error: 'Instagram user not found',
           message: 'The specified Instagram username does not exist or is private'
         });
       }
 
       if (error instanceof Error && error.message.includes('HikerAPI Error')) {
-        return res.status(502).json({ 
+        return res.status(502).json({
           error: 'Instagram API service error',
           message: 'Unable to fetch Instagram data at this time'
         });
       }
 
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to analyze Instagram profile'
       });
@@ -119,22 +138,22 @@ export function registerInstagramRoutes(app: Express): void {
 
       const user = await storage.getUser(userId);
       const profileData = user?.profileData as any;
-      
+
       if (!profileData?.instagramProfile?.username || profileData.instagramProfile.username !== username) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           error: 'Profile not found',
           message: 'No cached Instagram profile found for this username'
         });
       }
 
-      res.json({ 
+      res.json({
         profile: profileData.instagramProfile,
         cached: true
       });
 
     } catch (error) {
       console.error('Get Instagram profile error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to retrieve Instagram profile'
       });
@@ -147,8 +166,8 @@ export function registerInstagramRoutes(app: Express): void {
       // Test with a known public Instagram account
       const testUsername = 'instagram'; // Instagram's official account
       const testProfile = await hikerApiService.getUserByUsername(testUsername);
-      
-      res.json({ 
+
+      res.json({
         success: true,
         message: 'HikerAPI connection successful',
         testData: {
@@ -160,7 +179,7 @@ export function registerInstagramRoutes(app: Express): void {
 
     } catch (error) {
       console.error('HikerAPI test error:', error);
-      res.status(502).json({ 
+      res.status(502).json({
         success: false,
         error: 'HikerAPI connection failed',
         message: error instanceof Error ? error.message : 'Unknown error'

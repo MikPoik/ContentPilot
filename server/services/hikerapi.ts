@@ -163,7 +163,9 @@ export class HikerAPIService {
       if (post.caption_text) {
         const cleanText = post.caption_text.split('#')[0].trim();
         if (cleanText) {
-          postTexts.push(cleanText);
+          // Limit individual post text to 200 characters to prevent huge chunks
+          const truncated = cleanText.length > 200 ? cleanText.substring(0, 200) + '...' : cleanText;
+          postTexts.push(truncated);
         }
         
         const postHashtags = post.caption_text
@@ -214,7 +216,11 @@ export class HikerAPIService {
           for (const post of similarPosts) {
             if (post.caption_text) {
               const cleanText = post.caption_text.split('#')[0].trim();
-              if (cleanText) similarPostTexts.push(cleanText);
+              if (cleanText) {
+                // Limit individual post text to 200 characters to prevent huge chunks
+                const truncated = cleanText.length > 200 ? cleanText.substring(0, 200) + '...' : cleanText;
+                similarPostTexts.push(truncated);
+              }
               
               const tags = post.caption_text
                 .split(' ')

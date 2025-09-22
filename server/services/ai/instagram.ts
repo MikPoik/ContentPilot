@@ -60,7 +60,7 @@ Return ONLY valid JSON:
 }`
         },
         {
-          role: 'user', 
+          role: 'user',
           content: `RECENT CONVERSATION:
 ${conversationContext}
 
@@ -111,7 +111,7 @@ Should I analyze an Instagram profile based on this conversation?`
  * Performs Instagram analysis and returns formatted results for chat
  */
 export async function performInstagramAnalysis(
-  username: string, 
+  username: string,
   userId: string,
   progressCallback?: (message: string) => void
 ): Promise<{
@@ -137,7 +137,7 @@ export async function performInstagramAnalysis(
 
       if (hoursSinceCache < 24) {
         console.log(`📸 [INSTAGRAM_AI] Using cached user profile for @${username} (${hoursSinceCache.toFixed(1)}h old)`);
-        return { 
+        return {
           success: true,
           analysis: existingData.instagramProfile,
           cached: true
@@ -152,7 +152,7 @@ export async function performInstagramAnalysis(
 
       if (hoursSinceCache < 24) {
         console.log(`📸 [INSTAGRAM_AI] Using cached competitor analysis for @${username} (${hoursSinceCache.toFixed(1)}h old)`);
-        return { 
+        return {
           success: true,
           analysis: existingData.competitorAnalyses[username],
           cached: true
@@ -163,7 +163,7 @@ export async function performInstagramAnalysis(
     // Analyze the Instagram profile using HikerAPI
     progressCallback?.(`Fetching profile data and posts...`);
     const instagramProfile = await hikerApiService.analyzeInstagramProfile(username);
-    
+
     // Check if we got partial results (main profile succeeded but some similar accounts failed)
     const partialSuccess = instagramProfile.similar_accounts.length === 0 && instagramProfile.followers > 0;
 
@@ -204,13 +204,32 @@ export async function performInstagramAnalysis(
       profileData: updatedProfileData
     });
 
-    // Create memory entries for key insights
-    const memoryTexts = [
-      `Instagram profile analysis for ${username}: ${instagramProfile.followers} followers, ${instagramProfile.engagement_rate.toFixed(2)}% engagement rate`,
-      `Top hashtags for ${username}: ${instagramProfile.top_hashtags.join(', ')}`,
-      `Content style insights for ${username}: ${instagramProfile.post_texts.slice(0, 3).join(' | ')}`,
-      `Similar accounts to ${username}: ${instagramProfile.similar_accounts.map(acc => `${acc.username} (${acc.followers} followers)`).join(', ')}`
-    ];
+    // Create memory entries for key insights with sanitized content
+      const sanitizedPostSamples = instagramProfile.post_texts
+        .slice(0, 3) // Take only first 3 posts
+        .map(text => {
+          // Remove contact details, links, and repetitive content
+          let clean = text
+            .replace(/📞\d+/g, '') // Remove phone numbers
+            .replace(/📨\S+@\S+/g, '') // Remove emails
+            .replace(/www\.\S+/g, '') // Remove websites
+            .replace(/https?:\/\/\S+/g, '') // Remove URLs
+            .replace(/⭐+/g, '') // Remove star bullets
+            .replace(/👉/g, '') // Remove pointing emojis
+            .split('|')[0] // Take only first part if pipe-separated
+            .trim();
+
+          // Truncate to max 150 characters and add ellipsis if needed
+          return clean.length > 150 ? clean.substring(0, 150) + '...' : clean;
+        })
+        .filter(text => text.length > 20); // Only keep meaningful samples
+
+      const memoryTexts = [
+        `Instagram profile analysis for ${username}: ${instagramProfile.followers} followers, ${instagramProfile.engagement_rate.toFixed(2)}% engagement rate`,
+        `Top hashtags for ${username}: ${instagramProfile.top_hashtags.join(', ')}`,
+        sanitizedPostSamples.length > 0 ? `Content style samples for ${username}: ${sanitizedPostSamples.join(' | ')}` : `Content style for ${username}: ${instagramProfile.top_hashtags.slice(0, 3).join(', ')} focused content`,
+        `Similar accounts to ${username}: ${instagramProfile.similar_accounts.map(acc => `${acc.username} (${acc.followers} followers)`).join(', ')}`
+      ];
 
     // Generate embeddings and store memories with deduplication
     for (const text of memoryTexts) {
@@ -220,7 +239,7 @@ export async function performInstagramAnalysis(
           userId,
           content: text,
           embedding,
-          metadata: { 
+          metadata: {
             source: 'instagram_analysis',
             username: username,
             analysisDate: instagramProfile.cached_at
@@ -232,7 +251,7 @@ export async function performInstagramAnalysis(
     }
 
     console.log(`📸 [INSTAGRAM_AI] Instagram analysis completed: ${Date.now() - startTime}ms`);
-    return { 
+    return {
       success: true,
       analysis: instagramProfile,
       cached: false,
@@ -270,7 +289,7 @@ export function formatInstagramAnalysisForChat(analysis: any, cached: boolean = 
 
 👥 **Audience & Reach:**
 • ${analysis.followers.toLocaleString()} followers
-• ${analysis.following.toLocaleString()} following  
+• ${analysis.following.toLocaleString()} following
 • ${analysis.posts.toLocaleString()} posts
 
 📊 **Engagement Insights:**
