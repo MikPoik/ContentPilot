@@ -151,14 +151,15 @@ export async function generateChatResponse(
   );
 
   // Add blog analysis result to context if available
+  let finalSystemPrompt = systemPrompt;
   if (blogAnalysisResult?.success && blogAnalysisResult.analysis) {
     const { formatBlogAnalysisForChat } = await import('./blog.js');
-    systemPrompt += `\n\n=== RECENT BLOG ANALYSIS ===\n${formatBlogAnalysisForChat(blogAnalysisResult.analysis, blogAnalysisResult.cached)}`;
+    finalSystemPrompt += `\n\n=== RECENT BLOG ANALYSIS ===\n${formatBlogAnalysisForChat(blogAnalysisResult.analysis, blogAnalysisResult.cached)}`;
   }
 
 
   const chatMessages: ChatMessage[] = [
-    { role: "system", content: systemPrompt },
+    { role: "system", content: finalSystemPrompt },
     ...messages,
   ];
 

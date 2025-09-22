@@ -2,7 +2,7 @@
 import { Search, Globe, Brain, Eye, BarChart3, PenTool, Lightbulb } from "lucide-react";
 
 interface AIActivityIndicatorProps {
-  activity: 'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | 'instagram_analyzing' | null;
+  activity: 'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | 'instagram_analyzing' | 'blog_analyzing' | null;
   message?: string;
   searchQuery?: string;
 }
@@ -61,6 +61,13 @@ export default function AIActivityIndicator({ activity, message, searchQuery }: 
           text: message || 'Analyzing Instagram profile...',
           animation: 'animate-pulse'
         };
+      case 'blog_analyzing':
+        return {
+          icon: Search,
+          color: 'text-blue-600',
+          text: message || 'Analyzing blog content...',
+          animation: 'animate-pulse'
+        };
       default:
         return {
           icon: Brain,
@@ -83,6 +90,7 @@ export default function AIActivityIndicator({ activity, message, searchQuery }: 
         <IconComponent className={`h-4 w-4 ${config.color} ${config.animation}`} />
         {activity === 'searching' && <Globe className="h-3 w-3 animate-spin text-emerald-600" />}
         {activity === 'instagram_analyzing' && <Brain className="h-3 w-3 animate-spin text-pink-600" />}
+        {activity === 'blog_analyzing' && <Brain className="h-3 w-3 animate-spin text-blue-600" />}
       </div>
       <span className="text-gray-700">
         {config.text}
