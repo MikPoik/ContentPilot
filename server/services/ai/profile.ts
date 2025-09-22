@@ -7,6 +7,41 @@ const deepinfraAI = new OpenAI({
   baseURL: "https://api.deepinfra.com/v1/openai"
 });
 
+function calculateProfileCompleteness(user: User, updates: any): string {
+  // Create a merged profile to calculate completeness
+  const mergedProfile = {
+    firstName: updates.firstName || user.firstName,
+    lastName: updates.lastName || user.lastName,
+    contentNiche: updates.contentNiche || user.contentNiche || [],
+    primaryPlatform: updates.primaryPlatform || user.primaryPlatform,
+    profileData: { 
+      ...(user.profileData as any || {}), 
+      ...(updates.profileData || {}) 
+    }
+  };
+
+  let completedFields = 0;
+  const totalFields = 7; // Total profile fields we track
+
+  // Basic info (2 fields)
+  if (mergedProfile.firstName) completedFields++;
+  if (mergedProfile.lastName) completedFields++;
+
+  // Content niche (1 field)
+  if (mergedProfile.contentNiche && mergedProfile.contentNiche.length > 0) completedFields++;
+
+  // Primary platform (1 field)
+  if (mergedProfile.primaryPlatform) completedFields++;
+
+  // Profile data sub-fields (3 fields)
+  if (mergedProfile.profileData?.targetAudience) completedFields++;
+  if (mergedProfile.profileData?.brandVoice) completedFields++;
+  if (mergedProfile.profileData?.businessType) completedFields++;
+
+  const percentage = Math.round((completedFields / totalFields) * 100);
+  return percentage.toString();
+}
+
 export async function extractProfileInfo(userMessage: string, assistantResponse: string, user: User): Promise<any> {
   try {
     console.log(`👤 [PROFILE_EXTRACT] Input - User: "${userMessage.substring(0, 100)}..."`);
@@ -117,10 +152,20 @@ Example outputs:
       });
       
       console.log(`👤 [PROFILE_EXTRACT] Has updates: ${hasUpdates}`);
-      const finalResult = hasUpdates ? profileUpdates : {};
-      console.log(`👤 [PROFILE_EXTRACT] Final result:`, finalResult);
       
-      return finalResult;
+      if (hasUpdates) {
+        // Calculate and add profile completeness
+        const profileCompleteness = calculateProfileCompleteness(user, profileUpdates);
+        const finalResult = {
+          ...profileUpdates,
+          profileCompleteness
+        };
+        console.log(`👤 [PROFILE_EXTRACT] Final result with ${profileCompleteness}% completeness:`, finalResult);
+        return finalResult;
+      }
+      
+      console.log(`👤 [PROFILE_EXTRACT] No updates to return`);
+      return {};
     } catch (parseError) {
       console.log(`❌ [PROFILE_EXTRACT] JSON parse error:`, parseError);
       console.log(`❌ [PROFILE_EXTRACT] Raw result that failed to parse: "${result}"`);
