@@ -111,7 +111,7 @@ Assistant response: ${assistantResponse}
 Extract new/changed BUSINESS info from both sources, focusing on factual discoveries about the user's business.`
         }
       ],
-      max_tokens: 200,
+      max_tokens:1000,
       temperature: 0.1,
     });
 
