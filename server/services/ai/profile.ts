@@ -94,11 +94,9 @@ Return {} if no explicit BUSINESS information is provided.`
         },
         {
           role: 'user',
-          content: `User: ${userMessage}
+          content: `User message: ${userMessage}
 
-AI: ${assistantResponse}
-
-Extract only new/changed info:`
+Extract only new/changed BUSINESS info. Ignore any AI content entirely.`
         }
       ],
       max_tokens: 200,
