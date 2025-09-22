@@ -112,16 +112,19 @@ Should I analyze an Instagram profile based on this conversation?`
  */
 export async function performInstagramAnalysis(
   username: string, 
-  userId: string
+  userId: string,
+  progressCallback?: (message: string) => void
 ): Promise<{
   success: boolean;
   analysis?: any;
   cached?: boolean;
   error?: string;
+  partialSuccess?: boolean;
 }> {
   const startTime = Date.now();
   try {
     console.log(`📸 [INSTAGRAM_AI] Performing Instagram analysis for @${username}...`);
+    progressCallback?.(`Analyzing @${username} profile...`);
 
     // Check if profile was analyzed recently (within 24 hours)
     const user = await storage.getUser(userId);
@@ -158,7 +161,11 @@ export async function performInstagramAnalysis(
     }
 
     // Analyze the Instagram profile using HikerAPI
+    progressCallback?.(`Fetching profile data and posts...`);
     const instagramProfile = await hikerApiService.analyzeInstagramProfile(username);
+    
+    // Check if we got partial results (main profile succeeded but some similar accounts failed)
+    const partialSuccess = instagramProfile.similar_accounts.length === 0 && instagramProfile.followers > 0;
 
     // Determine if this is the user's own profile or a competitor analysis
     const profileData = user?.profileData as any;
@@ -228,7 +235,8 @@ export async function performInstagramAnalysis(
     return { 
       success: true,
       analysis: instagramProfile,
-      cached: false
+      cached: false,
+      partialSuccess: partialSuccess
     };
 
   } catch (error) {

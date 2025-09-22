@@ -94,11 +94,12 @@ export class HikerAPIService {
     return { medias, endCursor: newEndCursor };
   }
 
-  async getAllUserMedias(userId: string, maxAmount: number = 50): Promise<InstagramPost[]> {
+  async getAllUserMedias(userId: string, maxAmount: number = 50, maxRetries: number = 3): Promise<InstagramPost[]> {
     const allMedias: InstagramPost[] = [];
     let endCursor: string | null = null;
+    let consecutiveErrors = 0;
 
-    while (allMedias.length < maxAmount) {
+    while (allMedias.length < maxAmount && consecutiveErrors < maxRetries) {
       try {
         const { medias, endCursor: newEndCursor } = await this.getUserMediasChunk(userId, endCursor || undefined);
         
@@ -106,19 +107,30 @@ export class HikerAPIService {
         
         allMedias.push(...medias.slice(0, maxAmount - allMedias.length));
         endCursor = newEndCursor;
+        consecutiveErrors = 0; // Reset error count on success
         
         if (!endCursor) break;
         
         // Rate limiting delay
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
-        console.error(`Error fetching media chunk for user ${userId}:`, error);
-        // If this is a 404, the user might not have posts or might be private
-        if (error.message.includes('404')) {
-          console.log(`User ${userId} has no accessible media (private or no posts)`);
+        consecutiveErrors++;
+        console.error(`Error fetching media chunk for user ${userId} (attempt ${consecutiveErrors}/${maxRetries}):`, error);
+        
+        // If this is a 403/404/private account, stop trying immediately
+        if (error.message.includes('403') || error.message.includes('404') || error.message.includes('Forbidden')) {
+          console.log(`User ${userId} has restricted access (private, forbidden, or no posts) - stopping media fetch`);
           break;
         }
-        break;
+        
+        // For other errors, wait before retry
+        if (consecutiveErrors < maxRetries) {
+          console.log(`Retrying in ${consecutiveErrors * 2} seconds...`);
+          await new Promise(resolve => setTimeout(resolve, consecutiveErrors * 2000));
+        } else {
+          console.log(`Max retries exceeded for user ${userId}, stopping media fetch`);
+          break;
+        }
       }
     }
 
@@ -190,8 +202,9 @@ export class HikerAPIService {
     for (const accountData of similarAccountsData.slice(0, 3)) {
       try {
         if (accountData.username) {
+          console.log(`📸 [HIKER_API] Analyzing similar account: @${accountData.username}`);
           const similarProfile = await this.getUserByUsername(accountData.username);
-          const similarPosts = await this.getAllUserMedias(similarProfile.pk, 5); // Reduced to 5 posts for better reliability
+          const similarPosts = await this.getAllUserMedias(similarProfile.pk, 5, 2); // 5 posts, max 2 retries
           
           const similarLikes = similarPosts.map(p => p.like_count || 0);
           const similarComments = similarPosts.map(p => p.comment_count || 0);
@@ -240,7 +253,19 @@ export class HikerAPIService {
           });
         }
       } catch (error) {
-        console.error(`Error analyzing similar account ${accountData.username}:`, error);
+        console.error(`❌ [HIKER_API] Failed to analyze similar account @${accountData.username || 'unknown'}:`, error);
+        
+        // Log the specific error type for debugging
+        if (error.message.includes('403')) {
+          console.log(`📸 [HIKER_API] Account @${accountData.username} is private or restricted - skipping`);
+        } else if (error.message.includes('404')) {
+          console.log(`📸 [HIKER_API] Account @${accountData.username} not found - skipping`);
+        } else {
+          console.log(`📸 [HIKER_API] Account @${accountData.username} analysis failed due to: ${error.message} - skipping`);
+        }
+        
+        // Continue with next account instead of breaking the entire analysis
+        continue;
       }
     }
 
