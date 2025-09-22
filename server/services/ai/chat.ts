@@ -165,7 +165,7 @@ export async function generateChatResponse(
   const openaiRequestStart = Date.now();
   console.log(`🤖 [AI_SERVICE] Sending request to OpenAI...`);
   const stream = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model: "gpt-4.1",
     messages: chatMessages,
     stream: true,
     temperature: 0.7,
@@ -225,7 +225,7 @@ export async function generateConversationTitle(
 ): Promise<string> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1-nano",
       messages: [
         {
           role: "system",

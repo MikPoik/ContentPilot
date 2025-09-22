@@ -20,7 +20,7 @@ export async function analyzeUserWritingStyle(postTexts: string[]): Promise<User
     const combinedText = sampleTexts.join('\n\n---\n\n');
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4.1-nano',
       messages: [
         {
           role: 'system',
@@ -282,7 +282,7 @@ export async function decideWorkflowPhase(messages: ChatMessage[], user?: User):
       .join('\n');
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4.1-nano',
       messages: [
         {
           role: 'system',

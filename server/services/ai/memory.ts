@@ -1,4 +1,12 @@
 import { openai } from "../openai";
+import OpenAI from "openai";
+// Centralized OpenAI client initialization
+const geminiClient = new OpenAI({
+  apiKey: process.env.GEMINI_API_KEY || "default_key",
+  baseURL:"https://generativelanguage.googleapis.com/v1beta/openai"
+});
+
+
 export async function rephraseQueryForEmbedding(
   userMessage: string,
   conversationHistory: Array<{ role: string; content: string }>,
@@ -31,8 +39,8 @@ export async function rephraseQueryForEmbedding(
       }
     }
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    const response = await geminiClient.chat.completions.create({
+      model: "gemini-2.0-flash-lite",
       messages: [
         {
           role: "system",
@@ -90,7 +98,7 @@ export async function extractMemoriesFromConversation(
 ): Promise<string[]> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1-nano",
       messages: [
         {
           role: "system",

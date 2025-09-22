@@ -77,7 +77,7 @@ export async function performBlogAnalysis(
     const combinedContent = blogContents.join('\n\n---\n\n');
     
     const analysisResponse = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4.1-nano',
       messages: [
         {
           role: 'system',
