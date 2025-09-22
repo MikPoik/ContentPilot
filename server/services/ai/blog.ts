@@ -1,18 +1,12 @@
-
-import OpenAI from "openai";
 import { type User } from "@shared/schema";
 import { perplexityService } from "../perplexity.js";
 import { storage } from "../../storage.js";
-import { generateEmbedding } from "../openai.js";
+import { openai, generateEmbedding } from "../openai.js";
 import {
   BlogProfile,
   BlogAnalysisResult,
   safeJsonParse
 } from "./intent";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key",
-});
 
 /**
  * Performs blog analysis by reading blog posts via Perplexity and analyzing content

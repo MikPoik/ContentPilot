@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { isAuthenticated } from "../replitAuth";
-import { generateChatResponse, generateConversationTitle, generateEmbedding, type ChatResponseWithMetadata } from "../services/ai/chat";
+import { generateChatResponse, generateConversationTitle, type ChatResponseWithMetadata } from "../services/ai/chat";
+import { generateEmbedding } from "../services/openai";
 import { extractProfileInfo } from "../services/ai/profile";
 import { extractMemoriesFromConversation, rephraseQueryForEmbedding } from "../services/ai/memory";
 import { analyzeUnifiedIntent, extractWebSearchDecision, extractInstagramAnalysisDecision, extractBlogAnalysisDecision } from "../services/ai/intent"; // Unified intent classification

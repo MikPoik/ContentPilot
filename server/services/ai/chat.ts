@@ -1,40 +1,20 @@
-import OpenAI from "openai";
 import { type User } from "@shared/schema";
 import { perplexityService } from "../perplexity";
 import { grokService } from "../grok";
+import { openai } from "../openai";
 import {
   buildWorkflowAwareSystemPrompt,
 } from "./workflow";
 import { 
   type WebSearchDecision,
-  type WorkflowPhaseDecision
+  type WorkflowPhaseDecision,
+  type ChatMessage
 } from "./intent";
 // Import functions to be used internally
 
-// the newest OpenAI model is "gpt-4.1" which was released May 13, 2025. do not change this unless explicitly requested by the user
-const openai = new OpenAI({
-  apiKey:
-    process.env.OPENAI_API_KEY ||
-    process.env.OPENAI_API_KEY_ENV_VAR ||
-    "default_key",
-});
 
-// Together.ai client for gpt-4.1-mini calls to distribute load
-const togetherAI = new OpenAI({
-  apiKey: process.env.TOGETHERAI_API_KEY || "default_key",
-  baseURL: "https://api.together.xyz/v1",
-});
+// Note: DeepInfra usage eliminated - moved to OpenAI for consistency
 
-// Deepinfra.ai client for embedding calls
-const deepinfraAI = new OpenAI({
-  apiKey: process.env.DEEPINFRA_API_KEY || "default_key",
-  baseURL: "https://api.deepinfra.com/v1/openai",
-});
-
-export interface ChatMessage {
-  role: "user" | "assistant" | "system";
-  content: string;
-}
 
 export interface ChatResponseWithMetadata {
   stream: ReadableStream<string>;
@@ -185,7 +165,7 @@ export async function generateChatResponse(
   const openaiRequestStart = Date.now();
   console.log(`🤖 [AI_SERVICE] Sending request to OpenAI...`);
   const stream = await openai.chat.completions.create({
-    model: "gpt-4.1",
+    model: "gpt-4o",
     messages: chatMessages,
     stream: true,
     temperature: 0.7,
@@ -271,23 +251,6 @@ export async function generateConversationTitle(
   }
 }
 
-export async function generateEmbedding(text: string): Promise<number[]> {
-  try {
-    const response = await deepinfraAI.embeddings.create({
-      model: "Qwen/Qwen3-Embedding-8B",
-      input: text,
-      encoding_format: "float",
-      dimensions: 1536,
-    });
-    console.log(
-      `🧠 [AI_SERVICE] Embedding generated: ${response.data[0]} dimensions`,
-    );
-    return response.data[0].embedding;
-  } catch (error) {
-    console.error("Error generating embedding:", error);
-    throw error;
-  }
-}
 
 // Import and re-export functions for backward compatibility
 export async function extractProfileInfo(

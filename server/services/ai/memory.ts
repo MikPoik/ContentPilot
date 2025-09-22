@@ -1,21 +1,4 @@
-import OpenAI from "openai";
-
-// Together.ai client for gpt-4.1-mini calls to distribute load
-const togetherAI = new OpenAI({
-  apiKey: process.env.TOGETHERAI_API_KEY || "default_key",
-  baseURL: "https://api.together.xyz/v1",
-});
-
-// Together.ai client for gpt-4.1-mini calls to distribute load
-const openAI = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "default_key",
-});
-
-// Together.ai client for gpt-4.1-mini calls to distribute load
-const deepinfraAI = new OpenAI({
-  apiKey: process.env.DEEPINFRA_API_KEY || "default_key",
-  baseURL: "https://api.deepinfra.com/v1/openai",
-});
+import { openai } from "../openai";
 export async function rephraseQueryForEmbedding(
   userMessage: string,
   conversationHistory: Array<{ role: string; content: string }>,
@@ -48,8 +31,8 @@ export async function rephraseQueryForEmbedding(
       }
     }
 
-    const response = await deepinfraAI.chat.completions.create({
-      model: "google/gemini-2.0-flash-001",
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -106,8 +89,8 @@ export async function extractMemoriesFromConversation(
   existingMemories?: Array<{ content: string; similarity?: number }>,
 ): Promise<string[]> {
   try {
-    const response = await openAI.chat.completions.create({
-      model: "gpt-4.1-nano",
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",

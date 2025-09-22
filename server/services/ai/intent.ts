@@ -1,9 +1,5 @@
-import OpenAI from "openai";
 import { type User } from "@shared/schema";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
-});
+import { openai } from "../openai";
 
 // Shared types for AI services (centralized in intent.ts)
 export interface ChatMessage {

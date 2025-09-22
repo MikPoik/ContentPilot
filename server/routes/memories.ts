@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { insertMemorySchema } from "@shared/schema";
-import { generateEmbedding } from "../services/ai/chat";
+import { generateEmbedding } from "../services/openai";
 import { isAuthenticated } from "../replitAuth";
 
 export function registerMemoryRoutes(app: Express) {

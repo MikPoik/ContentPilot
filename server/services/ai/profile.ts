@@ -1,11 +1,5 @@
-import OpenAI from "openai";
 import { type User } from "@shared/schema";
-
-// Together.ai client for gpt-4.1-mini calls to distribute load
-const deepinfraAI = new OpenAI({
-  apiKey: process.env.DEEPINFRA_API_KEY || "default_key",
-  baseURL: "https://api.deepinfra.com/v1/openai"
-});
+import { openai } from "../openai";
 
 function calculateProfileCompleteness(user: User, updates: any): string {
   // Create a merged profile to calculate completeness
@@ -47,8 +41,8 @@ export async function extractProfileInfo(userMessage: string, assistantResponse:
     console.log(`👤 [PROFILE_EXTRACT] Input - User: "${userMessage.substring(0, 100)}..."`);
     console.log(`👤 [PROFILE_EXTRACT] Input - Assistant: "${assistantResponse.substring(0, 100)}..."`);
 
-    const response = await deepinfraAI.chat.completions.create({
-      model: "google/gemini-2.0-flash-001",
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
       messages: [
         {
           role: 'system',

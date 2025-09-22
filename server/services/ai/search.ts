@@ -1,15 +1,11 @@
-import OpenAI from "openai";
 import { type User } from "@shared/schema";
+import { openai } from "../openai";
 import {
   ChatMessage,
   WebSearchDecision,
   BlogAnalysisDecision,
   safeJsonParse
 } from "./intent";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
-});
 
 export async function decideBlogAnalysis(
   messages: ChatMessage[],
@@ -103,7 +99,7 @@ export async function decideWebSearch(
 ): Promise<WebSearchDecision> {
   const startTime = Date.now();
   try {
-    console.log(`🧠 [AI_SERVICE] Analyzing search decision with GPT-4.1-mini...`);
+    console.log(`🧠 [AI_SERVICE] Analyzing search decision with GPT-4o-mini...`);
 
     // Get last 5-8 messages for context
     const contextMessages = messages.slice(-8);
@@ -129,7 +125,7 @@ export async function decideWebSearch(
       .join('\n');
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4.1-mini',
+      model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
