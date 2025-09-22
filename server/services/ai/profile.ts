@@ -81,7 +81,7 @@ AI: ${assistantResponse}
 Extract only new/changed info:`
         }
       ],
-      max_tokens: 150,
+      max_tokens: 200,
       temperature: 0.1,
     });
 
