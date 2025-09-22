@@ -47,6 +47,12 @@ export async function extractProfileInfo(userMessage: string, assistantResponse:
     console.log(`👤 [PROFILE_EXTRACT] Input - User: "${userMessage.substring(0, 100)}..."`);
     console.log(`👤 [PROFILE_EXTRACT] Input - Assistant: "${assistantResponse.substring(0, 100)}..."`);
 
+    // Check if blog analysis was just performed - if so, be extra conservative about extracting profile data
+    const isBlogAnalysis = assistantResponse.includes('Blog Content Analysis') || 
+                          assistantResponse.includes('blogProfile') ||
+                          userMessage.includes('blogi') ||
+                          userMessage.includes('/blog');
+
     const response = await geminiClient.chat.completions.create({
       model: "gemini-2.0-flash-lite", // Faster model for simple decisions
       messages: [
@@ -87,9 +93,16 @@ CONTENT NICHE RULES:
 - Example: If user has "pariterapia", don't add "parikriisi-interventio" (it's the same field)
 - Example: If user has "fitness", don't add "weight training" (it's the same field)
 
+DUPLICATE PREVENTION:
+- For arrays (contentNiche, targetAudience, brandVoice, contentGoals): Only add items that aren't already covered by existing entries
+- For targetAudience: Don't add "35-40 vuotias nainen" if "35–40-vuotiaat" already exists
+- For brandVoice: Don't add similar descriptions like "Lämmin" if "warm and approachable" already exists
+- For contentNiche: Don't add multiple therapy variations if therapy categories already exist
+- When blog analysis has just been performed, focus ONLY on truly new business information
+
 EXTRACTION SOURCES:
 1. USER MESSAGE: Only extract if user explicitly states NEW business info, goals, or major changes
-2. ASSISTANT RESPONSE: Only extract from website/Instagram analysis or other concrete business discoveries
+2. ASSISTANT RESPONSE: Only extract from website/Instagram analysis or other concrete business discoveries, avoiding duplicates of recent analysis results
 
 FIELD USAGE RULES:
 - businessLocation: For physical business address/location
@@ -102,6 +115,13 @@ CURRENT USER PROFILE FOR COMPARISON:
 - targetAudience: ${(user.profileData as any)?.targetAudience || 'Not set'}
 - businessType: ${(user.profileData as any)?.businessType || 'Not set'}
 - businessLocation: ${(user.profileData as any)?.businessLocation || 'Not set'}
+
+${isBlogAnalysis ? `
+⚠️ BLOG ANALYSIS CONTEXT - BE EXTRA CONSERVATIVE:
+This conversation involves blog analysis. The assistant response already contains structured blog data.
+DO NOT extract profile information that duplicates or rephrases existing profile data.
+ONLY extract if there are completely new business facts not previously known.
+` : ''}
 
 ONLY extract if there's genuinely NEW or SIGNIFICANTLY DIFFERENT information.`
         },
