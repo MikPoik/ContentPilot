@@ -249,6 +249,9 @@ WORKFLOW PROGRESSION RULES:
 - Only advance to content phases when: sufficient profile data for personalized recommendations
 - ALWAYS check the PROFILE COMPLETENESS section to see what data actually exists
 - Missing fields should only include fields that are truly empty/null/undefined
+- Do NOT suggest prompts asking for information that already exists (marked with ✅)
+- Only suggest prompts for fields marked with ❌ Missing
+- If all key fields exist, focus on content-related prompts rather than profile gathering
 
 STRICT VALIDATION RULES:
 - Extract usernames without @ symbol ONLY if explicitly mentioned
@@ -264,7 +267,9 @@ Return JSON (only include fields when true/relevant):
 "instagramAnalysis": {"username": "string", "confidence": 0.9} (only if shouldAnalyze=true), 
 "blogAnalysis": {"urls": ["url1"], "confidence": 0.9} (only if shouldAnalyze=true),
 "workflowPhase": {"currentPhase": "phase", "missingFields": ["field1"], "suggestedPrompts": ["prompt1"], "shouldBlockContentGeneration": true, "confidence": 0.9}
-}`,
+}
+
+CRITICAL: For suggestedPrompts, ONLY suggest prompts for information that is actually missing (marked with ❌). DO NOT suggest prompts for information that already exists (marked with ✅). If profile is complete, suggest content-focused prompts instead.`,
         },
         {
           role: "user",
