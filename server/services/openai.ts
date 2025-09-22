@@ -5,14 +5,19 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "default_key",
 });
 
+const geminiClient = new OpenAI({
+  apiKey: process.env.GEMINI_API_KEY || "default_key",
+  baseURL:"https://generativelanguage.googleapis.com/v1beta/openai"
+});
+
 // Export the centralized client for use by other modules
 export { openai };
 
 // Centralized embedding function
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
-    const response = await openai.embeddings.create({
-      model: "text-embedding-3-small",
+    const response = await geminiClient.embeddings.create({
+      model: "gemini-embedding-001",
       input: text,
       dimensions: 1536,
     });

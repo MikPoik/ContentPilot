@@ -68,14 +68,11 @@ CRITICAL EXTRACTION RULES:
 
 1. NEVER extract personal demographics as business information:
    - User's age, location, family status, personal details are NOT targetAudience
-   - "I am 40" / "Olen 40 vuotias" → return {} (personal age, not audience)
-   - "I live in Helsinki" → return {} (personal location, not business info)
    - Personal information should go to memories, NOT profile updates
 
 2. targetAudience ONLY when user explicitly describes their business audience:
-   - MUST use audience-intent phrases: "my audience is", "target audience", "kohderyhmäni", "yleisöni", "suunnattu"
+   - MUST use audience-intent phrases
    - Examples: "My audience is busy professionals" → extract
-   - Examples: "Kohderyhmäni on nuoret äidit" → extract
    - Examples: "I am 40" → DO NOT extract as audience
 
 3. General extraction rules:
@@ -85,9 +82,6 @@ CRITICAL EXTRACTION RULES:
    - contentGoals: only if explicitly stated with "My goal is", "I want to", "I aim to"
 
 FORBIDDEN EXTRACTIONS:
-- "Olen 40 vuotias" → return {} (personal age, not profile data)
-- "I have two kids" → return {} (personal info, not business)
-- "How do I...?" → return {} (questions, not statements)
 - General topics discussed → return {} (unless claimed as niche)
 
 Return {} if no explicit BUSINESS information is provided.`

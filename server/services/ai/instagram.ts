@@ -24,8 +24,8 @@ export async function decideInstagramAnalysis(
   try {
     console.log(`📸 [INSTAGRAM_AI] Analyzing if user wants Instagram analysis...`);
 
-    // Get last 3 messages for context
-    const contextMessages = messages.slice(-3);
+    // Get last 1 messages for context
+    const contextMessages = messages.slice(-2);
     const conversationContext = contextMessages
       .map(msg => `${msg.role}: ${msg.content}`)
       .join('\n');
@@ -44,6 +44,11 @@ DETECTION RULES:
 - Look for competitor analysis requests like "check my competitor", "analyze [brand name] Instagram", "what's [username] doing"
 - Be liberal - if someone mentions wanting insights about an Instagram account, they likely want analysis
 
+
+RECENT CONVERSATION:
+${conversationContext}
+
+  
 Return ONLY valid JSON:
 {
   "shouldAnalyze": boolean,
@@ -51,13 +56,6 @@ Return ONLY valid JSON:
   "confidence": number (0.0 to 1.0),
   "reason": "brief explanation of the decision"
 }`
-        },
-        {
-          role: 'user',
-          content: `RECENT CONVERSATION:
-${conversationContext}
-
-Should I analyze an Instagram profile based on this conversation?`
         }
       ],
       max_tokens: 150,
