@@ -177,13 +177,13 @@ export async function analyzeUnifiedIntent(
       const hasBusinessType = !!(data.businessType);
 
       userContext += `PROFILE COMPLETENESS:
-✅ Name: ${hasName ? user.firstName + (user.lastName ? ' ' + user.lastName : '') : '❌ Missing'}
-✅ Content Niche: ${hasNiche ? user.contentNiche.join(", ") : '❌ Missing'}
-✅ Primary Platform: ${hasPlatform ? user.primaryPlatform : '❌ Missing'}
-✅ Target Audience: ${hasTargetAudience ? data.targetAudience : '❌ Missing'}
-✅ Brand Voice: ${hasBrandVoice ? data.brandVoice : '❌ Missing'}
-✅ Content Goals: ${hasContentGoals ? data.contentGoals.join(", ") : '❌ Missing'}
-✅ Business Type: ${hasBusinessType ? data.businessType : '❌ Missing'}
+${hasName ? '✅' : '❌'} Name: ${hasName ? user.firstName + (user.lastName ? ' ' + user.lastName : '') : 'Missing'}
+${hasNiche ? '✅' : '❌'} Content Niche: ${hasNiche ? user.contentNiche.join(", ") : 'Missing'}
+${hasPlatform ? '✅' : '❌'} Primary Platform: ${hasPlatform ? user.primaryPlatform : 'Missing'}
+${hasTargetAudience ? '✅' : '❌'} Target Audience: ${hasTargetAudience ? data.targetAudience : 'Missing'}
+${hasBrandVoice ? '✅' : '❌'} Brand Voice: ${hasBrandVoice ? data.brandVoice : 'Missing'}
+${hasContentGoals ? '✅' : '❌'} Content Goals: ${hasContentGoals ? data.contentGoals.join(", ") : 'Missing'}
+${hasBusinessType ? '✅' : '❌'} Business Type: ${hasBusinessType ? data.businessType : 'Missing'}
 
 WORKFLOW PHASE DETERMINATION:
 - Discovery complete if: name + niche + platform are provided
