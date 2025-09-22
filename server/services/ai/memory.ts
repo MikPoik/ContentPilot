@@ -140,7 +140,7 @@ GOOD EXAMPLES FROM USER:
 ["Confirmed: wants to combine fashion and wellness content", "Agreed to try carousel format for better engagement"]
 
 GOOD EXAMPLES FROM AI DISCOVERIES:
-["Oivallus Akatemia offers lyhytterapia, pariterapia and neuropsykiatrinen valmennus services", "Business focuses on individual therapy, couples therapy and corporate training"]
+["The startup offers financial consulting, tax planning, and wealth management services", "Business focuses on small to medium enterprises, risk assessment and strategic planning"]
 
 BAD EXAMPLES (DO NOT EXTRACT):
 ["Might explore fashion-wellness combination", "Could try community challenges", "You could consider posting daily", "Here are some content ideas"]`,
