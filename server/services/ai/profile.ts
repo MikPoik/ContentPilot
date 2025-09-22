@@ -64,6 +64,12 @@ Current profile: ${JSON.stringify({
             profileData: user.profileData
           })}
 
+IMPORTANT: 
+- Only extract truly NEW information not already in the current profile
+- For contentGoals: DO NOT duplicate existing goals, only add genuinely new ones
+- Be conservative - when in doubt, return {}
+- If user is just chatting casually, return {}
+
 Return {} if no changes found.`
         },
         {
@@ -92,9 +98,25 @@ Extract only new/changed info:`
       let cleanResult = result.trim();
 
       // Remove code fences if present
-      if (cleanResult.startsWith('```') && cleanResult.endsWith('```')) {
+      if (cleanResult.startsWith('```')) {
         const lines = cleanResult.split('\n');
-        cleanResult = lines.slice(1, -1).join('\n');
+        // Find the first line that contains JSON (starts with {)
+        let startIndex = 1;
+        for (let i = 1; i < lines.length; i++) {
+          if (lines[i].trim().startsWith('{')) {
+            startIndex = i;
+            break;
+          }
+        }
+        // Find the last line that contains JSON (ends with })
+        let endIndex = lines.length - 1;
+        for (let i = lines.length - 2; i >= 0; i--) {
+          if (lines[i].trim().endsWith('}')) {
+            endIndex = i;
+            break;
+          }
+        }
+        cleanResult = lines.slice(startIndex, endIndex + 1).join('\n');
       }
 
       // Remove json language identifier if present

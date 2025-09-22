@@ -263,9 +263,13 @@ Return JSON (only include fields when true/relevant):
 
       Analyze this conversation using semantic understanding for language-agnostic intent detection.
       
-      CRITICAL: Only detect blog analysis if explicit URLs or clear blog analysis requests are mentioned. 
-      Only detect Instagram analysis if explicit usernames or analysis requests are mentioned.
-      Do NOT invent or hallucinate data that wasn't actually mentioned in the conversation.`,
+      CRITICAL VALIDATION RULES:
+      - For blog analysis: ONLY trigger if you see actual URLs (http/https) or explicit requests like "analyze my blog"
+      - For Instagram analysis: ONLY trigger if you see @username mentions or explicit requests like "check my Instagram"
+      - DO NOT use information from previous conversations or stored memories to infer analysis requests
+      - DO NOT trigger analysis based on general conversation topics
+      - When in doubt, set shouldAnalyze to false and confidence to 0.0
+      - If the user is just chatting (like "week has gone well"), DO NOT trigger any analysis`,
         },
       ],
       max_tokens: 500, // Reduced for performance
