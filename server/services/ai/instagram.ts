@@ -48,7 +48,7 @@ DETECTION RULES:
 RECENT CONVERSATION:
 ${conversationContext}
 
-  
+
 Return ONLY valid JSON:
 {
   "shouldAnalyze": boolean,
@@ -160,14 +160,24 @@ export async function performInstagramAnalysis(
 
     // Determine if this is the user's own profile or a competitor analysis
     const profileData = user?.profileData as any;
+    const existingData = profileData || {};
 
-    // If profileData is null/undefined or no existing Instagram profile, treat this as the user's main profile
-    const isOwnProfile = !profileData || !profileData.instagramProfile;
+    // Check if this username matches any existing profile data to avoid overwriting
+    const existingInstagramUsername = existingData?.instagramProfile?.username;
+    const existingOwnUsername = existingData?.ownInstagramUsername;
+
+    // Only treat as own profile if:
+    // 1. This username matches the existing ownInstagramUsername, OR  
+    // 2. This username matches the existing instagramProfile username, OR
+    // 3. No existing Instagram profile AND no existing own username (first time setup)
+    const isOwnProfile = (existingOwnUsername === username) ||
+                        (existingInstagramUsername === username) ||
+                        (!existingData.instagramProfile && !existingData.ownInstagramUsername);
 
     // Store the Instagram profile data appropriately
     let updatedProfileData;
     if (isOwnProfile) {
-      // Store as the user's main Instagram profile
+      // Store as the user's main Instagram profile, preserving all existing data
       updatedProfileData = {
         ...existingData,
         instagramProfile,
@@ -181,7 +191,7 @@ export async function performInstagramAnalysis(
         console.log(`📸 [INSTAGRAM_AI] Migrated @${username} from competitor analysis to main profile`);
       }
     } else {
-      // Store competitor analyses separately without overwriting user's profile
+      // Store as competitor analysis, preserving all existing profile data
       const competitorAnalyses = existingData?.competitorAnalyses || {};
       competitorAnalyses[username] = instagramProfile;
 
