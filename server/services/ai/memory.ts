@@ -118,10 +118,14 @@ EXTRACT FROM USER MESSAGES:
 - Personal/business details they share
 
 EXTRACT FROM ASSISTANT RESPONSES:
-- Discovered business information from website/Instagram analysis
-- Specific content recommendations the user is engaging with
-- Strategic insights about their business or content approach
+- Discovered business information from website/Instagram analysis (confirmed facts only)
 - Data-driven observations about their current performance
+- User-confirmed strategic decisions or preferences
+
+DO NOT EXTRACT FROM ASSISTANT RESPONSES:
+- Suggestions, recommendations, or "could try" statements
+- Generic advice or ideas not yet confirmed by user
+- Assistant's strategic suggestions that user hasn't agreed to
 
 GOOD EXTRACTIONS:
 - "User wants to create relationship-focused content for Instagram"
@@ -144,7 +148,7 @@ GOOD EXAMPLES FROM AI DISCOVERIES:
 ["The startup offers financial consulting, tax planning, and wealth management services", "Business focuses on small to medium enterprises, risk assessment and strategic planning"]
 
 BAD EXAMPLES (DO NOT EXTRACT):
-["Might explore fashion-wellness combination", "Could try community challenges", "You could consider posting daily", "Here are some content ideas"]`,
+["Might explore fashion-wellness combination", "Could try community challenges", "You could consider posting daily", "Here are some content ideas", "Assistant suggests content that highlights local community", "Assistant recommends trying carousel format"]`,
         },
         {
           role: "user",

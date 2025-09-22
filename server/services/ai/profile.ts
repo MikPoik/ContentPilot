@@ -54,7 +54,9 @@ export async function extractProfileInfo(userMessage: string, assistantResponse:
           role: 'system',
           content: `Extract user profile info from both user message AND assistant response. Return JSON emphasizing any CHANGED or NEW fields:
 
-Fields to consider: firstName, lastName, contentNiche (array), primaryPlatform, profileData: {targetAudience, brandVoice, businessType, contentGoals, blogProfile}
+Fields to consider: firstName, lastName, contentNiche (array), primaryPlatform, profileData: {targetAudience, brandVoice, businessType, contentGoals, businessLocation}
+
+IMPORTANT: Do NOT modify blogProfile - it's reserved for blog content analysis only.
 
 Current profile: ${JSON.stringify({
             firstName: user.firstName,
@@ -82,11 +84,17 @@ EXTRACTION SOURCES:
 1. USER MESSAGE: Only extract if user explicitly states NEW business info, goals, or major changes
 2. ASSISTANT RESPONSE: Only extract from website/Instagram analysis or other concrete business discoveries
 
+FIELD USAGE RULES:
+- businessLocation: For physical business address/location
+- businessType: For services offered/industry
+- blogProfile: NEVER modify - reserved for blog content analysis only
+
 CURRENT USER PROFILE FOR COMPARISON:
 - contentNiche: ${user.contentNiche?.join(', ') || 'Not set'}
 - primaryPlatform: ${user.primaryPlatform || 'Not set'}
 - targetAudience: ${(user.profileData as any)?.targetAudience || 'Not set'}
 - businessType: ${(user.profileData as any)?.businessType || 'Not set'}
+- businessLocation: ${(user.profileData as any)?.businessLocation || 'Not set'}
 
 ONLY extract if there's genuinely NEW or SIGNIFICANTLY DIFFERENT information.`
         },
