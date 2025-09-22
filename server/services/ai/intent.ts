@@ -163,36 +163,42 @@ export async function analyzeUnifiedIntent(
     const currentDate = new Date().toISOString().split("T")[0];
 
     // Build user context efficiently
-    let userContext = "User Profile: ";
+    let userContext = "CURRENT USER PROFILE STATUS:\n";
     if (user) {
-      const currentProfile = {
-        firstName: user?.firstName || null,
-        lastName: user?.lastName || null,
-        contentNiche: user?.contentNiche || [],
-        primaryPlatform: user?.primaryPlatform || null,
-        profileData: user?.profileData || {},
-      };
+      const data = user.profileData as any || {};
+      
+      // Check what we actually have
+      const hasName = !!(user.firstName);
+      const hasNiche = !!(user.contentNiche?.length);
+      const hasPlatform = !!(user.primaryPlatform);
+      const hasTargetAudience = !!(data.targetAudience);
+      const hasBrandVoice = !!(data.brandVoice);
+      const hasContentGoals = !!(data.contentGoals?.length);
+      const hasBusinessType = !!(data.businessType);
 
-      userContext += `
-  - Name: ${user.firstName || "Not provided"}${user.lastName ? " " + user.lastName : ""}
-  - Content Niche: ${user.contentNiche?.join(", ") || "Not specified"}
-  - Primary Platform: ${user.primaryPlatform || "Not specified"}`;
+      userContext += `PROFILE COMPLETENESS:
+✅ Name: ${hasName ? user.firstName + (user.lastName ? ' ' + user.lastName : '') : '❌ Missing'}
+✅ Content Niche: ${hasNiche ? user.contentNiche.join(", ") : '❌ Missing'}
+✅ Primary Platform: ${hasPlatform ? user.primaryPlatform : '❌ Missing'}
+✅ Target Audience: ${hasTargetAudience ? data.targetAudience : '❌ Missing'}
+✅ Brand Voice: ${hasBrandVoice ? data.brandVoice : '❌ Missing'}
+✅ Content Goals: ${hasContentGoals ? data.contentGoals.join(", ") : '❌ Missing'}
+✅ Business Type: ${hasBusinessType ? data.businessType : '❌ Missing'}
 
-      if (user.profileData) {
-        const data = user.profileData as any;
-        if (data.targetAudience)
-          userContext += `\n- Target Audience: ${data.targetAudience}`;
-        if (data.businessType)
-          userContext += `\n- Business Type: ${data.businessType}`;
-        if (data.brandVoice)
-          userContext += `\n- Brand Voice: ${data.brandVoice}`;
-        if (data.contentGoals?.length)
-          userContext += `\n- Content Goals: ${data.contentGoals.join(", ")}`;
-      }
+WORKFLOW PHASE DETERMINATION:
+- Discovery complete if: name + niche + platform are provided
+- Ready for positioning if: discovery complete + some additional profile data
+- Ready for content generation if: sufficient profile data for personalized content
 
-      userContext += `\n\nCURRENT PROFILE DATA:\n${JSON.stringify(currentProfile, null, 2)}`;
+EXISTING DATA TO CONSIDER:
+${JSON.stringify({
+  firstName: user.firstName,
+  contentNiche: user.contentNiche,
+  primaryPlatform: user.primaryPlatform,
+  profileData: data
+}, null, 2)}`;
     } else {
-      userContext += "No user profile available";
+      userContext += "❌ No user profile available - stay in Discovery phase";
     }
     const conversationContext = contextMessages
       .map((msg) => `${msg.role}: ${msg.content}`)
@@ -230,15 +236,21 @@ Use GROK for X/Twitter content, PERPLEXITY for general web
 • MUST have actual URLs mentioned in conversation or clear blog analysis request
 
 4. WORKFLOW PHASE - User journey stage:
-• Discovery: Getting to know user (name, niche, platform)
-• Positioning: Brand voice/identity
-• Ideas: Content concepts
-• Development: Specific content creation
-• Review: Content refinement
-• Finalization: Publishing prep
+• Discovery & Personalization: Getting to know user (name, niche, platform)
+• Brand Voice & Positioning: Understanding brand identity and voice
+• Collaborative Idea Generation: Content concepts and themes
+• Developing Chosen Ideas: Specific content development
+• Content Drafting & Iterative Review: Creating actual content
+• Finalization & Scheduling: Final touches and publishing
+
+WORKFLOW PROGRESSION RULES:
+- Discovery complete when: name + contentNiche + primaryPlatform exist
+- Can advance to positioning when: discovery complete + some additional context
+- Only advance to content phases when: sufficient profile data for personalized recommendations
+- ALWAYS check the PROFILE COMPLETENESS section to see what data actually exists
+- Missing fields should only include fields that are truly empty/null/undefined
 
 STRICT VALIDATION RULES:
-- Block content creation until profile complete (name/niche/platform)
 - Extract usernames without @ symbol ONLY if explicitly mentioned
 - For blog analysis: REQUIRE explicit blog URLs or clear blog analysis requests
 - For Instagram analysis: REQUIRE explicit username mentions or analysis requests
