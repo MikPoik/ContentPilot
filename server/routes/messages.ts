@@ -136,6 +136,7 @@ export function registerMessageRoutes(app: Express) {
       let blogAnalysisResult: any = null;
       let searchDecision: any = null;
       let workflowPhaseDecision: any = null;
+      let profileUpdateDecision: any = null;
 
       try {
         console.log(`🧠 [CHAT_FLOW] Starting unified intent analysis...`);
@@ -176,6 +177,12 @@ export function registerMessageRoutes(app: Express) {
           recency: 'week',
           domains: [],
           searchService: 'perplexity'
+        };
+        profileUpdateDecision = {
+          shouldExtract: false,
+          confidence: 0.0,
+          reason: "Error in unified analysis",
+          expectedFields: []
         };
       }
 
@@ -279,7 +286,7 @@ export function registerMessageRoutes(app: Express) {
           // Also trigger after successful blog/Instagram analysis when new data is available
           const hasSuccessfulAnalysis = (instagramAnalysisResult?.success || blogAnalysisResult?.success);
           
-          let conversationProfileUpdates = {};
+          let conversationProfileUpdates: any = {};
           if ((profileUpdateDecision.shouldExtract && profileUpdateDecision.confidence >= 0.7) || hasSuccessfulAnalysis) {
             const profileExtractionStart = Date.now();
             conversationProfileUpdates = await extractProfileInfo(content, fullResponse, user!);

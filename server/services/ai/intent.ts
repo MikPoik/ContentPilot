@@ -178,7 +178,7 @@ export async function analyzeUnifiedIntent(
 
       // Check what we actually have
       const hasName = !!(user.firstName);
-      const hasNiche = !!(user.contentNiche && user.contentNiche.length > 0);
+      const hasNiche = !!(user.contentNiche && user.contentNiche?.length > 0);
       const hasPlatform = !!(user.primaryPlatform);
       const hasTargetAudience = !!(data.targetAudience);
       const hasBrandVoice = !!(data.brandVoice);
@@ -187,7 +187,7 @@ export async function analyzeUnifiedIntent(
 
       userContext += `PROFILE COMPLETENESS:
 ${hasName ? '✅' : '❌'} Name: ${hasName ? user.firstName + (user.lastName ? ' ' + user.lastName : '') : 'Missing'}
-${hasNiche ? '✅' : '❌'} Content Niche: ${hasNiche ? user.contentNiche.join(", ") : 'Missing'}
+${hasNiche ? '✅' : '❌'} Content Niche: ${hasNiche ? user.contentNiche?.join(", ") || 'Missing' : 'Missing'}
 ${hasPlatform ? '✅' : '❌'} Primary Platform: ${hasPlatform ? user.primaryPlatform : 'Missing'}
 ${hasTargetAudience ? '✅' : '❌'} Target Audience: ${hasTargetAudience ? data.targetAudience : 'Missing'}
 ${hasBrandVoice ? '✅' : '❌'} Brand Voice: ${hasBrandVoice ? data.brandVoice : 'Missing'}
