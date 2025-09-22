@@ -110,17 +110,23 @@ CRITICAL EXTRACTION RULES:
 - NEVER extract from Assistant responses - only from User messages
 - User must show clear intent, agreement, or preference
 
-EXTRACT ONLY IF USER:
+EXTRACT FROM USER MESSAGES IF USER:
 - States specific preferences, dislikes, or decisions ("I prefer...", "I like...", "I want...")
 - Confirms or agrees to something ("Yes, let's do that", "That sounds good", "I'll try that")
 - Shares personal/business details about themselves
 - Reports results or feedback ("That worked well", "This didn't work")
 
+EXTRACT FROM ASSISTANT RESPONSES IF AI:
+- Discovers specific business information from website analysis or research
+- Identifies concrete details about user's services, target audience, or business model
+- Finds factual information about user's existing content or brand
+- Makes specific observations about user's business based on data analysis
+
 FORBIDDEN EXTRACTIONS:
-- AI suggestions or recommendations ("Voitaisiin esimerkiksi...", "Let's try...", "How about...")
-- Hypothetical scenarios or examples given by AI
-- Questions or brainstorming without user confirmation
-- General topics discussed without user commitment
+- AI suggestions or recommendations without user confirmation
+- Hypothetical scenarios or general examples
+- Questions or brainstorming without user commitment
+- General advice not specific to the user's business
 
 ${existingMemories && existingMemories.length > 0 ? 
 `EXISTING MEMORIES TO AVOID DUPLICATING:
@@ -130,11 +136,14 @@ Each memory: complete sentence, 20-150 chars, specific and actionable.
 
 Return JSON array or [] if no confirmed user insights found.
 
-GOOD EXAMPLES:
+GOOD EXAMPLES FROM USER:
 ["Confirmed: wants to combine fashion and wellness content", "Agreed to try carousel format for better engagement"]
 
+GOOD EXAMPLES FROM AI DISCOVERIES:
+["Oivallus Akatemia offers lyhytterapia, pariterapia and neuropsykiatrinen valmennus services", "Business focuses on individual therapy, couples therapy and corporate training"]
+
 BAD EXAMPLES (DO NOT EXTRACT):
-["Might explore fashion-wellness combination", "Could try community challenges"]`,
+["Might explore fashion-wellness combination", "Could try community challenges", "You could consider posting daily", "Here are some content ideas"]`,
         },
         {
           role: "user",
