@@ -50,11 +50,19 @@ export interface WorkflowPhaseDecision {
   confidence: number;
 }
 
+export interface ProfileUpdateDecision {
+  shouldExtract: boolean;
+  confidence: number;
+  reason: string;
+  expectedFields: string[];
+}
+
 export interface UnifiedIntentDecision {
   webSearch: WebSearchDecision;
   instagramAnalysis: InstagramAnalysisDecision;
   blogAnalysis: BlogAnalysisDecision;
   workflowPhase: WorkflowPhaseDecision;
+  profileUpdate: ProfileUpdateDecision;
 }
 
 export interface UserStyleAnalysis {
@@ -290,7 +298,8 @@ Return JSON (only include fields when true/relevant):
 "webSearch": {"refinedQuery": "string", "searchService": "perplexity|grok", "recency": "day", "confidence": 0.9} (only if shouldSearch=true),
 "instagramAnalysis": {"username": "string", "confidence": 0.9} (only if shouldAnalyze=true), 
 "blogAnalysis": {"urls": ["url1"], "confidence": 0.9} (only if shouldAnalyze=true),
-"workflowPhase": {"currentPhase": "phase", "missingFields": ["field1"], "suggestedPrompts": ["prompt1"], "shouldBlockContentGeneration": true, "confidence": 0.9}
+"workflowPhase": {"currentPhase": "phase", "missingFields": ["field1"], "suggestedPrompts": ["prompt1"], "shouldBlockContentGeneration": true, "confidence": 0.9},
+"profileUpdate": {"expectedFields": ["field1"], "reason": "string", "confidence": 0.9} (only if shouldExtract=true)
 }
 
 CRITICAL RULE FOR MISSING FIELDS AND PROMPTS:
@@ -316,10 +325,13 @@ EXAMPLES:
       CRITICAL VALIDATION RULES:
       - For blog analysis: ONLY trigger if you see actual URLs (http/https) or explicit requests like "analyze my blog"
       - For Instagram analysis: ONLY trigger if you see @username mentions or explicit requests like "check my Instagram"
+      - For profile update: ONLY trigger if user explicitly mentions business information that fills missing ❌ fields or after successful blog/Instagram analysis
+      - DO NOT trigger profile update for casual conversation, personal information, or general chat
+      - Profile update should target specific missing fields from the completeness check above
       - DO NOT use information from previous conversations or stored memories to infer analysis requests
       - DO NOT trigger analysis based on general conversation topics
-      - When in doubt, set shouldAnalyze to false and confidence to 0.0
-      - If the user is just chatting (like "week has gone well"), DO NOT trigger any analysis`,
+      - When in doubt, set shouldAnalyze/shouldExtract to false and confidence to 0.0
+      - If the user is just chatting (like "week has gone well"), DO NOT trigger any analysis or profile updates`,
         },
       ],
       max_tokens: 500, // Reduced for performance
@@ -410,6 +422,12 @@ function getDefaultUnifiedDecision(): UnifiedIntentDecision {
       shouldBlockContentGeneration: true,
       confidence: 0.9,
     },
+    profileUpdate: {
+      shouldExtract: false,
+      confidence: 0.0,
+      reason: "No profile extraction needed",
+      expectedFields: [],
+    },
   };
 }
 
@@ -454,6 +472,13 @@ function normalizeCondensedResponse(condensedResponse: any): UnifiedIntentDecisi
       shouldBlockContentGeneration: condensedResponse.workflowPhase?.shouldBlockContentGeneration !== undefined ? condensedResponse.workflowPhase.shouldBlockContentGeneration : defaults.workflowPhase.shouldBlockContentGeneration,
       confidence: condensedResponse.workflowPhase?.confidence || defaults.workflowPhase.confidence,
     },
+
+    profileUpdate: condensedResponse.profileUpdate ? {
+      shouldExtract: true,
+      confidence: condensedResponse.profileUpdate.confidence || 0.8,
+      reason: condensedResponse.profileUpdate.reason || "AI recommended profile update",
+      expectedFields: condensedResponse.profileUpdate.expectedFields || [],
+    } : defaults.profileUpdate,
   };
 }
 
