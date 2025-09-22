@@ -139,6 +139,13 @@ export function registerMessageRoutes(app: Express) {
         if (instagramDecision.shouldAnalyze && instagramDecision.username && instagramDecision.confidence >= 0.7) {
           console.log(`📸 [CHAT_FLOW] Performing Instagram analysis for @${instagramDecision.username}...`);
           const analysisStart = Date.now();
+          
+          // Send activity indicator
+          res.write(`[AI_ACTIVITY]{"type":"instagram_analyzing","message":"Analyzing @${instagramDecision.username}..."}[/AI_ACTIVITY]`);
+          if (typeof (res as any).flush === 'function') {
+            try { (res as any).flush(); } catch {}
+          }
+          
           instagramAnalysisResult = await performInstagramAnalysis(instagramDecision.username, userId);
           console.log(`📸 [CHAT_FLOW] Instagram analysis completed: ${Date.now() - analysisStart}ms - success: ${instagramAnalysisResult.success}`);
         }
