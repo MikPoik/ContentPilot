@@ -192,7 +192,13 @@ Example output:
 
       const memories = JSON.parse(cleanResult);
       return Array.isArray(memories)
-        ? memories.filter((m) => typeof m === "string" && m.length > 0)
+        ? memories.filter((m) => {
+            if (typeof m !== "string" || m.length < 10) return false;
+            const trimmed = m.trim();
+            // Only filter based on sentence completion and basic quality
+            return (trimmed.endsWith('.') || trimmed.endsWith('!') || trimmed.endsWith('?')) &&
+                   trimmed.split(' ').length >= 3; // At least 3 words
+          })
         : [];
     } catch (parseError) {
       console.log("Memory extraction JSON parse error:", parseError);
@@ -206,10 +212,12 @@ Example output:
           const extractedStrings = stringMatches
             .map((match) => match.slice(1, -1)) // Remove quotes
             .filter((str) => {
-              // Only keep strings that seem complete (end with punctuation or are reasonable length)
-              return str.length > 10 && 
-                     str.length < 300 && 
-                     (str.endsWith('.') || str.endsWith('!') || str.endsWith('?') || str.endsWith(',') || str.length > 50);
+              // Only keep strings that are meaningful and complete sentences
+              const trimmed = str.trim();
+              return trimmed.length > 10 && 
+                     trimmed.length < 300 && 
+                     (trimmed.endsWith('.') || trimmed.endsWith('!') || trimmed.endsWith('?')) &&
+                     trimmed.split(' ').length >= 3; // Must have at least 3 words
             })
             .slice(0, 5); // Max 5 memories
 
