@@ -147,7 +147,7 @@ export async function performInstagramAnalysis(
       const cachedAt = new Date(existingData.competitorAnalyses[username].cached_at);
       const hoursSinceCache = (Date.now() - cachedAt.getTime()) / (1000 * 60 * 60);
       
-      if (hoursSinceCache < 0) {
+      if (hoursSinceCache < 24) {
         console.log(`📸 [INSTAGRAM_AI] Using cached competitor analysis for @${username} (${hoursSinceCache.toFixed(1)}h old)`);
         return { 
           success: true,
