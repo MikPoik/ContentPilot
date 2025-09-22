@@ -225,8 +225,9 @@ Use GROK for X/Twitter content, PERPLEXITY for general web
 • Content/engagement pattern requests
 
 3. BLOG ANALYSIS - Content strategy examination:
-• Blog URL mentions with analytical intent
-• Writing style/strategy analysis requests
+• EXPLICIT blog URL mentions with analytical intent ("analyze my blog", "check this post", etc.)
+• EXPLICIT writing style/strategy analysis requests for blogs
+• MUST have actual URLs mentioned in conversation or clear blog analysis request
 
 4. WORKFLOW PHASE - User journey stage:
 • Discovery: Getting to know user (name, niche, platform)
@@ -236,10 +237,14 @@ Use GROK for X/Twitter content, PERPLEXITY for general web
 • Review: Content refinement
 • Finalization: Publishing prep
 
-RULES:
+STRICT VALIDATION RULES:
 - Block content creation until profile complete (name/niche/platform)
-- Extract usernames without @ symbol
-- Use semantic patterns, not keywords
+- Extract usernames without @ symbol ONLY if explicitly mentioned
+- For blog analysis: REQUIRE explicit blog URLs or clear blog analysis requests
+- For Instagram analysis: REQUIRE explicit username mentions or analysis requests
+- Do NOT hallucinate URLs, usernames, or requests that weren't mentioned
+- Be conservative - when in doubt, don't trigger analysis
+- Use semantic patterns, not keywords, but don't invent data
 
 Return JSON (only include fields when true/relevant):
 {
@@ -256,7 +261,11 @@ Return JSON (only include fields when true/relevant):
       RECENT CONVERSATION:
       ${conversationContext}
 
-      Analyze this conversation using semantic understanding for language-agnostic intent detection.`,
+      Analyze this conversation using semantic understanding for language-agnostic intent detection.
+      
+      CRITICAL: Only detect blog analysis if explicit URLs or clear blog analysis requests are mentioned. 
+      Only detect Instagram analysis if explicit usernames or analysis requests are mentioned.
+      Do NOT invent or hallucinate data that wasn't actually mentioned in the conversation.`,
         },
       ],
       max_tokens: 500, // Reduced for performance
