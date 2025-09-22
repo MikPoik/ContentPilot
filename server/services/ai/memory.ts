@@ -102,42 +102,33 @@ export async function extractMemoriesFromConversation(
       messages: [
         {
           role: "system",
-          content: `Extract meaningful facts, preferences, and context from this conversation that should be remembered for future interactions.
+          content: `Extract only the MOST valuable insights from this conversation. Quality over quantity - aim for 2-4 memories max.
 
-WHAT TO EXTRACT:
-- User's specific preferences, dislikes, and goals
-- Important personal or business details (name, business type, audience)
-- Content strategy decisions and what works/doesn't work for them
-- Insights about their niche, platform preferences, or approach
-- Actionable takeaways from the conversation
-
-QUALITY REQUIREMENTS:
-- Each memory must be complete, self-contained, and specific
-- Use 15-200 characters (complete thoughts, not fragments)
-- Include relevant context (who, what, when applicable)
-- Avoid vague phrases like "user prefers" - be specific about what they prefer
-- No incomplete thoughts, partial sentences, or meaningless fragments
+EXTRACT ONLY IF:
+- New specific preferences, dislikes, or strategy decisions
+- Key personal/business details not already known
+- Important content insights or what works/doesn't work
+- Clear actionable takeaways or goals
 
 ${existingMemories && existingMemories.length > 0 ? 
 `EXISTING MEMORIES TO AVOID DUPLICATING:
-${existingMemories.map(m => `- ${m.content}`).join('\n')}
+${existingMemories.slice(0, 3).map(m => `- ${m.content}`).join('\n')}
 
-DO NOT extract memories that are very similar to the existing ones above.` : ''}
+DO NOT extract anything similar to existing memories.` : ''}
 
-Return ONLY a JSON array of complete, meaningful memory statements. If no memorable information or if it would duplicate existing memories, return [].
+Each memory: complete sentence, 20-150 chars, specific and actionable.
 
-GOOD EXAMPLES:
-["User prefers video content over static images for better audience engagement", "Their target audience responds better to educational content than promotional posts", "User runs a consulting business specializing in digital marketing solutions"]
+Return JSON array or [] if no valuable new insights found.
 
-BAD EXAMPLES (avoid these):
-["or references", "User signs off posts with", "content", "prefers short-form", "uses hashtags", "posts regularly"]`,
+QUALITY EXAMPLES:
+["Prefers carousel posts over single images for better engagement", "Target audience: busy professionals seeking quick actionable tips"]`,
         },
         {
           role: "user",
           content: `User: ${userMessage}\n\nAssistant: ${assistantResponse}`,
         },
       ],
-      max_tokens: 500,
+      max_tokens: 250,
       temperature: 0.1,
     });
 

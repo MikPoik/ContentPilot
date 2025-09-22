@@ -340,19 +340,27 @@ export function registerMessageRoutes(app: Express) {
           const newMemories = await extractMemoriesFromConversation(content, fullResponse, relevantMemories);
           console.log(`🧠 [CHAT_FLOW] Memory extraction: ${Date.now() - memoryExtractionStart}ms (found ${newMemories.length} memories)`);
 
-          for (const memoryContent of newMemories) {
-            const memoryEmbeddingStart = Date.now();
-            const embedding = await generateEmbedding(memoryContent);
-            console.log(`🧠 [CHAT_FLOW] Memory embedding: ${Date.now() - memoryEmbeddingStart}ms`);
+          if (newMemories.length > 0) {
+            // Generate embeddings in parallel for much faster processing
+            const embeddingStart = Date.now();
+            const embeddings = await Promise.all(
+              newMemories.map(memoryContent => generateEmbedding(memoryContent))
+            );
+            console.log(`🧠 [CHAT_FLOW] Parallel embeddings: ${Date.now() - embeddingStart}ms (${embeddings.length} embeddings)`);
 
-            const memorySaveOneStart = Date.now();
-            await storage.upsertMemory({
-              userId,
-              content: memoryContent,
-              embedding,
-              metadata: { source: 'conversation', conversationId }
-            }, 0.85); // Use 0.85 similarity threshold for updates
-            console.log(`🧠 [CHAT_FLOW] Memory saved: ${Date.now() - memorySaveOneStart}ms`);
+            // Save memories in parallel as well
+            const saveStart = Date.now();
+            await Promise.all(
+              newMemories.map((memoryContent, index) => 
+                storage.upsertMemory({
+                  userId,
+                  content: memoryContent,
+                  embedding: embeddings[index],
+                  metadata: { source: 'conversation', conversationId }
+                }, 0.85) // Use 0.85 similarity threshold for updates
+              )
+            );
+            console.log(`🧠 [CHAT_FLOW] Parallel memory saves: ${Date.now() - saveStart}ms`);
           }
           console.log(`🧠 [CHAT_FLOW] Total memory processing: ${Date.now() - memorySaveStart}ms`);
         } catch (error) {
