@@ -160,11 +160,11 @@ export async function performInstagramAnalysis(
 
     // Determine if this is the user's own profile or a competitor analysis
     const profileData = user?.profileData as any;
-    const existingData = profileData || {};
+    const existingProfileData = profileData || {};
 
     // Check if this username matches any existing profile data to avoid overwriting
-    const existingInstagramUsername = existingData?.instagramProfile?.username;
-    const existingOwnUsername = existingData?.ownInstagramUsername;
+    const existingInstagramUsername = existingProfileData?.instagramProfile?.username;
+    const existingOwnUsername = existingProfileData?.ownInstagramUsername;
 
     // Only treat as own profile if:
     // 1. This username matches the existing ownInstagramUsername, OR  
@@ -172,31 +172,31 @@ export async function performInstagramAnalysis(
     // 3. No existing Instagram profile AND no existing own username (first time setup)
     const isOwnProfile = (existingOwnUsername === username) ||
                         (existingInstagramUsername === username) ||
-                        (!existingData.instagramProfile && !existingData.ownInstagramUsername);
+                        (!existingProfileData.instagramProfile && !existingProfileData.ownInstagramUsername);
 
     // Store the Instagram profile data appropriately
     let updatedProfileData;
     if (isOwnProfile) {
       // Store as the user's main Instagram profile, preserving all existing data
       updatedProfileData = {
-        ...existingData,
+        ...existingProfileData,
         instagramProfile,
         ownInstagramUsername: username
       };
 
       // Migration: If this profile was previously stored in competitorAnalyses, remove it
-      if (existingData?.competitorAnalyses?.[username]) {
-        const { [username]: removedProfile, ...remainingCompetitors } = existingData.competitorAnalyses;
+      if (existingProfileData?.competitorAnalyses?.[username]) {
+        const { [username]: removedProfile, ...remainingCompetitors } = existingProfileData.competitorAnalyses;
         updatedProfileData.competitorAnalyses = remainingCompetitors;
         console.log(`📸 [INSTAGRAM_AI] Migrated @${username} from competitor analysis to main profile`);
       }
     } else {
       // Store as competitor analysis, preserving all existing profile data
-      const competitorAnalyses = existingData?.competitorAnalyses || {};
+      const competitorAnalyses = existingProfileData?.competitorAnalyses || {};
       competitorAnalyses[username] = instagramProfile;
 
       updatedProfileData = {
-        ...existingData,
+        ...existingProfileData,
         competitorAnalyses
       };
     }
