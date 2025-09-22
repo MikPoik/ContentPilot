@@ -136,10 +136,10 @@ DO NOT extract memories that are very similar to the existing ones above.` : ''}
 Return ONLY a JSON array of complete, meaningful memory statements. If no memorable information or if it would duplicate existing memories, return [].
 
 GOOD EXAMPLES:
-["Hanna runs Oivallus Akatemia offering solution-focused therapy and couples therapy", "User wants to focus on Instagram Reels over static posts for better engagement", "Their audience responds best to behind-the-scenes therapy content rather than promotional posts"]
+["User prefers video content over static images for better audience engagement", "Their target audience responds better to educational content than promotional posts", "User runs a consulting business specializing in digital marketing solutions"]
 
 BAD EXAMPLES (avoid these):
-["or references", "User signs off posts with", "content", "prefers short-form"]`,
+["or references", "User signs off posts with", "content", "prefers short-form", "uses hashtags", "posts regularly"]`,
         },
         {
           role: "user",
