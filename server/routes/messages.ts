@@ -141,7 +141,7 @@ export function registerMessageRoutes(app: Express) {
       try {
         console.log(`🧠 [CHAT_FLOW] Starting unified intent analysis...`);
         const unifiedDecision = await analyzeUnifiedIntent(chatHistory, user);
-        console.log(`🧠 [CHAT_FLOW] Unified intent analysis: ${Date.now() - unifiedIntentStart}ms - webSearch: ${unifiedDecision.webSearch.shouldSearch}, instagram: ${unifiedDecision.instagramAnalysis.shouldAnalyze}, blog: ${unifiedDecision.blogAnalysis.shouldAnalyze}, profileUpdate: ${unifiedDecision.profileUpdate.shouldExtract}, phase: ${unifiedDecision.workflowPhase.currentPhase}`);
+        console.log(`🧠 [CHAT_FLOW] Unified intent analysis: ${Date.now() - unifiedIntentStart}ms - webSearch: ${unifiedDecision.webSearch.shouldSearch}, instagram: ${unifiedDecision.instagramAnalysis.shouldAnalyze}, blog: ${unifiedDecision.blogAnalysis.shouldAnalyze}, profileUpdate: ${unifiedDecision.profileUpdate?.shouldExtract || false}, phase: ${unifiedDecision.workflowPhase.currentPhase}`);
 
         // Extract individual decisions for backward compatibility
         const instagramDecision = extractInstagramAnalysisDecision(unifiedDecision);
@@ -287,13 +287,13 @@ export function registerMessageRoutes(app: Express) {
           const hasSuccessfulAnalysis = (instagramAnalysisResult?.success || blogAnalysisResult?.success);
           
           let conversationProfileUpdates: any = {};
-          if ((profileUpdateDecision.shouldExtract && profileUpdateDecision.confidence >= 0.7) || hasSuccessfulAnalysis) {
+          if ((profileUpdateDecision?.shouldExtract && profileUpdateDecision.confidence >= 0.7) || hasSuccessfulAnalysis) {
             const profileExtractionStart = Date.now();
             conversationProfileUpdates = await extractProfileInfo(content, fullResponse, user!);
-            const reason = hasSuccessfulAnalysis ? "post-analysis extraction" : profileUpdateDecision.reason;
+            const reason = hasSuccessfulAnalysis ? "post-analysis extraction" : (profileUpdateDecision?.reason || "intent analysis");
             console.log(`👤 [CHAT_FLOW] Profile extraction (intent-driven): ${Date.now() - profileExtractionStart}ms - reason: ${reason}`);
           } else {
-            console.log(`👤 [CHAT_FLOW] Skipping profile extraction - not recommended by intent analysis (shouldExtract: ${profileUpdateDecision.shouldExtract}, confidence: ${profileUpdateDecision.confidence})`);
+            console.log(`👤 [CHAT_FLOW] Skipping profile extraction - not recommended by intent analysis (shouldExtract: ${profileUpdateDecision?.shouldExtract || false}, confidence: ${profileUpdateDecision?.confidence || 0})`);
           }
 
           // Merge workflow patches with conversation-extracted updates
