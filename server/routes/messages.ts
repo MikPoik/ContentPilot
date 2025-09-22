@@ -5,7 +5,7 @@ import { generateChatResponse, generateConversationTitle, type ChatResponseWithM
 import { generateEmbedding } from "../services/openai";
 import { extractProfileInfo } from "../services/ai/profile";
 import { extractMemoriesFromConversation, rephraseQueryForEmbedding } from "../services/ai/memory";
-import { analyzeUnifiedIntent, extractWebSearchDecision, extractInstagramAnalysisDecision, extractBlogAnalysisDecision } from "../services/ai/intent"; // Unified intent classification
+import { analyzeUnifiedIntent, extractWebSearchDecision, extractInstagramAnalysisDecision, extractBlogAnalysisDecision, extractProfileUpdateDecision } from "../services/ai/intent"; // Unified intent classification
 import { performInstagramAnalysis, formatInstagramAnalysisForChat } from "../services/ai/instagram"; // Added Instagram integration
 import { performBlogAnalysis, formatBlogAnalysisForChat } from "../services/ai/blog"; // Added blog analysis
 
@@ -140,11 +140,12 @@ export function registerMessageRoutes(app: Express) {
       try {
         console.log(`🧠 [CHAT_FLOW] Starting unified intent analysis...`);
         const unifiedDecision = await analyzeUnifiedIntent(chatHistory, user);
-        console.log(`🧠 [CHAT_FLOW] Unified intent analysis: ${Date.now() - unifiedIntentStart}ms - webSearch: ${unifiedDecision.webSearch.shouldSearch}, instagram: ${unifiedDecision.instagramAnalysis.shouldAnalyze}, blog: ${unifiedDecision.blogAnalysis.shouldAnalyze}, phase: ${unifiedDecision.workflowPhase.currentPhase}`);
+        console.log(`🧠 [CHAT_FLOW] Unified intent analysis: ${Date.now() - unifiedIntentStart}ms - webSearch: ${unifiedDecision.webSearch.shouldSearch}, instagram: ${unifiedDecision.instagramAnalysis.shouldAnalyze}, blog: ${unifiedDecision.blogAnalysis.shouldAnalyze}, profileUpdate: ${unifiedDecision.profileUpdate.shouldExtract}, phase: ${unifiedDecision.workflowPhase.currentPhase}`);
 
         // Extract individual decisions for backward compatibility
         const instagramDecision = extractInstagramAnalysisDecision(unifiedDecision);
         const blogDecision = extractBlogAnalysisDecision(unifiedDecision);
+        const profileUpdateDecision = extractProfileUpdateDecision(unifiedDecision);
         searchDecision = extractWebSearchDecision(unifiedDecision);
         workflowPhaseDecision = unifiedDecision.workflowPhase;
 
@@ -274,18 +275,18 @@ export function registerMessageRoutes(app: Express) {
             console.log(`🔄 [CHAT_FLOW] Workflow profile patches:`, Object.keys(combinedProfileUpdates));
           }
 
-          // Only skip profile extraction if workflow provided a major update (like blog analysis)
-          // Always run for basic profile updates to catch changes to existing information
-          const hasMajorWorkflowUpdate = combinedProfileUpdates.profileData?.blogProfile || 
-            combinedProfileUpdates.profileData?.instagramProfile;
-
+          // Use intent-driven profile extraction instead of always running it
+          // Also trigger after successful blog/Instagram analysis when new data is available
+          const hasSuccessfulAnalysis = (instagramAnalysisResult?.success || blogAnalysisResult?.success);
+          
           let conversationProfileUpdates = {};
-          if (!hasMajorWorkflowUpdate) {
+          if ((profileUpdateDecision.shouldExtract && profileUpdateDecision.confidence >= 0.7) || hasSuccessfulAnalysis) {
             const profileExtractionStart = Date.now();
             conversationProfileUpdates = await extractProfileInfo(content, fullResponse, user!);
-            console.log(`👤 [CHAT_FLOW] Profile extraction: ${Date.now() - profileExtractionStart}ms`);
+            const reason = hasSuccessfulAnalysis ? "post-analysis extraction" : profileUpdateDecision.reason;
+            console.log(`👤 [CHAT_FLOW] Profile extraction (intent-driven): ${Date.now() - profileExtractionStart}ms - reason: ${reason}`);
           } else {
-            console.log(`👤 [CHAT_FLOW] Skipping profile extraction - major workflow analysis completed (blog/instagram)`);
+            console.log(`👤 [CHAT_FLOW] Skipping profile extraction - not recommended by intent analysis (shouldExtract: ${profileUpdateDecision.shouldExtract}, confidence: ${profileUpdateDecision.confidence})`);
           }
 
           // Merge workflow patches with conversation-extracted updates

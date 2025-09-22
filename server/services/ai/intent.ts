@@ -501,6 +501,12 @@ export function extractBlogAnalysisDecision(
   return unifiedDecision.blogAnalysis;
 }
 
+export function extractProfileUpdateDecision(
+  unifiedDecision: UnifiedIntentDecision,
+): ProfileUpdateDecision {
+  return unifiedDecision.profileUpdate;
+}
+
 export function extractWorkflowPhaseDecision(
   unifiedDecision: UnifiedIntentDecision,
 ): WorkflowPhaseDecision {
