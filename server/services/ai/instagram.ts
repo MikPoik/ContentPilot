@@ -212,11 +212,11 @@ export async function performInstagramAnalysis(
       `Similar accounts to ${username}: ${instagramProfile.similar_accounts.map(acc => `${acc.username} (${acc.followers} followers)`).join(', ')}`
     ];
 
-    // Generate embeddings and store memories
+    // Generate embeddings and store memories with deduplication
     for (const text of memoryTexts) {
       try {
         const embedding = await generateEmbedding(text);
-        await storage.createMemory({
+        await storage.upsertMemory({
           userId,
           content: text,
           embedding,
@@ -225,7 +225,7 @@ export async function performInstagramAnalysis(
             username: username,
             analysisDate: instagramProfile.cached_at
           }
-        });
+        }, 0.85); // 85% similarity threshold for Instagram memories
       } catch (embeddingError) {
         console.error('Error creating memory embedding:', embeddingError);
       }

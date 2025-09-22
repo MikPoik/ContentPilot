@@ -24,6 +24,7 @@ export interface IStorage {
   getMemories(userId: string): Promise<Memory[]>;
   getMemory(id: string): Promise<Memory | undefined>;
   createMemory(memory: InsertMemory): Promise<Memory>;
+  upsertMemory(memory: InsertMemory, similarityThreshold?: number): Promise<Memory>;
   deleteMemory(id: string): Promise<boolean>;
   searchSimilarMemories(userId: string, embedding: number[], limit?: number): Promise<(Memory & { similarity: number })[]>;
   
