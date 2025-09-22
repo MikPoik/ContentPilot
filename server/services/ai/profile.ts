@@ -51,15 +51,19 @@ export async function extractProfileInfo(userMessage: string, assistantResponse:
       messages: [
         {
           role: 'system',
-          content: `Extract user profile info. Return JSON with only fields found:
+          content: `Extract user profile info. Return JSON with only NEW or UPDATED fields:
 
-Fields:
-- firstName, lastName
-- contentNiche (array)
-- primaryPlatform 
-- profileData: {targetAudience, brandVoice, businessType, contentGoals, blogProfile}
+Fields: firstName, lastName, contentNiche (array), primaryPlatform, profileData: {targetAudience, brandVoice, businessType, contentGoals, blogProfile}
 
-Return {} if no new info found.`
+Current profile: ${JSON.stringify({
+            firstName: user.firstName,
+            lastName: user.lastName,
+            contentNiche: user.contentNiche,
+            primaryPlatform: user.primaryPlatform,
+            profileData: user.profileData
+          })}
+
+Return {} if no changes found.`
         },
         {
           role: 'user',
@@ -67,7 +71,7 @@ Return {} if no new info found.`
 
 AI: ${assistantResponse}
 
-Extract profile info:`
+Extract only new/changed info:`
         }
       ],
       max_tokens: 150,

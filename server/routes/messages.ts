@@ -274,19 +274,18 @@ export function registerMessageRoutes(app: Express) {
             console.log(`🔄 [CHAT_FLOW] Workflow profile patches:`, Object.keys(combinedProfileUpdates));
           }
 
-          // Skip profile extraction if workflow already provided comprehensive updates
-          const hasComprehensiveWorkflowUpdates = combinedProfileUpdates.firstName || 
-            combinedProfileUpdates.contentNiche || 
-            combinedProfileUpdates.primaryPlatform ||
-            combinedProfileUpdates.profileData?.blogProfile;
+          // Only skip profile extraction if workflow provided a major update (like blog analysis)
+          // Always run for basic profile updates to catch changes to existing information
+          const hasMajorWorkflowUpdate = combinedProfileUpdates.profileData?.blogProfile || 
+            combinedProfileUpdates.profileData?.instagramProfile;
 
           let conversationProfileUpdates = {};
-          if (!hasComprehensiveWorkflowUpdates) {
+          if (!hasMajorWorkflowUpdate) {
             const profileExtractionStart = Date.now();
             conversationProfileUpdates = await extractProfileInfo(content, fullResponse, user!);
             console.log(`👤 [CHAT_FLOW] Profile extraction: ${Date.now() - profileExtractionStart}ms`);
           } else {
-            console.log(`👤 [CHAT_FLOW] Skipping profile extraction - workflow provided comprehensive updates`);
+            console.log(`👤 [CHAT_FLOW] Skipping profile extraction - major workflow analysis completed (blog/instagram)`);
           }
 
           // Merge workflow patches with conversation-extracted updates
