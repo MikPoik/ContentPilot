@@ -290,7 +290,19 @@ export function registerMessageRoutes(app: Express) {
 
           // Merge workflow patches with conversation-extracted updates
           if (conversationProfileUpdates && Object.keys(conversationProfileUpdates).length > 0) {
-            combinedProfileUpdates = { ...combinedProfileUpdates, ...conversationProfileUpdates };
+            // Deep merge profileData to avoid overwriting nested objects like blogProfile
+            if (combinedProfileUpdates.profileData && conversationProfileUpdates.profileData) {
+              combinedProfileUpdates = {
+                ...combinedProfileUpdates,
+                ...conversationProfileUpdates,
+                profileData: {
+                  ...combinedProfileUpdates.profileData,
+                  ...conversationProfileUpdates.profileData
+                }
+              };
+            } else {
+              combinedProfileUpdates = { ...combinedProfileUpdates, ...conversationProfileUpdates };
+            }
           }
 
           // Check for automatic Instagram analysis during discovery
