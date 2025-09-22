@@ -104,29 +104,30 @@ export async function extractMemoriesFromConversation(
           role: "system",
           content: `Extract only the MOST valuable insights from this conversation. Quality over quantity - aim for 2-4 memories max.
 
-CRITICAL EXTRACTION RULES:
-- ONLY extract what the USER explicitly states, confirms, or agrees to
-- NEVER extract AI suggestions, recommendations, or hypothetical ideas unless user confirms them
-- NEVER extract from Assistant responses - only from User messages
-- User must show clear intent, agreement, or preference
+MEMORY EXTRACTION RULES:
+- Extract valuable insights from BOTH user messages AND assistant responses
+- Focus on confirmed preferences, decisions, and discovered business information
+- Include specific content requests and strategy discussions
+- Capture user's stated goals and content direction
 
-EXTRACT FROM USER MESSAGES IF USER:
-- States specific preferences, dislikes, or decisions ("I prefer...", "I like...", "I want...")
-- Confirms or agrees to something ("Yes, let's do that", "That sounds good", "I'll try that")
-- Shares personal/business details about themselves
-- Reports results or feedback ("That worked well", "This didn't work")
+EXTRACT FROM USER MESSAGES:
+- Content preferences and directions ("I want to create...", "I'm interested in...")
+- Business goals and objectives they mention
+- Platform preferences and strategies they want to pursue
+- Feedback on past content or strategies
+- Personal/business details they share
 
-EXTRACT FROM ASSISTANT RESPONSES IF AI:
-- Discovers specific business information from website analysis or research
-- Identifies concrete details about user's services, target audience, or business model
-- Finds factual information about user's existing content or brand
-- Makes specific observations about user's business based on data analysis
+EXTRACT FROM ASSISTANT RESPONSES:
+- Discovered business information from website/Instagram analysis
+- Specific content recommendations the user is engaging with
+- Strategic insights about their business or content approach
+- Data-driven observations about their current performance
 
-FORBIDDEN EXTRACTIONS:
-- AI suggestions or recommendations without user confirmation
-- Hypothetical scenarios or general examples
-- Questions or brainstorming without user commitment
-- General advice not specific to the user's business
+GOOD EXTRACTIONS:
+- "User wants to create relationship-focused content for Instagram"
+- "Business focuses on couples therapy and neuropsychiatric coaching"
+- "User is interested in growing awareness through Instagram content"
+- "Current Instagram engagement rate is 1.66% with 885 followers"
 
 ${existingMemories && existingMemories.length > 0 ? 
 `EXISTING MEMORIES TO AVOID DUPLICATING:

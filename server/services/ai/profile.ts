@@ -64,43 +64,31 @@ Current profile: ${JSON.stringify({
             profileData: user.profileData
           })}
 
+EXTRACTION GUIDELINES - BE MORE SELECTIVE:
+
+ONLY EXTRACT SIGNIFICANT PROFILE CHANGES:
+1. NEW business information not already in the profile
+2. MAJOR corrections or updates to existing information
+3. CONCRETE business details discovered through analysis (website, Instagram, etc.)
+4. EXPLICIT user statements about their business/goals that ADD new information
+
+DO NOT EXTRACT:
+- Minor variations of existing contentNiche items
+- Repeated information already in the profile
+- General conversation topics that don't add new profile data
+- Content ideas or recommendations without explicit user adoption
+
 EXTRACTION SOURCES:
-1. USER MESSAGE: Direct statements by the user about their business, goals, or preferences
-2. ASSISTANT RESPONSE: Business information discovered from website analysis, research, or insights about the user's company
+1. USER MESSAGE: Only extract if user explicitly states NEW business info, goals, or major changes
+2. ASSISTANT RESPONSE: Only extract from website/Instagram analysis or other concrete business discoveries
 
-IMPORTANT GUIDELINES FOR EXTRACTION:
+CURRENT USER PROFILE FOR COMPARISON:
+- contentNiche: ${user.contentNiche?.join(', ') || 'Not set'}
+- primaryPlatform: ${user.primaryPlatform || 'Not set'}
+- targetAudience: ${(user.profileData as any)?.targetAudience || 'Not set'}
+- businessType: ${(user.profileData as any)?.businessType || 'Not set'}
 
-1. From USER MESSAGE:
-   - Personal information and direct business statements
-   - Platform preferences, content goals, target audience descriptions
-   - Business type and niche information directly stated by user
-
-2. From ASSISTANT RESPONSE:
-   - Business information discovered from website/research (businessType, services offered)
-   - Insights about target audience based on company analysis
-   - Brand voice characteristics identified from company materials
-   - Content niche information derived from business analysis
-
-3. contentNiche WITH FLEXIBLE RULES:
-   - Extract terms that could have broader meanings, even if generically expressed
-   - Include both broad and specific industries like "fitness", "business growth", "marketing strategies"
-   - Examples: "I teach yoga" → extract "yoga", "consulting business" → extract "consulting"
-
-4. targetAudience FLEXIBLE EXTRACTION:
-   - Look for implied audience descriptions from business analysis
-   - Examples: "serves entrepreneurs" → extract, "helps busy professionals" → extract
-
-5. businessType EXTRACTION:
-   - Extract from discovered business information in assistant response
-   - Examples: "consulting firm", "educational services", "wellness coaching"
-
-CRITICAL RULES:
-- Only extract information that's clearly about the USER'S business/profile
-- Don't extract general advice or examples given by assistant
-- Focus on factual discoveries about the user's actual business
-- Ensure {} is returned only if absolutely no relevant business information is found
-
-Extract from BOTH user message AND assistant insights about the user's business.`
+ONLY extract if there's genuinely NEW or SIGNIFICANTLY DIFFERENT information.`
         },
         {
           role: 'user',
