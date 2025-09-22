@@ -169,7 +169,7 @@ export async function analyzeUnifiedIntent(
       
       // Check what we actually have
       const hasName = !!(user.firstName);
-      const hasNiche = !!(user.contentNiche?.length);
+      const hasNiche = !!(user.contentNiche && user.contentNiche.length > 0);
       const hasPlatform = !!(user.primaryPlatform);
       const hasTargetAudience = !!(data.targetAudience);
       const hasBrandVoice = !!(data.brandVoice);
