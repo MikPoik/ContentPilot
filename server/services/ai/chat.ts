@@ -4,10 +4,9 @@ import { perplexityService } from "../perplexity";
 import { grokService } from "../grok";
 import {
   buildWorkflowAwareSystemPrompt,
-  decideWorkflowPhase,
   type WorkflowPhaseDecision,
 } from "./workflow";
-import { decideWebSearch, type WebSearchDecision } from "./search";
+import { type WebSearchDecision } from "./intent";
 // Import functions to be used internally
 
 // the newest OpenAI model is "gpt-4.1" which was released May 13, 2025. do not change this unless explicitly requested by the user
@@ -49,15 +48,29 @@ export async function generateChatResponse(
   relevantMemories: any[] = [],
   searchDecision?: any,
   instagramAnalysisResult?: any,
-  blogAnalysisResult?: any
+  blogAnalysisResult?: any,
+  workflowDecision?: WorkflowPhaseDecision
 ): Promise<ChatResponseWithMetadata> {
   const startTime = Date.now();
   console.log(`🤖 [AI_SERVICE] Building workflow-aware response...`);
 
-  // Get workflow phase decision
-  const workflowDecision = await decideWorkflowPhase(messages, user);
+  // Use workflow phase decision from caller (unified intent analysis)
+  if (!workflowDecision) {
+    // Fallback for backward compatibility - shouldn't happen in normal operation
+    console.warn(`⚠️ [AI_SERVICE] No workflow decision provided, this shouldn't happen with unified intent system`);
+    workflowDecision = {
+      currentPhase: "Discovery & Personalization",
+      missingFields: ["name", "niche", "platform"],
+      readyToAdvance: false,
+      suggestedPrompts: ["What's your name?", "What type of content do you create?"],
+      profilePatch: {},
+      shouldBlockContentGeneration: true,
+      confidence: 0.9
+    };
+  }
+  
   console.log(
-    `🔄 [AI_SERVICE] Workflow phase: ${workflowDecision.currentPhase}, block content: ${workflowDecision.shouldBlockContentGeneration}`,
+    `🔄 [AI_SERVICE] Using workflow phase: ${workflowDecision.currentPhase}, block content: ${workflowDecision.shouldBlockContentGeneration}`,
   );
 
   // Use search decision from caller (routes layer)

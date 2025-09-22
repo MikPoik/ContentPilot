@@ -4,8 +4,8 @@ import { isAuthenticated } from "../replitAuth";
 import { generateChatResponse, generateConversationTitle, generateEmbedding, type ChatResponseWithMetadata } from "../services/ai/chat";
 import { extractProfileInfo } from "../services/ai/profile";
 import { extractMemoriesFromConversation, rephraseQueryForEmbedding } from "../services/ai/memory";
-import { decideWebSearch, decideBlogAnalysis } from "../services/ai/search"; // Added import
-import { decideInstagramAnalysis, performInstagramAnalysis, formatInstagramAnalysisForChat } from "../services/ai/instagram"; // Added Instagram integration
+import { analyzeUnifiedIntent, extractWebSearchDecision, extractInstagramAnalysisDecision, extractBlogAnalysisDecision } from "../services/ai/intent"; // Unified intent classification
+import { performInstagramAnalysis, formatInstagramAnalysisForChat } from "../services/ai/instagram"; // Added Instagram integration
 import { performBlogAnalysis, formatBlogAnalysisForChat } from "../services/ai/blog"; // Added blog analysis
 
 export function registerMessageRoutes(app: Express) {
@@ -129,42 +129,53 @@ export function registerMessageRoutes(app: Express) {
         console.log(`❌ [CHAT_FLOW] Memory search failed: ${error}`);
       }
 
-      // Check for Instagram analysis requests and auto-analysis during discovery
-      const instagramAnalysisStart = Date.now();
+      // Use unified intent analysis to make all decisions in a single AI call
+      const unifiedIntentStart = Date.now();
       let instagramAnalysisResult: any = null;
+      let blogAnalysisResult: any = null;
+      let searchDecision: any = null;
+      let workflowPhaseDecision: any = null;
+
       try {
-        const instagramDecision = await decideInstagramAnalysis(chatHistory, user);
-        console.log(`📸 [CHAT_FLOW] Instagram analysis decision: ${Date.now() - instagramAnalysisStart}ms - shouldAnalyze: ${instagramDecision.shouldAnalyze}, confidence: ${instagramDecision.confidence}`);
-        
+        console.log(`🧠 [CHAT_FLOW] Starting unified intent analysis...`);
+        const unifiedDecision = await analyzeUnifiedIntent(chatHistory, user);
+        console.log(`🧠 [CHAT_FLOW] Unified intent analysis: ${Date.now() - unifiedIntentStart}ms - webSearch: ${unifiedDecision.webSearch.shouldSearch}, instagram: ${unifiedDecision.instagramAnalysis.shouldAnalyze}, blog: ${unifiedDecision.blogAnalysis.shouldAnalyze}, phase: ${unifiedDecision.workflowPhase.currentPhase}`);
+
+        // Extract individual decisions for backward compatibility
+        const instagramDecision = extractInstagramAnalysisDecision(unifiedDecision);
+        const blogDecision = extractBlogAnalysisDecision(unifiedDecision);
+        searchDecision = extractWebSearchDecision(unifiedDecision);
+        workflowPhaseDecision = unifiedDecision.workflowPhase;
+
+        // Handle Instagram analysis if needed
         if (instagramDecision.shouldAnalyze && instagramDecision.username && instagramDecision.confidence >= 0.7) {
           console.log(`📸 [CHAT_FLOW] Performing Instagram analysis for @${instagramDecision.username}...`);
           const analysisStart = Date.now();
           instagramAnalysisResult = await performInstagramAnalysis(instagramDecision.username, userId);
           console.log(`📸 [CHAT_FLOW] Instagram analysis completed: ${Date.now() - analysisStart}ms - success: ${instagramAnalysisResult.success}`);
         }
-      } catch (error) {
-        console.log(`❌ [CHAT_FLOW] Instagram analysis error: ${error}`);
-      }
 
-      // Check for blog analysis requests
-      const blogAnalysisStart = Date.now();
-      let blogAnalysisResult: any = null;
-      try {
-        const blogDecision = await decideBlogAnalysis(chatHistory, user);
-        console.log(`📝 [CHAT_FLOW] Blog analysis decision: ${Date.now() - blogAnalysisStart}ms - shouldAnalyze: ${blogDecision.shouldAnalyze}, confidence: ${blogDecision.confidence}`);
-        
+        // Handle blog analysis if needed
         if (blogDecision.shouldAnalyze && blogDecision.urls.length > 0 && blogDecision.confidence >= 0.7) {
           console.log(`📝 [CHAT_FLOW] Performing blog analysis for ${blogDecision.urls.length} URLs...`);
           const analysisStart = Date.now();
           blogAnalysisResult = await performBlogAnalysis(blogDecision.urls, userId);
           console.log(`📝 [CHAT_FLOW] Blog analysis completed: ${Date.now() - analysisStart}ms - success: ${blogAnalysisResult.success}`);
         }
-      } catch (error) {
-        console.log(`❌ [CHAT_FLOW] Blog analysis error: ${error}`);
-      }
 
-      // Make search decision first, before generating response
-      const searchDecision = await decideWebSearch(chatHistory, user); // Used the imported function
+      } catch (error) {
+        console.log(`❌ [CHAT_FLOW] Unified intent analysis error: ${error}`);
+        // Fallback to safe defaults
+        searchDecision = {
+          shouldSearch: false,
+          confidence: 0.0,
+          reason: "Error in unified analysis",
+          refinedQuery: "",
+          recency: 'week',
+          domains: [],
+          searchService: 'perplexity'
+        };
+      }
 
       // Set up streaming response
       // Important: prevent any intermediary (proxies) from buffering so chunks reach client immediately
@@ -200,7 +211,7 @@ export function registerMessageRoutes(app: Express) {
       // Generate AI response stream with user profile and memories
       const aiResponseStart = Date.now();
       console.log(`🤖 [CHAT_FLOW] Starting AI response generation...`);
-      const responseWithMetadata: ChatResponseWithMetadata = await generateChatResponse(chatHistory, user, relevantMemories, searchDecision, instagramAnalysisResult, blogAnalysisResult); // Pass both analysis results
+      const responseWithMetadata: ChatResponseWithMetadata = await generateChatResponse(chatHistory, user, relevantMemories, searchDecision, instagramAnalysisResult, blogAnalysisResult, workflowPhaseDecision); // Pass workflow decision from unified intent analysis
       let fullResponse = '';
 
       // Send search metadata immediately when search is performed (even with 0 citations)
