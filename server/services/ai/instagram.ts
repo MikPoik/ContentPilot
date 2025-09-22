@@ -83,7 +83,7 @@ Should I analyze an Instagram profile based on this conversation?`
 
     // Parse JSON with robust parsing
     let sanitizedResult = result.trim();
-    
+
     if (sanitizedResult.startsWith('```') && sanitizedResult.endsWith('```')) {
       const lines = sanitizedResult.split('\n');
       sanitizedResult = lines.slice(1, -1).join('\n');
@@ -126,12 +126,12 @@ export async function performInstagramAnalysis(
     // Check if profile was analyzed recently (within 24 hours)
     const user = await storage.getUser(userId);
     const existingData = user?.profileData as any;
-    
+
     // Check user's own profile first
     if (existingData?.instagramProfile?.username === username) {
       const cachedAt = new Date(existingData.instagramProfile.cached_at);
       const hoursSinceCache = (Date.now() - cachedAt.getTime()) / (1000 * 60 * 60);
-      
+
       if (hoursSinceCache < 24) {
         console.log(`📸 [INSTAGRAM_AI] Using cached user profile for @${username} (${hoursSinceCache.toFixed(1)}h old)`);
         return { 
@@ -141,12 +141,12 @@ export async function performInstagramAnalysis(
         };
       }
     }
-    
+
     // Check competitor analyses
     if (existingData?.competitorAnalyses?.[username]) {
       const cachedAt = new Date(existingData.competitorAnalyses[username].cached_at);
       const hoursSinceCache = (Date.now() - cachedAt.getTime()) / (1000 * 60 * 60);
-      
+
       if (hoursSinceCache < 24) {
         console.log(`📸 [INSTAGRAM_AI] Using cached competitor analysis for @${username} (${hoursSinceCache.toFixed(1)}h old)`);
         return { 
@@ -159,14 +159,13 @@ export async function performInstagramAnalysis(
 
     // Analyze the Instagram profile using HikerAPI
     const instagramProfile = await hikerApiService.analyzeInstagramProfile(username);
-    
+
     // Determine if this is the user's own profile or a competitor analysis
-    // Check multiple indicators: existing ownInstagramUsername, profileData.instagramUsername, or if this is the first Instagram analysis
     const profileData = user?.profileData as any;
-    const isOwnProfile = profileData?.ownInstagramUsername === username || 
-                        profileData?.instagramUsername === username ||
-                        (!profileData?.competitorAnalyses && !profileData?.instagramProfile);
-    
+
+    // If profileData is null/undefined or no existing Instagram profile, treat this as the user's main profile
+    const isOwnProfile = !profileData || !profileData.instagramProfile;
+
     // Store the Instagram profile data appropriately
     let updatedProfileData;
     if (isOwnProfile) {
@@ -176,7 +175,7 @@ export async function performInstagramAnalysis(
         instagramProfile,
         ownInstagramUsername: username
       };
-      
+
       // Migration: If this profile was previously stored in competitorAnalyses, remove it
       if (existingData?.competitorAnalyses?.[username]) {
         const { [username]: removedProfile, ...remainingCompetitors } = existingData.competitorAnalyses;
@@ -187,7 +186,7 @@ export async function performInstagramAnalysis(
       // Store competitor analyses separately without overwriting user's profile
       const competitorAnalyses = existingData?.competitorAnalyses || {};
       competitorAnalyses[username] = instagramProfile;
-      
+
       updatedProfileData = {
         ...existingData,
         competitorAnalyses
@@ -234,7 +233,7 @@ export async function performInstagramAnalysis(
 
   } catch (error) {
     console.error(`❌ [INSTAGRAM_AI] Instagram analysis failed for @${username} after ${Date.now() - startTime}ms:`, error);
-    
+
     let errorMessage = 'Failed to analyze Instagram profile';
     if (error instanceof Error) {
       if (error.message.includes('User not found')) {
@@ -258,7 +257,7 @@ export function formatInstagramAnalysisForChat(analysis: any, cached: boolean = 
   if (!analysis) return "Unable to retrieve Instagram analysis.";
 
   const cacheIndicator = cached ? " (from recent analysis)" : "";
-  
+
   return `📸 **Instagram Analysis for @${analysis.username}**${cacheIndicator}
 
 👥 **Audience & Reach:**
