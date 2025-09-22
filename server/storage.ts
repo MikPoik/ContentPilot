@@ -171,7 +171,8 @@ export class DatabaseStorage implements IStorage {
         if (Array.isArray(newValue) && Array.isArray(mergedNestedProfileData[key])) {
           // Merge arrays and remove duplicates
           const combined = [...(mergedNestedProfileData[key] || []), ...newValue];
-          mergedNestedProfileData[key] = [...new Set(combined.filter(item => item != null && item !== ''))];
+          const uniqueFiltered = combined.filter(item => item != null && item !== '');
+          mergedNestedProfileData[key] = Array.from(new Set(uniqueFiltered));
         } else if (newValue !== null && newValue !== undefined && newValue !== '') {
           // For non-array fields, update only if new value is meaningful
           mergedNestedProfileData[key] = newValue;
@@ -210,6 +211,46 @@ export class DatabaseStorage implements IStorage {
       .values(insertMemory)
       .returning();
     return memory;
+  }
+
+  async upsertMemory(insertMemory: InsertMemory, similarityThreshold: number = 0.9): Promise<Memory> {
+    // First, search for very similar existing memories
+    if (!insertMemory.embedding) {
+      throw new Error('Embedding is required for upsert operation');
+    }
+    
+    const similarMemories = await this.searchSimilarMemories(
+      insertMemory.userId, 
+      insertMemory.embedding, 
+      5
+    );
+
+    // Find the most similar memory above threshold
+    const existingSimilar = similarMemories.find(m => m.similarity >= similarityThreshold);
+
+    if (existingSimilar) {
+      // Update the existing memory with new content and embedding
+      console.log(`🔄 [MEMORY_UPSERT] Updating existing memory (similarity: ${existingSimilar.similarity.toFixed(3)})`);
+      const [updatedMemory] = await db
+        .update(memories)
+        .set({
+          content: insertMemory.content,
+          embedding: insertMemory.embedding,
+          metadata: insertMemory.metadata,
+          createdAt: new Date() // Update timestamp to show it's been refreshed
+        })
+        .where(eq(memories.id, existingSimilar.id))
+        .returning();
+      return updatedMemory;
+    } else {
+      // No similar memory found, create new one
+      console.log(`➕ [MEMORY_UPSERT] Creating new memory (no similar found above ${similarityThreshold})`);
+      const [newMemory] = await db
+        .insert(memories)
+        .values(insertMemory)
+        .returning();
+      return newMemory;
+    }
   }
 
   async deleteMemory(id: string): Promise<boolean> {

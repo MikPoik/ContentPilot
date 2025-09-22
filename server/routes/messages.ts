@@ -307,12 +307,12 @@ export function registerMessageRoutes(app: Express) {
             console.log(`🧠 [CHAT_FLOW] Memory embedding: ${Date.now() - memoryEmbeddingStart}ms`);
 
             const memorySaveOneStart = Date.now();
-            await storage.createMemory({
+            await storage.upsertMemory({
               userId,
               content: memoryContent,
               embedding,
               metadata: { source: 'conversation', conversationId }
-            });
+            }, 0.85); // Use 0.85 similarity threshold for updates
             console.log(`🧠 [CHAT_FLOW] Memory saved: ${Date.now() - memorySaveOneStart}ms`);
           }
           console.log(`🧠 [CHAT_FLOW] Total memory processing: ${Date.now() - memorySaveStart}ms`);

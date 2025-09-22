@@ -69,7 +69,6 @@ export class HikerAPIService {
       params.end_cursor = endCursor;
     }
     
-    console.log(`[DEBUG] Fetching medias for user_id: ${userId}, params:`, params);
     const response = await this.request<InstagramPost[][]>('/v1/user/medias/chunk', params);
 
     const medias: InstagramPost[] = [];
