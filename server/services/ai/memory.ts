@@ -104,24 +104,37 @@ export async function extractMemoriesFromConversation(
           role: "system",
           content: `Extract only the MOST valuable insights from this conversation. Quality over quantity - aim for 2-4 memories max.
 
-EXTRACT ONLY IF:
-- New specific preferences, dislikes, or strategy decisions
-- Key personal/business details not already known
-- Important content insights or what works/doesn't work
-- Clear actionable takeaways or goals
+CRITICAL EXTRACTION RULES:
+- ONLY extract what the USER explicitly states, confirms, or agrees to
+- NEVER extract AI suggestions, recommendations, or hypothetical ideas unless user confirms them
+- NEVER extract from Assistant responses - only from User messages
+- User must show clear intent, agreement, or preference
+
+EXTRACT ONLY IF USER:
+- States specific preferences, dislikes, or decisions ("I prefer...", "I like...", "I want...")
+- Confirms or agrees to something ("Yes, let's do that", "That sounds good", "I'll try that")
+- Shares personal/business details about themselves
+- Reports results or feedback ("That worked well", "This didn't work")
+
+FORBIDDEN EXTRACTIONS:
+- AI suggestions or recommendations ("Voitaisiin esimerkiksi...", "Let's try...", "How about...")
+- Hypothetical scenarios or examples given by AI
+- Questions or brainstorming without user confirmation
+- General topics discussed without user commitment
 
 ${existingMemories && existingMemories.length > 0 ? 
 `EXISTING MEMORIES TO AVOID DUPLICATING:
-${existingMemories.slice(0, 3).map(m => `- ${m.content}`).join('\n')}
-
-DO NOT extract anything similar to existing memories or content from Assistant that user has not confirmed or agreed upon.` : ''}
+${existingMemories.slice(0, 3).map(m => `- ${m.content}`).join('\n')}` : ''}
 
 Each memory: complete sentence, 20-150 chars, specific and actionable.
 
-Return JSON array or [] if no valuable new insights found.
+Return JSON array or [] if no confirmed user insights found.
 
-QUALITY EXAMPLES:
-["Prefers carousel posts over single images for better engagement", "Target audience: busy professionals seeking quick actionable tips"]`,
+GOOD EXAMPLES:
+["Confirmed: wants to combine fashion and wellness content", "Agreed to try carousel format for better engagement"]
+
+BAD EXAMPLES (DO NOT EXTRACT):
+["Might explore fashion-wellness combination", "Could try community challenges"]`,
         },
         {
           role: "user",
