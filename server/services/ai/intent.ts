@@ -222,9 +222,9 @@ export async function analyzeUnifiedIntent(
       • Mentions of specific companies/websites for analysis
 
       EXAMPLES (multilingual):
-      - "What's happening with Tesla stock?" / "¿Qué pasa con las acciones de Tesla?" / "Tesla股价怎么样?"
-      - "Check my competitor's website" / "Vérifiez le site de mon concurrent" / "競合サイトを確認して"
-      - "Latest Instagram algorithm" / "Último algoritmo Instagram" / "Instagram最新算法"
+      - "What's happening with Tesla stock?"
+      - "Check my competitor's website
+      - "Latest Instagram algorithm"
 
       2. INSTAGRAM ANALYSIS - Semantic patterns for profile examination:
       • Intent to examine someone's social media presence
@@ -233,8 +233,8 @@ export async function analyzeUnifiedIntent(
       • Username references with analysis intent
 
       EXAMPLES (multilingual):
-      - "Look at @nike's content" / "Mira el contenido de @nike" / "@nikeのコンテンツを見て"
-      - "Analyze my competitor Instagram" / "Analysez Instagram de mon concurrent" / "分析竞争对手的Instagram"
+      - "Look at @nike's content"
+      - "Analyze my competitor Instagram"
 
       3. BLOG ANALYSIS - Semantic patterns for content examination:
       • Intent to understand writing style or approach
@@ -264,7 +264,6 @@ export async function analyzeUnifiedIntent(
       "webSearch": {
       "shouldSearch": boolean,
       "confidence": number,
-      "reason": "brief explanation",
       "refinedQuery": "search query or empty",
       "recency": "hour|day|week|month|year",
       "domains": ["specific domains if any"],
@@ -275,13 +274,11 @@ export async function analyzeUnifiedIntent(
       "shouldAnalyze": boolean,
       "username": "username without @ or null",
       "confidence": number,
-      "reason": "brief explanation"
       },
       "blogAnalysis": {
       "shouldAnalyze": boolean,
       "urls": ["blog URLs if mentioned"],
       "confidence": number,
-      "reason": "brief explanation"
       },
       "workflowPhase": {
       "currentPhase": "Discovery & Personalization|Brand Voice & Positioning|Collaborative Idea Generation|Developing Chosen Ideas|Content Drafting & Iterative Review|Finalization & Scheduling",

@@ -97,8 +97,8 @@ export async function extractMemoriesFromConversation(
   existingMemories?: Array<{ content: string; similarity?: number }>,
 ): Promise<string[]> {
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4.1-nano",
+    const response = await geminiClient.chat.completions.create({
+      model: "gemini-2.0-flash-lite",
       messages: [
         {
           role: "system",
@@ -137,7 +137,7 @@ BAD EXAMPLES (avoid these):
           content: `User: ${userMessage}\n\nAssistant: ${assistantResponse}`,
         },
       ],
-      max_tokens: 200,
+      max_tokens: 500,
       temperature: 0.1,
     });
 
