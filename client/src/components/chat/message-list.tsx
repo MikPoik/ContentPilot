@@ -136,12 +136,12 @@ export default function MessageList({
                   {message.content}
                 </p>
               ) : (
-                <div className="text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-p:leading-relaxed prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0">
+                <div className="text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-p:leading-relaxed prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 dark:prose-invert dark:text-white dark:prose-p:text-white dark:prose-headings:text-white dark:prose-strong:text-white dark:prose-em:text-white dark:prose-li:text-white dark:prose-a:text-blue-300">
                   {((message as any).metadata?.streaming) ? (
-                    <span className="inline">
+                    <span className="inline dark:text-white">
                       <ReactMarkdown
                         components={{
-                          p: ({ children }) => <span>{children}</span>,
+                          p: ({ children }) => <span className="dark:text-white">{children}</span>,
                           br: () => <br />,
                         }}
                       >
@@ -150,7 +150,24 @@ export default function MessageList({
                       <span className="w-2 h-4 bg-muted-foreground ml-1 animate-pulse inline-block align-baseline" />
                     </span>
                   ) : (
-                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                    <ReactMarkdown 
+                      className="dark:text-white"
+                      components={{
+                        p: ({ children }) => <p className="dark:text-white">{children}</p>,
+                        span: ({ children }) => <span className="dark:text-white">{children}</span>,
+                        strong: ({ children }) => <strong className="dark:text-white">{children}</strong>,
+                        em: ({ children }) => <em className="dark:text-white">{children}</em>,
+                        li: ({ children }) => <li className="dark:text-white">{children}</li>,
+                        h1: ({ children }) => <h1 className="dark:text-white">{children}</h1>,
+                        h2: ({ children }) => <h2 className="dark:text-white">{children}</h2>,
+                        h3: ({ children }) => <h3 className="dark:text-white">{children}</h3>,
+                        h4: ({ children }) => <h4 className="dark:text-white">{children}</h4>,
+                        h5: ({ children }) => <h5 className="dark:text-white">{children}</h5>,
+                        h6: ({ children }) => <h6 className="dark:text-white">{children}</h6>,
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
                   )}
                 </div>
               )}
