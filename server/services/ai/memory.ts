@@ -102,13 +102,21 @@ export async function extractMemoriesFromConversation(
       messages: [
         {
           role: "system",
-          content: `Extract only the MOST valuable insights from this conversation. Quality over quantity - aim for 2-4 memories max.
+          content: `Extract only the MOST valuable insights from this conversation. Quality over quantity - aim for 1-2 memories max, or often ZERO.
 
-EXTRACT ONLY IF:
-- New specific preferences, dislikes, or strategy decisions
-- Key personal/business details not already known
-- Important content insights or what works/doesn't work
-- Clear actionable takeaways or goals
+EXTRACT ONLY IF THE USER EXPLICITLY STATES:
+- Specific personal preferences: "I prefer", "I like", "I don't like"
+- Concrete strategy decisions: "I decided to", "I will", "My approach is"
+- Factual personal/business details: "My audience is", "I work in", "My business does"
+- Actual results/experiences: "This worked for me", "I tried X and it failed"
+
+DO NOT EXTRACT FROM:
+- Simple greetings ("hello", "hi", "moi", "how are you")
+- General questions ("How do I...", "What about...", "Should I...")
+- AI suggestions or advice (these are not user insights)
+- Casual conversation without specific personal details
+- Hypothetical or general discussions
+- Polite responses ("sounds good", "thank you", "ok")
 
 ${existingMemories && existingMemories.length > 0 ? 
 `EXISTING MEMORIES TO AVOID DUPLICATING:
@@ -116,12 +124,14 @@ ${existingMemories.slice(0, 3).map(m => `- ${m.content}`).join('\n')}
 
 DO NOT extract anything similar to existing memories.` : ''}
 
-Each memory: complete sentence, 20-150 chars, specific and actionable.
+BE EXTREMELY CONSERVATIVE. If the user is just chatting, asking questions, or being polite, return [].
 
-Return JSON array or [] if no valuable new insights found.
+Each memory: complete sentence, 20-150 chars, specific and factual about the user.
+
+Return [] if no explicit personal insights are shared by the user.
 
 QUALITY EXAMPLES:
-["Prefers carousel posts over single images for better engagement", "Target audience: busy professionals seeking quick actionable tips"]`,
+["User prefers carousel posts over single images for engagement", "Target audience confirmed as busy professionals in healthcare"]`,
         },
         {
           role: "user",
