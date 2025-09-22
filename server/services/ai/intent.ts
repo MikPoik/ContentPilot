@@ -208,88 +208,46 @@ export async function analyzeUnifiedIntent(
       messages: [
         {
           role: "system",
-          content: `You are a unified intent classifier for ContentCraft AI. Analyze conversation context using SEMANTIC UNDERSTANDING, not keyword matching, to work across ALL languages and cultures.
+          content: `You are a unified intent classifier for ContentCraft AI. Use semantic understanding to detect user intent across all languages.
 
-      Date: ${currentDate}
+Date: ${currentDate}
 
-      SEMANTIC INTENT DETECTION (Language-Agnostic):
+INTENT DETECTION:
 
-      1. WEB SEARCH - Semantic patterns indicating need for current information:
-      • User expresses uncertainty about recent information
-      • Questions about current events, prices, or status  
-      • Requests for website content examination
-      • Need for verification of facts or data
-      • Mentions of specific companies/websites for analysis
+1. WEB SEARCH - Need for current information:
+• Questions about recent events, prices, status
+• Website/competitor analysis requests
+• Fact verification needs
+Use GROK for X/Twitter content, PERPLEXITY for general web
 
-      EXAMPLES (multilingual):
-      - "What's happening with Tesla stock?"
-      - "Check my competitor's website
-      - "Latest Instagram algorithm"
+2. INSTAGRAM ANALYSIS - Profile examination:
+• "Analyze @username" or competitor research
+• Content/engagement pattern requests
 
-      2. INSTAGRAM ANALYSIS - Semantic patterns for profile examination:
-      • Intent to examine someone's social media presence
-      • Requests for competitor intelligence on Instagram
-      • Desire to understand engagement patterns
-      • Username references with analysis intent
+3. BLOG ANALYSIS - Content strategy examination:
+• Blog URL mentions with analytical intent
+• Writing style/strategy analysis requests
 
-      EXAMPLES (multilingual):
-      - "Look at @nike's content"
-      - "Analyze my competitor Instagram"
+4. WORKFLOW PHASE - User journey stage:
+• Discovery: Getting to know user (name, niche, platform)
+• Positioning: Brand voice/identity
+• Ideas: Content concepts
+• Development: Specific content creation
+• Review: Content refinement
+• Finalization: Publishing prep
 
-      3. BLOG ANALYSIS - Semantic patterns for content examination:
-      • Intent to understand writing style or approach
-      • Requests for content strategy analysis
-      • Blog URL mentions with analytical intent  
-      • Desire to examine competitor blog content
+RULES:
+- Block content creation until profile complete (name/niche/platform)
+- Extract usernames without @ symbol
+- Use semantic patterns, not keywords
 
-      EXAMPLES (multilingual):
-      - "Study my blog writing" / "Estudia mi escritura de blog" / "私のブログ記事を分析"
-      - "What's their content strategy?" / "¿Cuál es su estrategia de contenido?" / "彼らのコンテンツ戦略は?"
-
-      4. WORKFLOW PHASE - Semantic understanding of user journey:
-      • Discovery: Information gathering, getting to know user
-      • Positioning: Brand voice, identity clarification  
-      • Ideas: Content concept development
-      • Development: Specific content creation
-      • Review: Content refinement and feedback
-      • Finalization: Publishing preparation
-
-      CRITICAL RULES:
-      - Block content creation until basic profile complete
-      - Detect Instagram username mentions in any language
-      - Use semantic understanding, NOT keyword matching
-
-      Return ONLY this JSON structure:
-      {
-      "webSearch": {
-      "shouldSearch": boolean,
-      "confidence": number,
-      "refinedQuery": "search query or empty",
-      "recency": "hour|day|week|month|year",
-      "domains": ["specific domains if any"],
-      "searchService": "perplexity|grok",
-      "socialHandles": ["social handles if relevant"]
-      },
-      "instagramAnalysis": {
-      "shouldAnalyze": boolean,
-      "username": "username without @ or null",
-      "confidence": number,
-      },
-      "blogAnalysis": {
-      "shouldAnalyze": boolean,
-      "urls": ["blog URLs if mentioned"],
-      "confidence": number,
-      },
-      "workflowPhase": {
-      "currentPhase": "Discovery & Personalization|Brand Voice & Positioning|Collaborative Idea Generation|Developing Chosen Ideas|Content Drafting & Iterative Review|Finalization & Scheduling",
-      "missingFields": ["missing info like name, niche, platform"],
-      "readyToAdvance": boolean,
-      "suggestedPrompts": ["1-2 specific questions to ask next"],
-      "profilePatch": {"new profile data to store"},
-      "shouldBlockContentGeneration": boolean,
-      "confidence": number
-      }
-      }`,
+Return JSON:
+{
+"webSearch": {"shouldSearch": boolean, "confidence": number, "refinedQuery": string, "recency": "hour|day|week|month|year", "domains": [], "searchService": "perplexity|grok", "socialHandles": []},
+"instagramAnalysis": {"shouldAnalyze": boolean, "username": string|null, "confidence": number},
+"blogAnalysis": {"shouldAnalyze": boolean, "urls": [], "confidence": number},
+"workflowPhase": {"currentPhase": "Discovery & Personalization|Brand Voice & Positioning|Collaborative Idea Generation|Developing Chosen Ideas|Content Drafting & Iterative Review|Finalization & Scheduling", "missingFields": [], "readyToAdvance": boolean, "suggestedPrompts": [], "profilePatch": {}, "shouldBlockContentGeneration": boolean, "confidence": number}
+}`,
         },
         {
           role: "user",
