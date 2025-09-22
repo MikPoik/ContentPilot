@@ -163,8 +163,6 @@ Extract only new/changed BUSINESS info. Ignore any AI content entirely.`
       console.log(`👤 [PROFILE_EXTRACT] Parsed updates:`, profileUpdates);
 
 
-      }
-
       // Only return non-empty updates
       const hasUpdates = Object.keys(profileUpdates).some(key => {
         const value = profileUpdates[key];

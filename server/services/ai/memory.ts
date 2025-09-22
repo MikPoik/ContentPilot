@@ -114,7 +114,7 @@ ${existingMemories && existingMemories.length > 0 ?
 `EXISTING MEMORIES TO AVOID DUPLICATING:
 ${existingMemories.slice(0, 3).map(m => `- ${m.content}`).join('\n')}
 
-DO NOT extract anything similar to existing memories.` : ''}
+DO NOT extract anything similar to existing memories or content from Assistant that user has not confirmed or agreed upon.` : ''}
 
 Each memory: complete sentence, 20-150 chars, specific and actionable.
 
