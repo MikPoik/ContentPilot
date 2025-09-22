@@ -52,7 +52,7 @@ export async function extractProfileInfo(userMessage: string, assistantResponse:
       messages: [
         {
           role: 'system',
-          content: `Extract user profile info. Return JSON emphasizing any CHANGED or NEW fields:
+          content: `Extract user profile info from both user message AND assistant response. Return JSON emphasizing any CHANGED or NEW fields:
 
 Fields to consider: firstName, lastName, contentNiche (array), primaryPlatform, profileData: {targetAudience, brandVoice, businessType, contentGoals, blogProfile}
 
@@ -64,38 +64,51 @@ Current profile: ${JSON.stringify({
             profileData: user.profileData
           })}
 
+EXTRACTION SOURCES:
+1. USER MESSAGE: Direct statements by the user about their business, goals, or preferences
+2. ASSISTANT RESPONSE: Business information discovered from website analysis, research, or insights about the user's company
+
 IMPORTANT GUIDELINES FOR EXTRACTION:
 
-1. Include descriptions of personal demographics that relate to business contexts:
-   - If age or location is part of their audience description, incorporate it but place it under memories if purely personal.
+1. From USER MESSAGE:
+   - Personal information and direct business statements
+   - Platform preferences, content goals, target audience descriptions
+   - Business type and niche information directly stated by user
 
-2. Extract targetAudience with broad interpretations:
-   - Look for implied audience descriptions, not just explicit phrases.
-   - Examples: "I cater to busy professionals" → extract
+2. From ASSISTANT RESPONSE:
+   - Business information discovered from website/research (businessType, services offered)
+   - Insights about target audience based on company analysis
+   - Brand voice characteristics identified from company materials
+   - Content niche information derived from business analysis
 
 3. contentNiche WITH FLEXIBLE RULES:
-   - Extract terms that could have broader meanings, even if generically expressed.
-   - Include both broad and specific industries like "fitness", "business growth", "marketing strategies".
-   - Examples: "I teach yoga" → extract "yoga", "I run a business in hospitality" → extract "hospitality"
+   - Extract terms that could have broader meanings, even if generically expressed
+   - Include both broad and specific industries like "fitness", "business growth", "marketing strategies"
+   - Examples: "I teach yoga" → extract "yoga", "consulting business" → extract "consulting"
 
-4. General extraction approach:
-   - Greetings indicating potential discussion "hello", "hi", "moi" → assess context
-   - Self-statements with business relevance → consider profile updates
-   - Extract whenever there's a hint of business or brand-related information.
-   - contentGoals: consider probable goals even if not stated with "My goal is", "I want to", "I aim to"
+4. targetAudience FLEXIBLE EXTRACTION:
+   - Look for implied audience descriptions from business analysis
+   - Examples: "serves entrepreneurs" → extract, "helps busy professionals" → extract
 
-PERMITTED FLEXIBLE EXTRACTIONS:
-- Broader business terms and contexts if they add value
-- Topics discussed with potential niche claim → evaluate context for extraction
-- Provide informative context if URLs mentioned seem business related
+5. businessType EXTRACTION:
+   - Extract from discovered business information in assistant response
+   - Examples: "consulting firm", "educational services", "wellness coaching"
 
-Ensure {} is returned only if absolutely no business-related content is implied.`
+CRITICAL RULES:
+- Only extract information that's clearly about the USER'S business/profile
+- Don't extract general advice or examples given by assistant
+- Focus on factual discoveries about the user's actual business
+- Ensure {} is returned only if absolutely no relevant business information is found
+
+Extract from BOTH user message AND assistant insights about the user's business.`
         },
         {
           role: 'user',
           content: `User message: ${userMessage}
 
-Extract only new/changed BUSINESS info. Ignore any AI content entirely.`
+Assistant response: ${assistantResponse}
+
+Extract new/changed BUSINESS info from both sources, focusing on factual discoveries about the user's business.`
         }
       ],
       max_tokens: 200,
