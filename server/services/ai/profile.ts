@@ -1,6 +1,11 @@
 import { type User } from "@shared/schema";
 import { openai } from "../openai";
 
+const geminiClient = new OpenAI({
+  apiKey: process.env.GEMINI_API_KEY || "default_key",
+  baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/"
+});
+
 function calculateProfileCompleteness(user: User, updates: any): string {
   // Create a merged profile to calculate completeness
   const mergedProfile = {
@@ -41,8 +46,8 @@ export async function extractProfileInfo(userMessage: string, assistantResponse:
     console.log(`👤 [PROFILE_EXTRACT] Input - User: "${userMessage.substring(0, 100)}..."`);
     console.log(`👤 [PROFILE_EXTRACT] Input - Assistant: "${assistantResponse.substring(0, 100)}..."`);
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4.1-nano",
+    const aiPromise = geminiClient.chat.completions.create({
+      model: "gemini-2.0-flash-lite", // Faster model for simple decisions
       messages: [
         {
           role: 'system',
