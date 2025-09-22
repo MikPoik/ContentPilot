@@ -52,9 +52,9 @@ export async function extractProfileInfo(userMessage: string, assistantResponse:
       messages: [
         {
           role: 'system',
-          content: `Extract user profile info. Return JSON with only NEW or UPDATED fields:
+          content: `Extract user profile info. Return JSON emphasizing any CHANGED or NEW fields:
 
-Fields: firstName, lastName, contentNiche (array), primaryPlatform, profileData: {targetAudience, brandVoice, businessType, contentGoals, blogProfile}
+Fields to consider: firstName, lastName, contentNiche (array), primaryPlatform, profileData: {targetAudience, brandVoice, businessType, contentGoals, blogProfile}
 
 Current profile: ${JSON.stringify({
             firstName: user.firstName,
@@ -64,36 +64,32 @@ Current profile: ${JSON.stringify({
             profileData: user.profileData
           })}
 
-CRITICAL EXTRACTION RULES:
+IMPORTANT GUIDELINES FOR EXTRACTION:
 
-1. NEVER extract personal demographics as business information:
-   - User's age, location, family status, personal details are NOT targetAudience
-   - Personal information should go to memories, NOT profile updates
+1. Include descriptions of personal demographics that relate to business contexts:
+   - If age or location is part of their audience description, incorporate it but place it under memories if purely personal.
 
-2. targetAudience ONLY when user explicitly describes their business audience:
-   - MUST use audience-intent phrases
-   - Examples: "My audience is busy professionals" → extract
-   - Examples: "I am 40" → DO NOT extract as audience
+2. Extract targetAudience with broad interpretations:
+   - Look for implied audience descriptions, not just explicit phrases.
+   - Examples: "I cater to busy professionals" → extract
 
-3. contentNiche STRICT RULES:
-   - NEVER extract generic terms like "my company", "business", "yritykseni", "yritys", "firma"
-   - ONLY extract SPECIFIC industry/topic niches like "fitness", "cooking", "marketing", "real estate"
-   - Must be an actual subject matter or industry, not generic business references
-   - Examples: "I teach yoga" → extract "yoga", "I run a restaurant" → extract "restaurants/food"
-   - Examples: "my company website" → DO NOT extract "company" or "yritykseni"
+3. contentNiche WITH FLEXIBLE RULES:
+   - Extract terms that could have broader meanings, even if generically expressed.
+   - Include both broad and specific industries like "fitness", "business growth", "marketing strategies".
+   - Examples: "I teach yoga" → extract "yoga", "I run a business in hospitality" → extract "hospitality"
 
-4. General extraction rules:
-   - Simple greetings like "hello", "hi", "moi" → return {}
-   - Personal statements about self → return {} (save to memories instead)
-   - Only extract when user explicitly states business/brand information
-   - contentGoals: only if explicitly stated with "My goal is", "I want to", "I aim to"
+4. General extraction approach:
+   - Greetings indicating potential discussion "hello", "hi", "moi" → assess context
+   - Self-statements with business relevance → consider profile updates
+   - Extract whenever there's a hint of business or brand-related information.
+   - contentGoals: consider probable goals even if not stated with "My goal is", "I want to", "I aim to"
 
-FORBIDDEN EXTRACTIONS:
-- Generic business terms (company, business, yritys, yritykseni, firma, etc.)
-- General topics discussed → return {} (unless claimed as niche)
-- Website URLs mentioned without context → return {}
+PERMITTED FLEXIBLE EXTRACTIONS:
+- Broader business terms and contexts if they add value
+- Topics discussed with potential niche claim → evaluate context for extraction
+- Provide informative context if URLs mentioned seem business related
 
-Return {} if no explicit BUSINESS information is provided.`
+Ensure {} is returned only if absolutely no business-related content is implied.`
         },
         {
           role: 'user',
