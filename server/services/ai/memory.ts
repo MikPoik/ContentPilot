@@ -193,11 +193,30 @@ Example output:
       const memories = JSON.parse(cleanResult);
       return Array.isArray(memories)
         ? memories.filter((m) => {
-            if (typeof m !== "string" || m.length < 10) return false;
+            if (typeof m !== "string") return false;
             const trimmed = m.trim();
-            // Only filter based on sentence completion and basic quality
-            return (trimmed.endsWith('.') || trimmed.endsWith('!') || trimmed.endsWith('?')) &&
-                   trimmed.split(' ').length >= 3; // At least 3 words
+
+            // Basic length requirements - reasonable for any language
+            if (trimmed.length < 15 || trimmed.length > 500) return false;
+
+            // Must have multiple meaningful units (words/characters depending on language)
+            // For space-separated languages, require at least 3 words
+            // For non-space-separated languages (like Chinese/Japanese), rely on character count
+            const spaceCount = (trimmed.match(/\s/g) || []).length;
+            if (spaceCount > 0 && spaceCount < 2) return false; // If spaces exist, need at least 3 words
+
+            // Filter out obviously incomplete or meaningless content
+            // Check for extremely repetitive content
+            const chars = [...trimmed];
+            const uniqueChars = new Set(chars);
+            if (uniqueChars.size < Math.min(5, chars.length * 0.3)) return false; // Too repetitive
+
+            // Filter out content that's mostly punctuation or symbols
+            const meaningfulChars = trimmed.replace(/[\s\p{P}\p{S}]/gu, '');
+            if (meaningfulChars.length < trimmed.length * 0.5) return false; // More than 50% punctuation
+
+            // Accept if it passes basic quality checks
+            return true;
           })
         : [];
     } catch (parseError) {
@@ -212,12 +231,25 @@ Example output:
           const extractedStrings = stringMatches
             .map((match) => match.slice(1, -1)) // Remove quotes
             .filter((str) => {
-              // Only keep strings that are meaningful and complete sentences
               const trimmed = str.trim();
-              return trimmed.length > 10 && 
-                     trimmed.length < 300 && 
-                     (trimmed.endsWith('.') || trimmed.endsWith('!') || trimmed.endsWith('?')) &&
-                     trimmed.split(' ').length >= 3; // Must have at least 3 words
+
+              // Basic length requirements - reasonable for any language
+              if (trimmed.length < 15 || trimmed.length > 500) return false;
+
+              // Must have multiple meaningful units (words/characters depending on language)
+              const spaceCount = (trimmed.match(/\s/g) || []).length;
+              if (spaceCount > 0 && spaceCount < 2) return false; // If spaces exist, need at least 3 words
+
+              // Filter out extremely repetitive content
+              const chars = [...trimmed];
+              const uniqueChars = new Set(chars);
+              if (uniqueChars.size < Math.min(5, chars.length * 0.3)) return false; // Too repetitive
+
+              // Filter out content that's mostly punctuation or symbols
+              const meaningfulChars = trimmed.replace(/[\s\p{P}\p{S}]/gu, '');
+              if (meaningfulChars.length < trimmed.length * 0.5) return false; // More than 50% punctuation
+
+              return true;
             })
             .slice(0, 5); // Max 5 memories
 
