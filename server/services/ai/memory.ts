@@ -126,6 +126,8 @@ DO NOT EXTRACT FROM ASSISTANT RESPONSES:
 - Suggestions, recommendations, or "could try" statements
 - Generic advice or ideas not yet confirmed by user
 - Assistant's strategic suggestions that user hasn't agreed to
+- Questions the assistant asks to the user (e.g., "User is asked about...")
+- Assistant prompts or queries for more information
 
 GOOD EXTRACTIONS:
 - "User wants to create relationship-focused content for Instagram"
@@ -148,7 +150,7 @@ GOOD EXAMPLES FROM AI DISCOVERIES:
 ["The startup offers financial consulting, tax planning, and wealth management services", "Business focuses on small to medium enterprises, risk assessment and strategic planning"]
 
 BAD EXAMPLES (DO NOT EXTRACT):
-["Might explore fashion-wellness combination", "Could try community challenges", "You could consider posting daily", "Here are some content ideas", "Assistant suggests content that highlights local community", "Assistant recommends trying carousel format"]`,
+["Might explore fashion-wellness combination", "Could try community challenges", "You could consider posting daily", "Here are some content ideas", "Assistant suggests content that highlights local community", "Assistant recommends trying carousel format", "User is asked about preferred content formats", "Assistant asks about business type", "User is prompted to share more details"]`,
         },
         {
           role: "user",

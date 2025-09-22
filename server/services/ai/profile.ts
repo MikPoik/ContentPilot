@@ -75,10 +75,17 @@ ONLY EXTRACT SIGNIFICANT PROFILE CHANGES:
 4. EXPLICIT user statements about their business/goals that ADD new information
 
 DO NOT EXTRACT:
-- Minor variations of existing contentNiche items
+- Minor variations of existing contentNiche items (e.g., if user already has "pariterapia", don't add "parikriisi-interventio")
 - Repeated information already in the profile
 - General conversation topics that don't add new profile data
 - Content ideas or recommendations without explicit user adoption
+- Sub-topics or variations of existing niches unless they represent a completely different field
+
+CONTENT NICHE RULES:
+- Only add new contentNiche items if they represent a genuinely different field/industry
+- If the new topic is a subcategory or variation of an existing niche, DO NOT extract it
+- Example: If user has "pariterapia", don't add "parikriisi-interventio" (it's the same field)
+- Example: If user has "fitness", don't add "weight training" (it's the same field)
 
 EXTRACTION SOURCES:
 1. USER MESSAGE: Only extract if user explicitly states NEW business info, goals, or major changes
