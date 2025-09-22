@@ -47,7 +47,7 @@ export async function extractProfileInfo(userMessage: string, assistantResponse:
     console.log(`👤 [PROFILE_EXTRACT] Input - User: "${userMessage.substring(0, 100)}..."`);
     console.log(`👤 [PROFILE_EXTRACT] Input - Assistant: "${assistantResponse.substring(0, 100)}..."`);
 
-    const aiPromise = geminiClient.chat.completions.create({
+    const response = geminiClient.chat.completions.create({
       model: "gemini-2.0-flash-lite", // Faster model for simple decisions
       messages: [
         {
