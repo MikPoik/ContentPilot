@@ -141,7 +141,7 @@ export default function MessageList({
                     <span className="inline dark:text-white">
                       <ReactMarkdown
                         components={{
-                          p: ({ children }) => <span className="dark:text-white">{children}</span>,
+                          p: ({ children, ...props }) => <span {...props} className="dark:text-white">{children}</span>,
                           br: () => <br />,
                         }}
                       >
@@ -151,19 +151,18 @@ export default function MessageList({
                     </span>
                   ) : (
                     <ReactMarkdown 
-                      className="dark:text-white"
                       components={{
-                        p: ({ children }) => <p className="dark:text-white">{children}</p>,
-                        span: ({ children }) => <span className="dark:text-white">{children}</span>,
-                        strong: ({ children }) => <strong className="dark:text-white">{children}</strong>,
-                        em: ({ children }) => <em className="dark:text-white">{children}</em>,
-                        li: ({ children }) => <li className="dark:text-white">{children}</li>,
-                        h1: ({ children }) => <h1 className="dark:text-white">{children}</h1>,
-                        h2: ({ children }) => <h2 className="dark:text-white">{children}</h2>,
-                        h3: ({ children }) => <h3 className="dark:text-white">{children}</h3>,
-                        h4: ({ children }) => <h4 className="dark:text-white">{children}</h4>,
-                        h5: ({ children }) => <h5 className="dark:text-white">{children}</h5>,
-                        h6: ({ children }) => <h6 className="dark:text-white">{children}</h6>,
+                        p: ({ children, ...props }) => <p {...props} className="dark:text-white">{children}</p>,
+                        span: ({ children, ...props }) => <span {...props} className="dark:text-white">{children}</span>,
+                        strong: ({ children, ...props }) => <strong {...props} className="dark:text-white">{children}</strong>,
+                        em: ({ children, ...props }) => <em {...props} className="dark:text-white">{children}</em>,
+                        li: ({ children, ...props }) => <li {...props} className="dark:text-white">{children}</li>,
+                        h1: ({ children, ...props }) => <h1 {...props} className="dark:text-white">{children}</h1>,
+                        h2: ({ children, ...props }) => <h2 {...props} className="dark:text-white">{children}</h2>,
+                        h3: ({ children, ...props }) => <h3 {...props} className="dark:text-white">{children}</h3>,
+                        h4: ({ children, ...props }) => <h4 {...props} className="dark:text-white">{children}</h4>,
+                        h5: ({ children, ...props }) => <h5 {...props} className="dark:text-white">{children}</h5>,
+                        h6: ({ children, ...props }) => <h6 {...props} className="dark:text-white">{children}</h6>,
                       }}
                     >
                       {message.content}
