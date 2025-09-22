@@ -139,7 +139,7 @@ export async function generateChatResponse(
   }
 
   const promptBuildStart = Date.now();
-  const systemPrompt = buildWorkflowAwareSystemPrompt(
+  const systemPrompt = await buildWorkflowAwareSystemPrompt(
     workflowDecision,
     user,
     relevantMemories,

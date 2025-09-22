@@ -30,96 +30,79 @@ export interface UserStyleAnalysis {
 }
 
 /**
- * Analyzes user's writing style from their Instagram post texts
+ * Analyzes user's writing style from their Instagram post texts using AI
  */
-export function analyzeUserWritingStyle(postTexts: string[]): UserStyleAnalysis | null {
+export async function analyzeUserWritingStyle(postTexts: string[]): Promise<UserStyleAnalysis | null> {
   if (!postTexts || postTexts.length === 0) return null;
 
   try {
-    // Combine all post texts for analysis
-    const combinedText = postTexts.join(' ').toLowerCase();
-    const sentences = postTexts.flatMap(text =>
-      text.split(/[.!?]+/).filter(s => s.trim().length > 5)
-    );
+    // Combine sample posts for AI analysis (limit to prevent token overflow)
+    const sampleTexts = postTexts.slice(0, 5); // Take first 5 posts
+    const combinedText = sampleTexts.join('\n\n---\n\n');
 
-    // Calculate average sentence length
-    const avgSentenceLength = sentences.length > 0
-      ? sentences.reduce((sum, s) => sum + s.trim().split(' ').length, 0) / sentences.length
-      : 0;
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `Analyze the writing style from these social media posts. Extract universal patterns that work across all languages and cultures.
 
-    // Extract tone keywords (emotional and descriptive words)
-    // Universal positive sentiment words and phrases
-    const positivePattern = /\b\w*(?:amazing|love|excited|passionate|grateful|inspired|incredible|awesome|beautiful|perfect|happy|blessed|thankful|proud|creative|innovative|fun|energetic|positive|authentic|genuine|honest|humble|confident|motivated|dedicated|focused|successful|growth|journey|learning|exploring|discovering|sharing|connecting|building|creating|transforming|achieving|celebrating|inspiring|empowering|supporting|encouraging|challenging|pushing|striving|dreaming|believing|hoping|trusting|caring|helping|giving|serving|leading|guiding|teaching|mentoring|coaching|advising)\w*\b/gi;
-    const toneWords = combinedText.match(positivePattern) || [];
+Return ONLY a JSON object with these fields:
+- toneKeywords: Array of emotional/descriptive words that characterize the tone (max 10)
+- avgSentenceLength: Average number of words per sentence (number)
+- commonPhrases: Array of frequently used phrases or expressions (max 5)
+- punctuationStyle: Overall punctuation approach ("formal", "casual", "enthusiastic", "minimal")
+- contentThemes: Array of main topics/themes discussed (max 6)
+- voiceCharacteristics: Overall voice description (string)
 
-    // Find common phrases (2-3 word combinations that appear multiple times)
-    const words = combinedText.replace(/[^\w\s]/g, '').split(/\s+/);
-    const phrases: Record<string, number> = {};
-    for (let i = 0; i < words.length - 1; i++) {
-      const phrase = `${words[i]} ${words[i + 1]}`;
-      if (phrase.length > 4) {
-        phrases[phrase] = (phrases[phrase] || 0) + 1;
-      }
+Focus on patterns, not specific language keywords. Be universal and language-agnostic.`
+        },
+        {
+          role: 'user',
+          content: `Analyze these social media posts:\n\n${combinedText.substring(0, 4000)}`
+        }
+      ],
+      max_tokens: 400,
+      temperature: 0.1,
+    });
+
+    const result = response.choices[0]?.message?.content?.trim();
+    if (!result) return null;
+
+    // Parse the AI response
+    let cleanResult = result.trim();
+    if (cleanResult.startsWith('```') && cleanResult.endsWith('```')) {
+      const lines = cleanResult.split('\n');
+      cleanResult = lines.slice(1, -1).join('\n');
     }
-    const commonPhrases = Object.entries(phrases)
-      .filter(([_, count]) => count > 1)
-      .sort(([_, a], [__, b]) => b - a)
-      .slice(0, 5)
-      .map(([phrase]) => phrase);
-
-    // Analyze punctuation style
-    const exclamations = (combinedText.match(/!/g) || []).length;
-    const questions = (combinedText.match(/\?/g) || []).length;
-    const periods = (combinedText.match(/\./g) || []).length;
-    const totalPunctuation = exclamations + questions + periods;
-
-    let punctuationStyle = 'casual';
-    if (totalPunctuation > 0) {
-      const exclamationRatio = exclamations / totalPunctuation;
-      if (exclamationRatio > 0.3) punctuationStyle = 'enthusiastic';
-      else if (exclamationRatio < 0.1 && periods > exclamations) punctuationStyle = 'formal';
+    if (cleanResult.startsWith('json\n')) {
+      cleanResult = cleanResult.replace('json\n', '');
     }
 
-    // Extract content themes based on keywords
-    const themes: string[] = [];
-    if (/\b(workout|fitness|gym|health|exercise|training|diet|nutrition)\b/i.test(combinedText)) themes.push('fitness & health');
-    if (/\b(food|recipe|cooking|restaurant|delicious|tasty|meal)\b/i.test(combinedText)) themes.push('food & lifestyle');
-    if (/\b(business|entrepreneur|startup|success|growth|marketing|sales)\b/i.test(combinedText)) themes.push('business & entrepreneurship');
-    if (/\b(travel|adventure|explore|vacation|journey|destination)\b/i.test(combinedText)) themes.push('travel & adventure');
-    if (/\b(family|kids|mom|dad|parent|home|life|personal)\b/i.test(combinedText)) themes.push('family & personal life');
-    if (/\b(art|creative|design|photography|music|inspiration|aesthetic)\b/i.test(combinedText)) themes.push('creativity & arts');
-    if (/\b(fashion|style|outfit|beauty|makeup|skincare)\b/i.test(combinedText)) themes.push('fashion & beauty');
-    if (/\b(tech|technology|digital|innovation|future|AI|software)\b/i.test(combinedText)) themes.push('technology & innovation');
-
-    // Determine voice characteristics
-    let voiceCharacteristics = 'conversational';
-    if (avgSentenceLength > 15) voiceCharacteristics = 'detailed and explanatory';
-    else if (avgSentenceLength < 8) voiceCharacteristics = 'concise and punchy';
-    if (exclamations > periods) voiceCharacteristics += ', enthusiastic';
-    if (toneWords.length > postTexts.length * 2) voiceCharacteristics += ', emotionally expressive';
-
+    const analysis = JSON.parse(cleanResult);
+    
     return {
-      toneKeywords: [...new Set(toneWords)].slice(0, 10),
-      avgSentenceLength: Math.round(avgSentenceLength),
-      commonPhrases,
-      punctuationStyle,
-      contentThemes: themes,
-      voiceCharacteristics
+      toneKeywords: Array.isArray(analysis.toneKeywords) ? analysis.toneKeywords.slice(0, 10) : [],
+      avgSentenceLength: typeof analysis.avgSentenceLength === 'number' ? Math.round(analysis.avgSentenceLength) : 12,
+      commonPhrases: Array.isArray(analysis.commonPhrases) ? analysis.commonPhrases.slice(0, 5) : [],
+      punctuationStyle: typeof analysis.punctuationStyle === 'string' ? analysis.punctuationStyle : 'casual',
+      contentThemes: Array.isArray(analysis.contentThemes) ? analysis.contentThemes.slice(0, 6) : [],
+      voiceCharacteristics: typeof analysis.voiceCharacteristics === 'string' ? analysis.voiceCharacteristics : 'conversational'
     };
 
   } catch (error) {
-    console.error('Error analyzing writing style:', error);
+    console.error('Error analyzing writing style with AI:', error);
     return null;
   }
 }
 
-export function buildWorkflowAwareSystemPrompt(
+export async function buildWorkflowAwareSystemPrompt(
   workflowPhase: WorkflowPhaseDecision,
   user?: User,
   memories?: any[],
   webSearchContext?: { context: string; citations: string[] },
   instagramAnalysisContext?: { analysis: any; cached: boolean; error?: string }
-): string {
+): Promise<string> {
   const baseWorkflowPrompt = `You are ContentCraft AI, a world-class social media content strategist and creative partner with web search capabilities to provide current information.
 
 CRITICAL WORKFLOW RULES:
@@ -191,8 +174,9 @@ ${workflowPhase.shouldBlockContentGeneration ? '\n⚠️ CONTENT GENERATION BLOC
 
       // Analyze user's writing style from their post texts
       if (analysis.post_texts && analysis.post_texts.length > 0) {
-        const styleAnalysis = analyzeUserWritingStyle(analysis.post_texts);
-        if (styleAnalysis) {
+        try {
+          const styleAnalysis = await analyzeUserWritingStyle(analysis.post_texts);
+          if (styleAnalysis) {
           userContext += `\n\nUSER'S AUTHENTIC WRITING STYLE ANALYSIS:`;
           userContext += `\n- Voice: ${styleAnalysis.voiceCharacteristics}`;
           userContext += `\n- Avg sentence length: ${styleAnalysis.avgSentenceLength} words (${
@@ -220,6 +204,9 @@ ${workflowPhase.shouldBlockContentGeneration ? '\n⚠️ CONTENT GENERATION BLOC
           }
           userContext += `\n- Maintain their ${styleAnalysis.voiceCharacteristics} voice`;
           userContext += `\nDO NOT use generic social media language - make it sound authentically like THEM.`;
+          }
+        } catch (styleError) {
+          console.error('Error in writing style analysis:', styleError);
         }
       }
 
