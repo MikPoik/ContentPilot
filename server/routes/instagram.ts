@@ -25,7 +25,7 @@ export function registerInstagramRoutes(app: Express): void {
         const cachedAt = new Date(existingData.instagramProfile.cached_at);
         const hoursSinceCache = (Date.now() - cachedAt.getTime()) / (1000 * 60 * 60);
         
-        if (hoursSinceCache < 24) {
+        if (hoursSinceCache < 24) { //24 default
           return res.json({ 
             profile: existingData.instagramProfile,
             cached: true,

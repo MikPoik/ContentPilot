@@ -125,7 +125,7 @@ export class HikerAPIService {
   async getRelatedProfiles(userId: string): Promise<any[]> {
     try {
       const response = await this.request<any[]>('/gql/user/related/profiles', {
-        user_id: userId
+        id: userId
       });
       return Array.isArray(response) ? response.slice(0, 5) : [];
     } catch (error) {
