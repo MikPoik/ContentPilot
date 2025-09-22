@@ -166,8 +166,8 @@ export async function analyzeUnifiedIntent(
     let userContext = "CURRENT USER PROFILE STATUS:\n";
     if (user) {
       const data = user.profileData as any || {};
-      
-      
+
+
       // Check what we actually have
       const hasName = !!(user.firstName);
       const hasNiche = !!(user.contentNiche && user.contentNiche.length > 0);
@@ -201,7 +201,7 @@ ${JSON.stringify({
     } else {
       userContext += "❌ No user profile available - stay in Discovery phase";
     }
-    
+
     const conversationContext = contextMessages
       .map((msg) => `${msg.role}: ${msg.content}`)
       .join("\n");
@@ -266,6 +266,19 @@ STRICT VALIDATION RULES:
 - Be conservative - when in doubt, don't trigger analysis
 - Use semantic patterns, not keywords, but don't invent data
 
+SEARCH QUERY RULES:
+- ALWAYS extract actual URLs/domains mentioned in the conversation - DO NOT use generic terms
+- If user mentions specific websites (like "oivallusakatemia.fi"), use "site:oivallusakatemia.fi" format
+- For X (Twitter) searches: Use specific X-focused terms like "site:x.com" or handle-based queries
+- For any website: Use simple, effective approaches:
+  1. Use "site:domain.com" (Search service will automatically try multiple fallback strategies)  
+  2. For business analysis, add universal business terms: "site:domain.com services business"
+  3. Use universal keywords that apply across languages and cultures
+- For website content requests: Use "site:domain.com" - let search service handle fallbacks and language detection
+- CRITICAL: Extract actual domain names from user messages, don't use generic keywords like "yritykseni sivut"
+- Keep search terms simple and universal
+- Keep queries simple and let advanced search parameters do the work
+
 Return JSON (only include fields when true/relevant):
 {
 "webSearch": {"refinedQuery": "string", "searchService": "perplexity|grok", "recency": "day", "confidence": 0.9} (only if shouldSearch=true),
@@ -293,7 +306,7 @@ EXAMPLES:
       ${conversationContext}
 
       Analyze this conversation using semantic understanding for language-agnostic intent detection.
-      
+
       CRITICAL VALIDATION RULES:
       - For blog analysis: ONLY trigger if you see actual URLs (http/https) or explicit requests like "analyze my blog"
       - For Instagram analysis: ONLY trigger if you see @username mentions or explicit requests like "check my Instagram"
@@ -324,7 +337,7 @@ EXAMPLES:
       {},
       { timeout: timeoutMs },
     );
-    
+
     const decision = normalizeCondensedResponse(condensedResponse);
 
     console.log(
@@ -399,7 +412,7 @@ function getDefaultUnifiedDecision(): UnifiedIntentDecision {
  */
 function normalizeCondensedResponse(condensedResponse: any): UnifiedIntentDecision {
   const defaults = getDefaultUnifiedDecision();
-  
+
   return {
     webSearch: condensedResponse.webSearch ? {
       shouldSearch: true,
@@ -411,21 +424,21 @@ function normalizeCondensedResponse(condensedResponse: any): UnifiedIntentDecisi
       searchService: condensedResponse.webSearch.searchService || "perplexity",
       socialHandles: condensedResponse.webSearch.socialHandles || [],
     } : defaults.webSearch,
-    
+
     instagramAnalysis: condensedResponse.instagramAnalysis ? {
       shouldAnalyze: true,
       username: condensedResponse.instagramAnalysis.username,
       confidence: condensedResponse.instagramAnalysis.confidence || 0.8,
       reason: "AI recommended Instagram analysis",
     } : defaults.instagramAnalysis,
-    
+
     blogAnalysis: condensedResponse.blogAnalysis ? {
       shouldAnalyze: true,
       urls: condensedResponse.blogAnalysis.urls || [],
       confidence: condensedResponse.blogAnalysis.confidence || 0.8,
       reason: "AI recommended blog analysis",
     } : defaults.blogAnalysis,
-    
+
     workflowPhase: {
       currentPhase: condensedResponse.workflowPhase?.currentPhase || defaults.workflowPhase.currentPhase,
       missingFields: condensedResponse.workflowPhase?.missingFields || [],
