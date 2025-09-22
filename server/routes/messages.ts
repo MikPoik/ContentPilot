@@ -111,7 +111,7 @@ export function registerMessageRoutes(app: Express) {
         console.log(`🧠 [CHAT_FLOW] Embedding generation: ${Date.now() - embeddingStart}ms`);
 
         const similaritySearchStart = Date.now();
-        relevantMemories = await storage.searchSimilarMemories(userId, queryEmbedding, 10);
+        relevantMemories = await storage.searchSimilarMemories(userId, queryEmbedding, 5);
         const memorySearchEnd = Date.now(); // Capture end time here
         console.log(`🔍 [CHAT_FLOW] Vector similarity search: ${memorySearchEnd - similaritySearchStart}ms`);
         console.log(`🎯 [CHAT_FLOW] Total memory search: ${memorySearchEnd - memorySearchStart}ms (found ${relevantMemories.length} memories)`);

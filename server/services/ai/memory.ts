@@ -143,7 +143,7 @@ BAD EXAMPLES (avoid these):
 
     const result = response.choices[0]?.message?.content?.trim();
     if (!result) return [];
-
+    console.log(`🧠 [AI_SERVICE] Raw memory extraction result:`, result)
     try {
       // Clean up the result before parsing
       let cleanResult = result.trim();
