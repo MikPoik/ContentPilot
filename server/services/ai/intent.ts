@@ -167,17 +167,6 @@ export async function analyzeUnifiedIntent(
     if (user) {
       const data = user.profileData as any || {};
       
-      // Debug logging to see what data we actually have
-      console.log(`🔍 [DEBUG] User profile data:`, {
-        firstName: user.firstName,
-        contentNiche: user.contentNiche, 
-        primaryPlatform: user.primaryPlatform,
-        profileDataKeys: Object.keys(data),
-        brandVoice: data.brandVoice,
-        targetAudience: data.targetAudience,
-        contentGoals: data.contentGoals,
-        businessType: data.businessType
-      });
       
       // Check what we actually have
       const hasName = !!(user.firstName);
@@ -212,6 +201,7 @@ ${JSON.stringify({
     } else {
       userContext += "❌ No user profile available - stay in Discovery phase";
     }
+    
     const conversationContext = contextMessages
       .map((msg) => `${msg.role}: ${msg.content}`)
       .join("\n");
@@ -281,7 +271,16 @@ Return JSON (only include fields when true/relevant):
 "workflowPhase": {"currentPhase": "phase", "missingFields": ["field1"], "suggestedPrompts": ["prompt1"], "shouldBlockContentGeneration": true, "confidence": 0.9}
 }
 
-CRITICAL: For suggestedPrompts, ONLY suggest prompts for information that is actually missing (marked with ❌). DO NOT suggest prompts for information that already exists (marked with ✅). If profile is complete, suggest content-focused prompts instead.`,
+CRITICAL RULE FOR MISSING FIELDS AND PROMPTS:
+- ONLY include a field in "missingFields" if it shows ❌ Missing in the PROFILE COMPLETENESS section above
+- NEVER include a field in "missingFields" if it shows ✅ with actual data in the PROFILE COMPLETENESS section  
+- ONLY suggest prompts for fields that are actually marked as ❌ Missing
+- If most profile fields show ✅ with data, the user should be in advanced workflow phases, NOT Discovery
+
+EXAMPLES:
+- If you see "✅ Brand Voice: warm, empathetic, encouraging" then DO NOT include "Brand Voice" in missingFields
+- If you see "✅ Target Audience: individuals interested in personal growth" then DO NOT include "Target Audience" in missingFields
+- If you see "❌ Business Type: Missing" then you CAN include "Business Type" in missingFields`,
         },
         {
           role: "user",
