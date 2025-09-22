@@ -75,14 +75,23 @@ CRITICAL EXTRACTION RULES:
    - Examples: "My audience is busy professionals" → extract
    - Examples: "I am 40" → DO NOT extract as audience
 
-3. General extraction rules:
+3. contentNiche STRICT RULES:
+   - NEVER extract generic terms like "my company", "business", "yritykseni", "yritys", "firma"
+   - ONLY extract SPECIFIC industry/topic niches like "fitness", "cooking", "marketing", "real estate"
+   - Must be an actual subject matter or industry, not generic business references
+   - Examples: "I teach yoga" → extract "yoga", "I run a restaurant" → extract "restaurants/food"
+   - Examples: "my company website" → DO NOT extract "company" or "yritykseni"
+
+4. General extraction rules:
    - Simple greetings like "hello", "hi", "moi" → return {}
    - Personal statements about self → return {} (save to memories instead)
    - Only extract when user explicitly states business/brand information
    - contentGoals: only if explicitly stated with "My goal is", "I want to", "I aim to"
 
 FORBIDDEN EXTRACTIONS:
+- Generic business terms (company, business, yritys, yritykseni, firma, etc.)
 - General topics discussed → return {} (unless claimed as niche)
+- Website URLs mentioned without context → return {}
 
 Return {} if no explicit BUSINESS information is provided.`
         },
