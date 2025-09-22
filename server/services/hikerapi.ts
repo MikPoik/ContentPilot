@@ -29,7 +29,7 @@ export class HikerAPIService {
     }
   }
 
-  private async request<T>(endpoint: string, params?: Record<string, any>, retries: number = 3): Promise<T> {
+  private async request<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
     const url = new URL(endpoint, this.baseURL);
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
@@ -39,45 +39,18 @@ export class HikerAPIService {
       });
     }
 
-    for (let attempt = 1; attempt <= retries; attempt++) {
-      try {
-        const response = await fetch(url.toString(), {
-          headers: {
-            'x-access-key': this.apiKey,
-            'accept': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          // Don't retry on 4xx errors (client errors) except 429 (rate limit)
-          if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-            throw new Error(`HikerAPI Error: ${response.status} ${response.statusText}`);
-          }
-          
-          // For 5xx errors or 429, retry after delay
-          if (attempt === retries) {
-            throw new Error(`HikerAPI Error: ${response.status} ${response.statusText}`);
-          }
-          
-          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff, max 5s
-          console.log(`HikerAPI request failed (${response.status}), retrying in ${delay}ms... (attempt ${attempt}/${retries})`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          continue;
-        }
-
-        return response.json();
-      } catch (error) {
-        if (attempt === retries) {
-          throw error;
-        }
-        
-        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-        console.log(`HikerAPI request error, retrying in ${delay}ms... (attempt ${attempt}/${retries}):`, error.message);
-        await new Promise(resolve => setTimeout(resolve, delay));
+    const response = await fetch(url.toString(), {
+      headers: {
+        'x-access-key': this.apiKey,
+        'accept': 'application/json'
       }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HikerAPI Error: ${response.status} ${response.statusText}`);
     }
 
-    throw new Error('Max retries exceeded');
+    return response.json();
   }
 
   async getUserByUsername(username: string): Promise<HikerAPIUserData> {
@@ -124,15 +97,10 @@ export class HikerAPIService {
   async getAllUserMedias(userId: string, maxAmount: number = 50): Promise<InstagramPost[]> {
     const allMedias: InstagramPost[] = [];
     let endCursor: string | null = null;
-    let consecutiveErrors = 0;
-    const maxConsecutiveErrors = 3;
 
-    while (allMedias.length < maxAmount && consecutiveErrors < maxConsecutiveErrors) {
+    while (allMedias.length < maxAmount) {
       try {
         const { medias, endCursor: newEndCursor } = await this.getUserMediasChunk(userId, endCursor || undefined);
-        
-        // Reset error counter on successful request
-        consecutiveErrors = 0;
         
         if (medias.length === 0) break;
         
@@ -144,28 +112,16 @@ export class HikerAPIService {
         // Rate limiting delay
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
-        consecutiveErrors++;
-        console.error(`Error fetching media chunk for user ${userId} (attempt ${consecutiveErrors}/${maxConsecutiveErrors}):`, error);
-        
-        // If this is a 404 or 403, the user might not have posts or might be private
-        if (error.message.includes('404') || error.message.includes('403')) {
-          console.log(`User ${userId} has no accessible media (private, no posts, or access denied)`);
+        console.error(`Error fetching media chunk for user ${userId}:`, error);
+        // If this is a 404, the user might not have posts or might be private
+        if (error.message.includes('404')) {
+          console.log(`User ${userId} has no accessible media (private or no posts)`);
           break;
         }
-        
-        // If we haven't hit max consecutive errors, wait and continue
-        if (consecutiveErrors < maxConsecutiveErrors) {
-          const delay = 2000 * consecutiveErrors; // Increasing delay
-          console.log(`Waiting ${delay}ms before next attempt...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        } else {
-          console.log(`Max consecutive errors reached for user ${userId}, stopping media fetch`);
-          break;
-        }
+        break;
       }
     }
 
-    console.log(`Fetched ${allMedias.length} media items for user ${userId}`);
     return allMedias;
   }
 
@@ -182,12 +138,8 @@ export class HikerAPIService {
   }
 
   async analyzeInstagramProfile(username: string): Promise<InstagramProfile> {
-    console.log(`Starting Instagram analysis for @${username}`);
     const userProfile = await this.getUserByUsername(username);
-    console.log(`User profile fetched: ${userProfile.follower_count} followers`);
-    
     const posts = await this.getAllUserMedias(userProfile.pk, 20);
-    console.log(`Media analysis: ${posts.length} posts retrieved`);
     
     // Analyze posts for hashtags and engagement
     const hashtags: string[] = [];

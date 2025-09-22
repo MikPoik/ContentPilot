@@ -112,8 +112,7 @@ Should I analyze an Instagram profile based on this conversation?`
  */
 export async function performInstagramAnalysis(
   username: string, 
-  userId: string,
-  sendActivity?: (activity: string, message: string) => void
+  userId: string
 ): Promise<{
   success: boolean;
   analysis?: any;
@@ -123,11 +122,6 @@ export async function performInstagramAnalysis(
   const startTime = Date.now();
   try {
     console.log(`📸 [INSTAGRAM_AI] Performing Instagram analysis for @${username}...`);
-    
-    // Send activity indicator if provided
-    if (sendActivity) {
-      sendActivity('instagram_analyzing', `Analyzing @${username}...`);
-    }
 
     // Check if profile was analyzed recently (within 24 hours)
     const user = await storage.getUser(userId);
