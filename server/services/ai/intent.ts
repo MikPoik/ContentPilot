@@ -167,6 +167,18 @@ export async function analyzeUnifiedIntent(
     if (user) {
       const data = user.profileData as any || {};
       
+      // Debug logging to see what data we actually have
+      console.log(`🔍 [DEBUG] User profile data:`, {
+        firstName: user.firstName,
+        contentNiche: user.contentNiche, 
+        primaryPlatform: user.primaryPlatform,
+        profileDataKeys: Object.keys(data),
+        brandVoice: data.brandVoice,
+        targetAudience: data.targetAudience,
+        contentGoals: data.contentGoals,
+        businessType: data.businessType
+      });
+      
       // Check what we actually have
       const hasName = !!(user.firstName);
       const hasNiche = !!(user.contentNiche && user.contentNiche.length > 0);
