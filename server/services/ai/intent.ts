@@ -241,12 +241,12 @@ RULES:
 - Extract usernames without @ symbol
 - Use semantic patterns, not keywords
 
-Return JSON:
+Return JSON (only include fields when true/relevant):
 {
-"webSearch": {"shouldSearch": boolean, "confidence": number, "refinedQuery": string, "recency": "hour|day|week|month|year", "domains": [], "searchService": "perplexity|grok", "socialHandles": []},
-"instagramAnalysis": {"shouldAnalyze": boolean, "username": string|null, "confidence": number},
-"blogAnalysis": {"shouldAnalyze": boolean, "urls": [], "confidence": number},
-"workflowPhase": {"currentPhase": "Discovery & Personalization|Brand Voice & Positioning|Collaborative Idea Generation|Developing Chosen Ideas|Content Drafting & Iterative Review|Finalization & Scheduling", "missingFields": [], "readyToAdvance": boolean, "suggestedPrompts": [], "profilePatch": {}, "shouldBlockContentGeneration": boolean, "confidence": number}
+"webSearch": {"refinedQuery": "string", "searchService": "perplexity|grok", "recency": "day", "confidence": 0.9} (only if shouldSearch=true),
+"instagramAnalysis": {"username": "string", "confidence": 0.9} (only if shouldAnalyze=true), 
+"blogAnalysis": {"urls": ["url1"], "confidence": 0.9} (only if shouldAnalyze=true),
+"workflowPhase": {"currentPhase": "phase", "missingFields": ["field1"], "suggestedPrompts": ["prompt1"], "shouldBlockContentGeneration": true, "confidence": 0.9}
 }`,
         },
         {
@@ -274,12 +274,14 @@ Return JSON:
     }
     console.log(`🧠 [UNIFIED_INTENT] Raw AI response:`, result);
 
-    // Use the safe JSON parser with proper error handling
-    const decision = safeJsonParse<UnifiedIntentDecision>(
+    // Parse the condensed response and normalize it
+    const condensedResponse = safeJsonParse<any>(
       result,
-      getDefaultUnifiedDecision(),
+      {},
       { timeout: timeoutMs },
     );
+    
+    const decision = normalizeCondensedResponse(condensedResponse);
 
     console.log(
       `🧠 [UNIFIED_INTENT] Analysis complete: ${Date.now() - startTime}ms - webSearch: ${decision.webSearch.shouldSearch}, instagram: ${decision.instagramAnalysis.shouldAnalyze}, blog: ${decision.blogAnalysis.shouldAnalyze}, phase: ${decision.workflowPhase.currentPhase}`,
@@ -344,6 +346,50 @@ function getDefaultUnifiedDecision(): UnifiedIntentDecision {
       profilePatch: {},
       shouldBlockContentGeneration: true,
       confidence: 0.9,
+    },
+  };
+}
+
+/**
+ * Normalize condensed AI response to full UnifiedIntentDecision format
+ */
+function normalizeCondensedResponse(condensedResponse: any): UnifiedIntentDecision {
+  const defaults = getDefaultUnifiedDecision();
+  
+  return {
+    webSearch: condensedResponse.webSearch ? {
+      shouldSearch: true,
+      confidence: condensedResponse.webSearch.confidence || 0.8,
+      reason: "AI recommended search",
+      refinedQuery: condensedResponse.webSearch.refinedQuery || "",
+      recency: condensedResponse.webSearch.recency || "week",
+      domains: condensedResponse.webSearch.domains || [],
+      searchService: condensedResponse.webSearch.searchService || "perplexity",
+      socialHandles: condensedResponse.webSearch.socialHandles || [],
+    } : defaults.webSearch,
+    
+    instagramAnalysis: condensedResponse.instagramAnalysis ? {
+      shouldAnalyze: true,
+      username: condensedResponse.instagramAnalysis.username,
+      confidence: condensedResponse.instagramAnalysis.confidence || 0.8,
+      reason: "AI recommended Instagram analysis",
+    } : defaults.instagramAnalysis,
+    
+    blogAnalysis: condensedResponse.blogAnalysis ? {
+      shouldAnalyze: true,
+      urls: condensedResponse.blogAnalysis.urls || [],
+      confidence: condensedResponse.blogAnalysis.confidence || 0.8,
+      reason: "AI recommended blog analysis",
+    } : defaults.blogAnalysis,
+    
+    workflowPhase: {
+      currentPhase: condensedResponse.workflowPhase?.currentPhase || defaults.workflowPhase.currentPhase,
+      missingFields: condensedResponse.workflowPhase?.missingFields || [],
+      readyToAdvance: condensedResponse.workflowPhase?.readyToAdvance !== undefined ? condensedResponse.workflowPhase.readyToAdvance : defaults.workflowPhase.readyToAdvance,
+      suggestedPrompts: condensedResponse.workflowPhase?.suggestedPrompts || [],
+      profilePatch: condensedResponse.workflowPhase?.profilePatch || {},
+      shouldBlockContentGeneration: condensedResponse.workflowPhase?.shouldBlockContentGeneration !== undefined ? condensedResponse.workflowPhase.shouldBlockContentGeneration : defaults.workflowPhase.shouldBlockContentGeneration,
+      confidence: condensedResponse.workflowPhase?.confidence || defaults.workflowPhase.confidence,
     },
   };
 }
