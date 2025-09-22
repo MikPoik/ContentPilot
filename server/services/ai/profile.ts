@@ -1,5 +1,6 @@
 import { type User } from "@shared/schema";
 import { openai } from "../openai";
+import OpenAI from "openai";
 
 const geminiClient = new OpenAI({
   apiKey: process.env.GEMINI_API_KEY || "default_key",
