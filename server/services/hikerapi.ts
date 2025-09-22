@@ -69,6 +69,7 @@ export class HikerAPIService {
       params.end_cursor = endCursor;
     }
     
+    console.log(`[DEBUG] Fetching medias for user_id: ${userId}, params:`, params);
     const response = await this.request<InstagramPost[][]>('/v1/user/medias/chunk', params);
 
     const medias: InstagramPost[] = [];
@@ -112,7 +113,12 @@ export class HikerAPIService {
         // Rate limiting delay
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
-        console.error('Error fetching media chunk:', error);
+        console.error(`Error fetching media chunk for user ${userId}:`, error);
+        // If this is a 404, the user might not have posts or might be private
+        if (error.message.includes('404')) {
+          console.log(`User ${userId} has no accessible media (private or no posts)`);
+          break;
+        }
         break;
       }
     }
