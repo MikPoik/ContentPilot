@@ -298,7 +298,7 @@ export function registerMessageRoutes(app: Express) {
         const memorySaveStart = Date.now();
         try {
           const memoryExtractionStart = Date.now();
-          const newMemories = await extractMemoriesFromConversation(content, fullResponse);
+          const newMemories = await extractMemoriesFromConversation(content, fullResponse, relevantMemories);
           console.log(`🧠 [CHAT_FLOW] Memory extraction: ${Date.now() - memoryExtractionStart}ms (found ${newMemories.length} memories)`);
 
           for (const memoryContent of newMemories) {

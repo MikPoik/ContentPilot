@@ -278,9 +278,10 @@ export async function extractProfileInfo(
 export async function extractMemoriesFromConversation(
   userMessage: string,
   assistantResponse: string,
+  existingMemories?: Array<{ content: string; similarity?: number }>,
 ): Promise<string[]> {
   const { extractMemoriesFromConversation: extractMemories } = await import(
     "./memory"
   );
-  return extractMemories(userMessage, assistantResponse);
+  return extractMemories(userMessage, assistantResponse, existingMemories);
 }

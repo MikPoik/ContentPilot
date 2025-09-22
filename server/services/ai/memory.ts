@@ -103,6 +103,7 @@ Rephrase this query for better memory search:`,
 export async function extractMemoriesFromConversation(
   userMessage: string,
   assistantResponse: string,
+  existingMemories?: Array<{ content: string; similarity?: number }>,
 ): Promise<string[]> {
   try {
     const response = await openAI.chat.completions.create({
@@ -119,9 +120,15 @@ Focus on:
 - Successful approaches that worked for them
 - Key insights about their audience or niche
 
+${existingMemories && existingMemories.length > 0 ? 
+`EXISTING MEMORIES TO AVOID DUPLICATING:
+${existingMemories.map(m => `- ${m.content}`).join('\n')}
+
+DO NOT extract memories that are very similar to the existing ones above.` : ''}
+
 Return an array of concise memory statements (1-2 sentences each). Each memory should be self-contained and useful for future conversations.
 
-Return ONLY a JSON array of strings. If no memorable information, return [].
+Return ONLY a JSON array of strings. If no memorable information or if it would duplicate existing memories, return [].
 
 Example output:
 ["User prefers short-form video content over carousel posts", "Their audience responds well to behind-the-scenes content", "They want to avoid overly promotional content"]`,
