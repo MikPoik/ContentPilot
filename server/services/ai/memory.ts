@@ -111,14 +111,21 @@ export async function extractMemoriesFromConversation(
       messages: [
         {
           role: "system",
-          content: `Extract important facts, preferences, and context from this conversation that should be remembered for future interactions.
+          content: `Extract meaningful facts, preferences, and context from this conversation that should be remembered for future interactions.
 
-Focus on:
-- User's specific preferences and dislikes
-- Important personal or business context
-- Decisions they've made about content strategy
-- Successful approaches that worked for them
-- Key insights about their audience or niche
+WHAT TO EXTRACT:
+- User's specific preferences, dislikes, and goals
+- Important personal or business details (name, business type, audience)
+- Content strategy decisions and what works/doesn't work for them
+- Insights about their niche, platform preferences, or approach
+- Actionable takeaways from the conversation
+
+QUALITY REQUIREMENTS:
+- Each memory must be complete, self-contained, and specific
+- Use 15-200 characters (complete thoughts, not fragments)
+- Include relevant context (who, what, when applicable)
+- Avoid vague phrases like "user prefers" - be specific about what they prefer
+- No incomplete thoughts, partial sentences, or meaningless fragments
 
 ${existingMemories && existingMemories.length > 0 ? 
 `EXISTING MEMORIES TO AVOID DUPLICATING:
@@ -126,12 +133,13 @@ ${existingMemories.map(m => `- ${m.content}`).join('\n')}
 
 DO NOT extract memories that are very similar to the existing ones above.` : ''}
 
-Return an array of concise memory statements (1-2 sentences each). Each memory should be self-contained and useful for future conversations.
+Return ONLY a JSON array of complete, meaningful memory statements. If no memorable information or if it would duplicate existing memories, return [].
 
-Return ONLY a JSON array of strings. If no memorable information or if it would duplicate existing memories, return [].
+GOOD EXAMPLES:
+["Hanna runs Oivallus Akatemia offering solution-focused therapy and couples therapy", "User wants to focus on Instagram Reels over static posts for better engagement", "Their audience responds best to behind-the-scenes therapy content rather than promotional posts"]
 
-Example output:
-["User prefers short-form video content over carousel posts", "Their audience responds well to behind-the-scenes content", "They want to avoid overly promotional content"]`,
+BAD EXAMPLES (avoid these):
+["or references", "User signs off posts with", "content", "prefers short-form"]`,
         },
         {
           role: "user",
@@ -196,26 +204,13 @@ Example output:
             if (typeof m !== "string") return false;
             const trimmed = m.trim();
 
-            // Basic length requirements - reasonable for any language
-            if (trimmed.length < 15 || trimmed.length > 500) return false;
-
-            // Must have multiple meaningful units (words/characters depending on language)
-            // For space-separated languages, require at least 3 words
-            // For non-space-separated languages (like Chinese/Japanese), rely on character count
-            const spaceCount = (trimmed.match(/\s/g) || []).length;
-            if (spaceCount > 0 && spaceCount < 2) return false; // If spaces exist, need at least 3 words
-
-            // Filter out obviously incomplete or meaningless content
-            // Check for extremely repetitive content
-            const chars = [...trimmed];
-            const uniqueChars = new Set(chars);
-            if (uniqueChars.size < Math.min(5, chars.length * 0.3)) return false; // Too repetitive
-
-            // Filter out content that's mostly punctuation or symbols
+            // Basic sanity checks - trust the AI for quality
+            if (trimmed.length < 10 || trimmed.length > 500) return false;
+            
+            // Filter out obviously broken content (too much punctuation/symbols)
             const meaningfulChars = trimmed.replace(/[\s\p{P}\p{S}]/gu, '');
-            if (meaningfulChars.length < trimmed.length * 0.5) return false; // More than 50% punctuation
+            if (meaningfulChars.length < trimmed.length * 0.4) return false;
 
-            // Accept if it passes basic quality checks
             return true;
           })
         : [];
@@ -233,21 +228,12 @@ Example output:
             .filter((str) => {
               const trimmed = str.trim();
 
-              // Basic length requirements - reasonable for any language
-              if (trimmed.length < 15 || trimmed.length > 500) return false;
-
-              // Must have multiple meaningful units (words/characters depending on language)
-              const spaceCount = (trimmed.match(/\s/g) || []).length;
-              if (spaceCount > 0 && spaceCount < 2) return false; // If spaces exist, need at least 3 words
-
-              // Filter out extremely repetitive content
-              const chars = [...trimmed];
-              const uniqueChars = new Set(chars);
-              if (uniqueChars.size < Math.min(5, chars.length * 0.3)) return false; // Too repetitive
-
-              // Filter out content that's mostly punctuation or symbols
+              // Basic fallback filtering - keep it simple
+              if (trimmed.length < 10 || trimmed.length > 500) return false;
+              
+              // Filter out content that's mostly punctuation/symbols
               const meaningfulChars = trimmed.replace(/[\s\p{P}\p{S}]/gu, '');
-              if (meaningfulChars.length < trimmed.length * 0.5) return false; // More than 50% punctuation
+              if (meaningfulChars.length < trimmed.length * 0.4) return false;
 
               return true;
             })
