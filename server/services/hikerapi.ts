@@ -64,32 +64,30 @@ export class HikerAPIService {
   }
 
   async getUserMediasChunk(userId: string, endCursor?: string): Promise<{ medias: InstagramPost[], endCursor: string | null }> {
-    const response = await this.request<InstagramPost[][]>('/v1/user/medias/chunk', {
-      user_id: userId,
-      end_cursor: endCursor
-    });
+    const params: any = { user_id: userId };
+    if (endCursor) {
+      params.end_cursor = endCursor;
+    }
+    
+    const response = await this.request<InstagramPost[][]>('/v1/user/medias/chunk', params);
 
     const medias: InstagramPost[] = [];
     let newEndCursor: string | null = null;
 
     if (response && Array.isArray(response) && response.length > 0) {
-      for (const mediaGroup of response) {
-        if (Array.isArray(mediaGroup)) {
-          for (const item of mediaGroup) {
-            if (typeof item === 'object' && item !== null && 'pk' in item) {
-              medias.push(item as InstagramPost);
-            }
+      // Based on the API response format, it's an array containing an array of media objects
+      const mediaArray = response[0];
+      if (Array.isArray(mediaArray)) {
+        for (const item of mediaArray) {
+          if (typeof item === 'object' && item !== null && 'pk' in item) {
+            medias.push(item as InstagramPost);
           }
         }
       }
 
-      // Extract end cursor from the last item if it's a string
-      const lastGroup = response[response.length - 1];
-      if (Array.isArray(lastGroup) && lastGroup.length > 0) {
-        const lastItem = lastGroup[lastGroup.length - 1];
-        if (typeof lastItem === 'string') {
-          newEndCursor = lastItem;
-        }
+      // For pagination, we can use a simple cursor based on the last item's pk
+      if (medias.length > 0) {
+        newEndCursor = `cursor_${medias[medias.length - 1].pk}`;
       }
     }
 
@@ -188,7 +186,7 @@ export class HikerAPIService {
       try {
         if (accountData.username) {
           const similarProfile = await this.getUserByUsername(accountData.username);
-          const similarPosts = await this.getAllUserMedias(similarProfile.pk, 10);
+          const similarPosts = await this.getAllUserMedias(similarProfile.pk, 5); // Reduced to 5 posts for better reliability
           
           const similarLikes = similarPosts.map(p => p.like_count || 0);
           const similarComments = similarPosts.map(p => p.comment_count || 0);
