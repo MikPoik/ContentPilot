@@ -181,7 +181,14 @@ Example output:
         .replace(/\\n/g, " ") // Replace literal \n with spaces
         .replace(/\\"/g, '"') // Fix escaped quotes
         .replace(/"\s*,\s*]/g, '"]') // Fix trailing commas before closing bracket
-        .replace(/,\s*]/g, "]"); // Remove trailing commas
+        .replace(/,\s*]/g, "]") // Remove trailing commas
+        .replace(/[^"]*$/g, (match) => {
+          // Handle unterminated strings at the end by removing incomplete entries
+          if (match.includes('"') && !match.endsWith('"]')) {
+            return '"]';
+          }
+          return match;
+        });
 
       const memories = JSON.parse(cleanResult);
       return Array.isArray(memories)
@@ -191,13 +198,19 @@ Example output:
       console.log("Memory extraction JSON parse error:", parseError);
       console.log("Raw result:", result);
 
-      // Fallback: try to extract strings manually using regex
+      // Fallback: try to extract complete strings manually using regex
       try {
-        const stringMatches = result.match(/"([^"\\]*(\\.[^"\\]*)*)"/g);
+        // Find complete quoted strings, being more careful about incomplete ones
+        const stringMatches = result.match(/"[^"]*"/g);
         if (stringMatches) {
           const extractedStrings = stringMatches
             .map((match) => match.slice(1, -1)) // Remove quotes
-            .filter((str) => str.length > 10 && str.length < 200) // Reasonable memory length
+            .filter((str) => {
+              // Only keep strings that seem complete (end with punctuation or are reasonable length)
+              return str.length > 10 && 
+                     str.length < 300 && 
+                     (str.endsWith('.') || str.endsWith('!') || str.endsWith('?') || str.endsWith(',') || str.length > 50);
+            })
             .slice(0, 5); // Max 5 memories
 
           console.log(
