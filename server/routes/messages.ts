@@ -274,10 +274,20 @@ export function registerMessageRoutes(app: Express) {
             console.log(`🔄 [CHAT_FLOW] Workflow profile patches:`, Object.keys(combinedProfileUpdates));
           }
 
-          // Also extract profile info from conversation (for backward compatibility)
-          const profileExtractionStart = Date.now();
-          const conversationProfileUpdates = await extractProfileInfo(content, fullResponse, user!);
-          console.log(`👤 [CHAT_FLOW] Profile extraction: ${Date.now() - profileExtractionStart}ms`);
+          // Skip profile extraction if workflow already provided comprehensive updates
+          const hasComprehensiveWorkflowUpdates = combinedProfileUpdates.firstName || 
+            combinedProfileUpdates.contentNiche || 
+            combinedProfileUpdates.primaryPlatform ||
+            combinedProfileUpdates.profileData?.blogProfile;
+
+          let conversationProfileUpdates = {};
+          if (!hasComprehensiveWorkflowUpdates) {
+            const profileExtractionStart = Date.now();
+            conversationProfileUpdates = await extractProfileInfo(content, fullResponse, user!);
+            console.log(`👤 [CHAT_FLOW] Profile extraction: ${Date.now() - profileExtractionStart}ms`);
+          } else {
+            console.log(`👤 [CHAT_FLOW] Skipping profile extraction - workflow provided comprehensive updates`);
+          }
 
           // Merge workflow patches with conversation-extracted updates
           if (conversationProfileUpdates && Object.keys(conversationProfileUpdates).length > 0) {

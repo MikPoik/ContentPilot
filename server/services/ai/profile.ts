@@ -46,61 +46,26 @@ export async function extractProfileInfo(userMessage: string, assistantResponse:
       messages: [
         {
           role: 'system',
-          content: `Extract user profile information from this conversation exchange. Look for:
-- firstName, lastName (if mentioned)
-- contentNiche (array of topics/industries they create content about)
-- primaryPlatform (main social media platform they focus on)
-- profileData object with:
-  - targetAudience (who they're trying to reach)
-  - brandVoice (their communication style)
-  - businessType (what kind of business/creator they are - look for mentions like "I run a X business", "I'm a therapist", "I own a restaurant", etc.)
-  - contentGoals (array of what they want to achieve)
-  - blogProfile (object with blog analysis data):
-    - writingStyle (formal, conversational, academic, personal, etc.)
-    - averagePostLength (short, medium, long)
-    - commonTopics (array of frequent blog themes)
-    - toneKeywords (array of emotional/descriptive words)
-    - postingFrequency (if mentioned)
-    - blogUrl (if mentioned)
+          content: `Extract user profile info. Return JSON with only fields found:
 
-IMPORTANT:
-- Pay special attention to business type information
-- Look for blog-related mentions like "my blog", "I write about", "blog posts", website URLs
-- Extract blog analysis results if the assistant analyzed blog content
+Fields:
+- firstName, lastName
+- contentNiche (array)
+- primaryPlatform 
+- profileData: {targetAudience, brandVoice, businessType, contentGoals, blogProfile}
 
-User:
- ${userMessage}
+Return {} if no new info found.`
+        },
+        {
+          role: 'user',
+          content: `User: ${userMessage}
 
-A:
-${assistantResponse}
+AI: ${assistantResponse}
 
-Return ONLY a JSON object with the fields that were mentioned. If no new info is found, return {}.
-
-Example outputs:
-{
-  "firstName": "User",
-  "contentNiche": ["wellness", "lifestyle"],
-  "primaryPlatform": "Instagram",
-  "profileData": {
-    "targetAudience": "working professionals",
-    "brandVoice": "supportive and practical",
-    "blogProfile": {
-      "writingStyle": "conversational",
-      "averagePostLength": "medium",
-      "commonTopics": ["wellness tips", "lifestyle advice"],
-      "toneKeywords": ["supportive", "practical", "encouraging"]
-    }
-  }
-}
-
-{
-  "profileData": {
-    "businessType": "consulting business"
-  }
-}`
+Extract profile info:`
         }
       ],
-      max_tokens: 300,
+      max_tokens: 150,
       temperature: 0.1,
     });
 
