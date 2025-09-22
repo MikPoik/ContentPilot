@@ -161,7 +161,11 @@ export async function performInstagramAnalysis(
     const instagramProfile = await hikerApiService.analyzeInstagramProfile(username);
     
     // Determine if this is the user's own profile or a competitor analysis
-    const isOwnProfile = user?.profileData?.ownInstagramUsername === username;
+    // Check multiple indicators: existing ownInstagramUsername, profileData.instagramUsername, or if this is the first Instagram analysis
+    const profileData = user?.profileData as any;
+    const isOwnProfile = profileData?.ownInstagramUsername === username || 
+                        profileData?.instagramUsername === username ||
+                        (!profileData?.competitorAnalyses && !profileData?.instagramProfile);
     
     // Store the Instagram profile data appropriately
     let updatedProfileData;
@@ -172,6 +176,13 @@ export async function performInstagramAnalysis(
         instagramProfile,
         ownInstagramUsername: username
       };
+      
+      // Migration: If this profile was previously stored in competitorAnalyses, remove it
+      if (existingData?.competitorAnalyses?.[username]) {
+        const { [username]: removedProfile, ...remainingCompetitors } = existingData.competitorAnalyses;
+        updatedProfileData.competitorAnalyses = remainingCompetitors;
+        console.log(`📸 [INSTAGRAM_AI] Migrated @${username} from competitor analysis to main profile`);
+      }
     } else {
       // Store competitor analyses separately without overwriting user's profile
       const competitorAnalyses = existingData?.competitorAnalyses || {};
