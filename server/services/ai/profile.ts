@@ -64,13 +64,24 @@ Current profile: ${JSON.stringify({
             profileData: user.profileData
           })}
 
-IMPORTANT: 
-- Only extract truly NEW information not already in the current profile
-- For contentGoals: DO NOT duplicate existing goals, only add genuinely new ones
-- Be conservative - when in doubt, return {}
-- If user is just chatting casually, return {}
+CRITICAL EXTRACTION RULES:
+- ONLY extract information that the user EXPLICITLY states about themselves
+- DO NOT infer, assume, or hallucinate any information from context
+- Simple greetings like "hello", "hi", "moi" should return {}
+- General conversation about goals or strategies should return {} unless user explicitly states "My goal is..." or "I want to..."
+- For contentGoals: ONLY extract if user explicitly states a new personal goal with words like "My goal is", "I want to", "I aim to"
+- DO NOT extract generic advice or topics discussed as if they were user's personal information
+- When in doubt, ALWAYS return {}
 
-Return {} if no changes found.`
+EXAMPLES OF WHAT NOT TO EXTRACT:
+- User says "How do I grow my audience?" → return {} (this is a question, not stating a goal)
+- AI talks about content strategies → return {} (AI suggestions are not user profile data)
+- User says "That sounds good" → return {} (agreement is not profile information)
+- General discussion about topics → return {} (unless user explicitly claims it as their niche/goal)
+
+ONLY extract information when user explicitly provides personal details about themselves.
+
+Return {} if no explicit personal information is provided.`
         },
         {
           role: 'user',
