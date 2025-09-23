@@ -446,8 +446,10 @@ export default function Chat() {
     mutationFn: async (messageId: string) => {
       return await apiRequest("DELETE", `/api/conversations/${conversationId}/messages/${messageId}`);
     },
-    onSuccess: () => {
-      // Invalidate messages to refresh the list
+    onSuccess: (_, messageId) => {
+      // Immediately update local state to remove the message
+      setMessages(prev => prev.filter(m => m.id.toString() !== messageId));
+      // Also invalidate messages query to keep cache in sync
       queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId, "messages"] });
       toast({
         title: "Success",
