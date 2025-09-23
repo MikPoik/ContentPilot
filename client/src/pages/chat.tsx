@@ -405,6 +405,29 @@ export default function Chat() {
            /^\d+-assistant$/.test(messageId);
   }, []);
 
+  // Delete message mutation
+  const deleteMessageMutation = useMutation({
+    mutationFn: async (messageId: string) => {
+      return await apiRequest("DELETE", `/api/conversations/${conversationId}/messages/${messageId}`);
+    },
+    onSuccess: () => {
+      // Invalidate messages to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId, "messages"] });
+      toast({
+        title: "Success",
+        description: "Message deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Delete message error:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to delete message",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Handle delete message
   const handleDeleteMessage = useCallback((messageId: string) => {
     if (isTemporaryMessage(messageId)) {
@@ -415,14 +438,10 @@ export default function Chat() {
         description: "Message removed successfully",
       });
     } else {
-      // For real database messages, show info that deletion isn't supported
-      toast({
-        title: "Information",
-        description: "Message deletion is not available for saved messages. You can regenerate the response instead.",
-        variant: "default",
-      });
+      // For real database messages, call the API to delete
+      deleteMessageMutation.mutate(messageId);
     }
-  }, [isTemporaryMessage, toast]);
+  }, [isTemporaryMessage, deleteMessageMutation, toast]);
 
   // Memoize dropdown disabled state to prevent infinite re-renders
   const isExportDisabled = useMemo(() =>

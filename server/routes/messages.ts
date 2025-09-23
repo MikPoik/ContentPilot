@@ -474,4 +474,42 @@ export function registerMessageRoutes(app: Express) {
       }
     }
   });
+
+  // Delete a message
+  app.delete("/api/conversations/:id/messages/:messageId", isAuthenticated, async (req: any, res) => {
+    try {
+      const conversationId = req.params.id;
+      const messageId = req.params.messageId;
+      const userId = req.user.claims.sub;
+
+      // Verify conversation exists and user owns it
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      if (conversation.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Verify message exists and belongs to this conversation
+      const message = await storage.getMessage(messageId);
+      if (!message) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+      if (message.conversationId !== conversationId) {
+        return res.status(403).json({ message: "Message does not belong to this conversation" });
+      }
+
+      // Delete the message
+      const deleted = await storage.deleteMessage(messageId);
+      if (!deleted) {
+        return res.status(500).json({ message: "Failed to delete message" });
+      }
+
+      res.json({ message: "Message deleted successfully" });
+    } catch (error) {
+      console.error('Delete message error:', error);
+      res.status(500).json({ message: "Failed to delete message" });
+    }
+  });
 }

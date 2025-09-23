@@ -19,6 +19,7 @@ export interface IStorage {
   getMessages(conversationId: string): Promise<Message[]>;
   getMessage(id: string): Promise<Message | undefined>;
   createMessage(message: InsertMessage): Promise<Message>;
+  deleteMessage(id: string): Promise<boolean>;
   
   // Memories
   getMemories(userId: string): Promise<Memory[]>;
@@ -123,6 +124,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(conversations.id, insertMessage.conversationId));
     
     return { ...message, metadata: message.metadata as MessageMetadata | null };
+  }
+
+  async deleteMessage(id: string): Promise<boolean> {
+    const result = await db.delete(messages).where(eq(messages.id, id));
+    return result.rowCount! > 0;
   }
 
   async updateUserProfile(id: string, profileData: Partial<UpdateUserProfile>): Promise<User | undefined> {
