@@ -5,6 +5,7 @@ import SearchIndicator from "./search-indicator";
 import SearchCitations from "./search-citations";
 import AIActivityIndicator from "./ai-activity-indicator";
 import { RotateCcw, Trash2, Copy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface MessageListProps {
   messages: Message[];
@@ -37,14 +38,25 @@ export default function MessageList({
 }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   const copyMessageContent = useCallback((content: string) => {
     navigator.clipboard.writeText(content).then(() => {
-      // You could add a toast notification here if needed
+      toast({
+        title: "Copied!",
+        description: "Message copied to clipboard",
+        duration: 2000,
+      });
     }).catch((err) => {
       console.error('Failed to copy message content:', err);
+      toast({
+        title: "Copy failed",
+        description: "Unable to copy message to clipboard",
+        variant: "destructive",
+        duration: 3000,
+      });
     });
-  }, []);
+  }, [toast]);
 
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
