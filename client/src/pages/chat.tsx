@@ -163,6 +163,7 @@ export default function Chat() {
         // Check for various AI activity indicators in the stream
         const searchMetaRegex = /\[SEARCH_META\][\s\S]*?\[\/SEARCH_META\]/g;
         const activityRegex = /\[AI_ACTIVITY\](.*?)\[\/AI_ACTIVITY\]/g;
+        const messageIdRegex = /\[MESSAGE_ID\][\s\S]*?\[\/MESSAGE_ID\]/g;
 
         // Handle search metadata
         const searchMatches = chunkContent.match(searchMetaRegex);
@@ -220,6 +221,35 @@ export default function Chat() {
           chunkContent = chunkContent.replace(activityRegex, '');
         }
 
+        // Handle message ID updates
+        const messageIdMatches = chunkContent.match(messageIdRegex);
+        if (messageIdMatches) {
+          messageIdMatches.forEach(match => {
+            try {
+              const messageIdContent = match.match(/\[MESSAGE_ID\]([\s\S]*?)\[\/MESSAGE_ID\]/);
+              if (messageIdContent) {
+                const messageIdData = JSON.parse(messageIdContent[1]);
+                console.log(`🆔 [CLIENT] Message ID update: ${streamingId} -> ${messageIdData.messageId}`);
+                // Update the message with the real database ID
+                setMessages(current => current.map(m => m.id === streamingId ? {
+                  ...m,
+                  id: messageIdData.messageId,
+                  metadata: {
+                    ...(m.metadata || {}),
+                    realDbId: messageIdData.messageId,
+                    clientKey: streamingId // Keep original client key for reference
+                  }
+                } : m));
+                // Update our local tracking
+                streamingMessageIdRef.current = messageIdData.messageId;
+              }
+            } catch (e) {
+              console.error('Failed to parse message ID metadata:', e);
+            }
+          });
+          chunkContent = chunkContent.replace(messageIdRegex, '');
+        }
+
         // Add clean content to accumulated display
         accumulated += chunkContent;
 
@@ -239,8 +269,12 @@ export default function Chat() {
 
         // Update streaming message state for real-time display
         setStreamingMessage(accumulated);
-        // Update assistant message content in place
-        setMessages(current => current.map(m => m.id === streamingId ? { ...m, content: accumulated } : m));
+        // Update assistant message content in place - use the current streaming ID reference
+        const currentStreamingId = streamingMessageIdRef.current || streamingId;
+        setMessages(current => current.map(m => 
+          (m.id === streamingId || m.id === currentStreamingId || (m.metadata as any)?.clientKey === streamingId) ? 
+          { ...m, content: accumulated } : m
+        ));
       }
 
       console.log(`✅ Stream complete: ${chunkCount} chunks, ${accumulated.length} chars`);
@@ -256,10 +290,13 @@ export default function Chat() {
       setAiActivityMessage('');
       setStreamingResponse(null);
       // Mark the optimistic assistant message as finalized in-place
-      setMessages(current => current.map(m => m.id === streamingId ? {
-        ...m,
-        metadata: { ...(m.metadata || {}), streaming: false, aiActivity: null, aiActivityMessage: '' }
-      } : m));
+      const currentStreamingId = streamingMessageIdRef.current || streamingId;
+      setMessages(current => current.map(m => 
+        (m.id === streamingId || m.id === currentStreamingId || (m.metadata as any)?.clientKey === streamingId) ? {
+          ...m,
+          metadata: { ...(m.metadata || {}), streaming: false, aiActivity: null, aiActivityMessage: '' }
+        } : m
+      ));
       // Do not clear streamingMessage here to avoid extra re-render; it's ignored by UI now
       setOptimisticMessages([]);
       // Invalidate conversations list for updated timestamps
@@ -399,10 +436,9 @@ export default function Chat() {
 
   // Helper function to check if message is temporary
   const isTemporaryMessage = useCallback((messageId: string) => {
-    // Temporary messages have IDs like "temp-stream-123456789" or numeric timestamps
-    return messageId.startsWith('temp-stream-') || 
-           messageId.startsWith('temp-') || 
-           /^\d+-assistant$/.test(messageId);
+    // Check if it's a UUID pattern (real database message) vs temporary ID
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return !uuidPattern.test(messageId);
   }, []);
 
   // Delete message mutation

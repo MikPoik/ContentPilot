@@ -310,12 +310,22 @@ export function registerMessageRoutes(app: Express) {
 
         // Save AI response
         const saveAiResponseStart = Date.now();
-        await storage.createMessage({
+        const savedMessage = await storage.createMessage({
           conversationId,
           role: 'assistant',
           content: fullResponse,
         });
         console.log(`💾 [CHAT_FLOW] AI response saved: ${Date.now() - saveAiResponseStart}ms`);
+
+        // Send the real database message ID to frontend
+        const messageIdMetadata = JSON.stringify({
+          type: 'message_id',
+          messageId: savedMessage.id
+        });
+        res.write(`[MESSAGE_ID]${messageIdMetadata}[/MESSAGE_ID]\n`);
+        if (typeof (res as any).flush === 'function') {
+          try { (res as any).flush(); } catch {}
+        }
 
         // Increment message usage count
         const incrementUsageStart = Date.now();
