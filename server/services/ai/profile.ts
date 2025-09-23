@@ -93,6 +93,7 @@ ONLY EXTRACT SIGNIFICANT PROFILE CHANGES:
 2. MAJOR corrections or updates to existing information
 3. CONCRETE business details discovered through analysis (website, Instagram, etc.)
 4. EXPLICIT user statements about their business/goals that ADD new information
+5. EXPLICIT profile update requests (like "update my profile", "päivitä profiiliini")
 
 DO NOT EXTRACT:
 - Minor variations of existing contentNiche items (e.g., if user already has "pariterapia", don't add "parikriisi-interventio")
@@ -100,6 +101,11 @@ DO NOT EXTRACT:
 - General conversation topics that don't add new profile data
 - Content ideas or recommendations without explicit user adoption
 - Sub-topics or variations of existing niches unless they represent a completely different field
+
+SPECIAL HANDLING FOR EXPLICIT UPDATE REQUESTS:
+- When user explicitly asks to update profile information, ALWAYS extract the requested changes
+- For platform updates: if user mentions using multiple platforms, update primaryPlatform accordingly
+- For explicit requests, be more liberal with extraction than normal discovery
 
 CONTENT NICHE RULES:
 - Only add new contentNiche items if they represent a genuinely different field/industry

@@ -299,7 +299,7 @@ Return JSON (only include fields when true/relevant):
 "instagramAnalysis": {"username": "string", "confidence": 0.9} (only if shouldAnalyze=true), 
 "blogAnalysis": {"urls": ["url1"], "confidence": 0.9} (only if shouldAnalyze=true),
 "workflowPhase": {"currentPhase": "phase", "missingFields": ["field1"], "suggestedPrompts": ["prompt1"], "shouldBlockContentGeneration": true, "confidence": 0.9},
-"profileUpdate": {"expectedFields": ["field1"], "reason": "string", "confidence": 0.9} (only if shouldExtract=true)
+"profileUpdate": {"expectedFields": ["field1"], "reason": "string", "confidence": 0.9} (only if shouldExtract=true OR user explicitly requests profile update)
 }
 
 CRITICAL RULE FOR MISSING FIELDS AND PROMPTS:
@@ -325,12 +325,13 @@ EXAMPLES:
       CRITICAL VALIDATION RULES:
       - For blog analysis: ONLY trigger if you see actual URLs (http/https) or explicit requests like "analyze my blog"
       - For Instagram analysis: ONLY trigger if you see @username mentions or explicit requests like "check my Instagram"
-      - For profile update: ONLY trigger if user explicitly mentions business information that fills missing ❌ fields or after successful blog/Instagram analysis
-      - DO NOT trigger profile update for casual conversation, personal information, or general chat
-      - Profile update should target specific missing fields from the completeness check above
+      - For profile update: Trigger if user explicitly requests profile updates (like "update my profile", "päivitä profiiliini") OR mentions business information that fills missing ❌ fields or after successful blog/Instagram analysis
+      - ALSO trigger for explicit profile modification requests regardless of current completeness
+      - DO NOT trigger profile update for casual conversation that doesn't involve profile changes
+      - Profile update should include both explicit update requests and discovery of missing fields
       - DO NOT use information from previous conversations or stored memories to infer analysis requests
       - DO NOT trigger analysis based on general conversation topics
-      - When in doubt, set shouldAnalyze/shouldExtract to false and confidence to 0.0
+      - When in doubt about profile updates specifically requested by user, favor extraction
       - If the user is just chatting (like "week has gone well"), DO NOT trigger any analysis or profile updates`,
         },
       ],
