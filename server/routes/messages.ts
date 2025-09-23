@@ -168,11 +168,7 @@ export function registerMessageRoutes(app: Express) {
           const instagramAnalysisStart = Date.now();
           try {
             // Send Instagram analysis activity indicator
-            res.write(`data: ${JSON.stringify({ 
-              type: 'activity', 
-              activity: 'instagram_analyzing',
-              details: `@${instagramDecision.username}` 
-            })}\n\n`);
+            res.write(`[AI_ACTIVITY]{"type":"instagram_analyzing","message":"@${instagramDecision.username}"}[/AI_ACTIVITY]`);
             if (typeof (res as any).flush === 'function') {
               try { (res as any).flush(); } catch {}
             }
@@ -182,11 +178,7 @@ export function registerMessageRoutes(app: Express) {
               userId,
               (message: string) => {
                 // Send progress updates
-                res.write(`data: ${JSON.stringify({ 
-                  type: 'activity', 
-                  activity: 'instagram_analyzing',
-                  details: message 
-                })}\n\n`);
+                res.write(`[AI_ACTIVITY]{"type":"instagram_analyzing","message":"${message}"}[/AI_ACTIVITY]`);
                 if (typeof (res as any).flush === 'function') {
                   try { (res as any).flush(); } catch {}
                 }
@@ -194,10 +186,7 @@ export function registerMessageRoutes(app: Express) {
             );
 
             // Clear activity indicator
-            res.write(`data: ${JSON.stringify({ 
-              type: 'activity', 
-              activity: null 
-            })}\n\n`);
+            res.write(`[AI_ACTIVITY]{"type":null,"message":""}[/AI_ACTIVITY]`);
             if (typeof (res as any).flush === 'function') {
               try { (res as any).flush(); } catch {}
             }
@@ -207,10 +196,7 @@ export function registerMessageRoutes(app: Express) {
             console.error(`❌ [CHAT_FLOW] Instagram analysis failed: ${Date.now() - instagramAnalysisStart}ms`, error);
 
             // Clear activity indicator on error
-            res.write(`data: ${JSON.stringify({ 
-              type: 'activity', 
-              activity: null 
-            })}\n\n`);
+            res.write(`[AI_ACTIVITY]{"type":null,"message":""}[/AI_ACTIVITY]`);
             if (typeof (res as any).flush === 'function') {
               try { (res as any).flush(); } catch {}
             }
