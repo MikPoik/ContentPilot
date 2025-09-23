@@ -151,6 +151,18 @@ export function registerMessageRoutes(app: Express) {
         searchDecision = extractWebSearchDecision(unifiedDecision);
         workflowPhaseDecision = unifiedDecision.workflowPhase;
 
+        // Set up streaming response headers BEFORE any res.write() calls
+        // Important: prevent any intermediary (proxies) from buffering so chunks reach client immediately
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
+        res.setHeader('Connection', 'keep-alive');
+        // Disable nginx-style proxy buffering if present
+        res.setHeader('X-Accel-Buffering', 'no');
+        // Flush headers so the client begins processing the stream ASAP
+        if (typeof (res as any).flushHeaders === 'function') {
+          (res as any).flushHeaders();
+        }
+
         // Perform Instagram analysis if needed
         if (instagramDecision.shouldAnalyze && instagramDecision.username) {
           const instagramAnalysisStart = Date.now();
@@ -236,18 +248,15 @@ export function registerMessageRoutes(app: Express) {
           reason: "Error in unified analysis",
           expectedFields: []
         };
-      }
 
-      // Set up streaming response
-      // Important: prevent any intermediary (proxies) from buffering so chunks reach client immediately
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      res.setHeader('Cache-Control', 'no-cache, no-transform');
-      res.setHeader('Connection', 'keep-alive');
-      // Disable nginx-style proxy buffering if present
-      res.setHeader('X-Accel-Buffering', 'no');
-      // Flush headers so the client begins processing the stream ASAP
-      if (typeof (res as any).flushHeaders === 'function') {
-        (res as any).flushHeaders();
+        // Set up streaming response headers even in error case
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no');
+        if (typeof (res as any).flushHeaders === 'function') {
+          (res as any).flushHeaders();
+        }
       }
 
       // Send memory recall indicator if memories were found
