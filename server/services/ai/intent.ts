@@ -325,7 +325,7 @@ EXAMPLES:
       CRITICAL VALIDATION RULES:
       - For blog analysis: ONLY trigger if you see actual URLs (http/https) or explicit requests like "analyze my blog"
       - For Instagram analysis: ONLY trigger if you see @username mentions or explicit requests like "check my Instagram"
-      - For profile update: Trigger if user explicitly requests profile updates (like "update my profile", "päivitä profiiliini") OR mentions business information that fills missing ❌ fields or after successful blog/Instagram analysis
+      - For profile update: Trigger if user explicitly requests profile updates (like "update my profile") OR mentions business information that fills missing ❌ fields or after successful blog/Instagram analysis
       - ALSO trigger for explicit profile modification requests regardless of current completeness
       - DO NOT trigger profile update for casual conversation that doesn't involve profile changes
       - Profile update should include both explicit update requests and discovery of missing fields

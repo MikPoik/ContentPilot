@@ -93,10 +93,10 @@ ONLY EXTRACT SIGNIFICANT PROFILE CHANGES:
 2. MAJOR corrections or updates to existing information
 3. CONCRETE business details discovered through analysis (website, Instagram, etc.)
 4. EXPLICIT user statements about their business/goals that ADD new information
-5. EXPLICIT profile update requests (like "update my profile", "päivitä profiiliini")
+5. EXPLICIT profile update requests (like "update my profile")
 
 DO NOT EXTRACT:
-- Minor variations of existing contentNiche items (e.g., if user already has "pariterapia", don't add "parikriisi-interventio")
+- Minor variations of existing contentNiche items ()
 - Repeated information already in the profile
 - General conversation topics that don't add new profile data
 - Content ideas or recommendations without explicit user adoption
@@ -110,13 +110,11 @@ SPECIAL HANDLING FOR EXPLICIT UPDATE REQUESTS:
 CONTENT NICHE RULES:
 - Only add new contentNiche items if they represent a genuinely different field/industry
 - If the new topic is a subcategory or variation of an existing niche, DO NOT extract it
-- Example: If user has "pariterapia", don't add "parikriisi-interventio" (it's the same field)
 - Example: If user has "fitness", don't add "weight training" (it's the same field)
 
 DUPLICATE PREVENTION:
 - For arrays (contentNiche, targetAudience, brandVoice, contentGoals): Only add items that aren't already covered by existing entries
-- For targetAudience: Don't add "35-40 vuotias nainen" if "35–40-vuotiaat" already exists
-- For brandVoice: Don't add similar descriptions like "Lämmin" if "warm and approachable" already exists
+- For brandVoice: Don't add similar descriptions like "warm" if "warm and approachable" already exists
 - For contentNiche: Don't add multiple therapy variations if therapy categories already exist
 - When blog analysis has just been performed, focus ONLY on truly new business information
 
