@@ -132,39 +132,31 @@ export class DatabaseStorage implements IStorage {
       return undefined;
     }
 
-    // Handle contentNiche merging - combine existing with new values, removing duplicates
-    let mergedProfileData = { ...profileData };
+    const replaceArrays = (profileData as any).replaceArrays === true;
+    // Handle contentNiche merging or replacement
+    let mergedProfileData = { ...profileData } as any;
     if (profileData.contentNiche && Array.isArray(profileData.contentNiche)) {
-      const existingNiches = currentUser.contentNiche || [];
-      const newNiches = profileData.contentNiche;
-      
-      // Merge arrays with proper normalization and deduplication
-      const allNiches = [...existingNiches, ...newNiches];
+      const base = replaceArrays ? [] : (currentUser.contentNiche || []);
+      const incoming = profileData.contentNiche;
       const normalized = new Map<string, string>();
-      
-      allNiches.forEach(niche => {
+      [...base, ...incoming].forEach((niche) => {
         if (niche && typeof niche === 'string') {
           const trimmed = niche.trim();
           if (trimmed) {
             const key = trimmed.toLowerCase();
-            if (!normalized.has(key)) {
-              normalized.set(key, trimmed);
-            }
+            if (!normalized.has(key)) normalized.set(key, trimmed);
           }
         }
       });
-      
       mergedProfileData.contentNiche = Array.from(normalized.values());
     }
 
-    // Handle primaryPlatforms merging (new multi-platform support)
+    // Handle primaryPlatforms merging or replacement (new multi-platform support)
     if (profileData.primaryPlatforms && Array.isArray(profileData.primaryPlatforms)) {
-      const existingPlatforms = (currentUser as any).primaryPlatforms || [];
-      const newPlatforms = profileData.primaryPlatforms || [];
-
-      const all = [...existingPlatforms, ...newPlatforms];
+      const base = replaceArrays ? [] : ((currentUser as any).primaryPlatforms || []);
+      const incoming = profileData.primaryPlatforms || [];
       const normalized = new Map<string, string>();
-      all.forEach((p) => {
+      [...base, ...incoming].forEach((p) => {
         if (typeof p === 'string') {
           const trimmed = p.trim();
           if (trimmed) {
@@ -176,8 +168,8 @@ export class DatabaseStorage implements IStorage {
       mergedProfileData.primaryPlatforms = Array.from(normalized.values());
 
       // Keep legacy single primaryPlatform in sync when array provided
-      if (!profileData.primaryPlatform && mergedProfileData.primaryPlatforms.length > 0) {
-        mergedProfileData.primaryPlatform = mergedProfileData.primaryPlatforms[0];
+      if (!profileData.primaryPlatform) {
+        mergedProfileData.primaryPlatform = mergedProfileData.primaryPlatforms[0] || null;
       }
     }
 

@@ -96,7 +96,10 @@ export const updateUserProfileSchema = createInsertSchema(users).pick({
   primaryPlatforms: true,
   profileData: true,
   profileCompleteness: true,
-}).partial();
+}).partial().extend({
+  // Optional flag to indicate arrays provided should REPLACE existing arrays
+  replaceArrays: z.boolean().optional(),
+});
 
 export const insertMemorySchema = createInsertSchema(memories).pick({
   userId: true,

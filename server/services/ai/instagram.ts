@@ -221,7 +221,7 @@ export async function performInstagramAnalysis(
             .trim();
 
           // Truncate to max 150 characters and add ellipsis if needed
-          return clean.length > 150 ? clean.substring(0, 150) + '...' : clean;
+          return clean.length > 200 ? clean.substring(0, 200) + '...' : clean;
         })
         .filter(text => text.length > 20); // Only keep meaningful samples
 

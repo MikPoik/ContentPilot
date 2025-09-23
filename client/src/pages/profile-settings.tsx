@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Trash2, User as UserIcon, Target, Share2, Database, Shield, ArrowLeft, CheckCircle, CreditCard } from "lucide-react";
+import { Trash2, User as UserIcon, Target, Share2, Database, Shield, ArrowLeft, CheckCircle, CreditCard, Plus, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SubscriptionManagement from "@/components/subscription-management";
 import { apiRequest } from "@/lib/queryClient";
@@ -55,9 +55,67 @@ export default function ProfileSettings() {
 
   const handleDeleteField = (fieldName: keyof User, displayName: string) => {
     const updateData = {
-      [fieldName]: fieldName === 'contentNiche' ? [] : fieldName === 'profileCompleteness' ? "0" : null
+      [fieldName]: fieldName === 'contentNiche' ? [] : fieldName === 'profileCompleteness' ? "0" : null,
+      // Ensure arrays get replaced (cleared) on server
+      ...(fieldName === 'contentNiche' ? { replaceArrays: true } : {}),
     };
     updateProfileMutation.mutate(updateData);
+  };
+
+  // Helpers for array normalization and updates
+  const normalizeLabel = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  };
+
+  const uniqueMerge = (arr: string[]) => {
+    const map = new Map<string, string>();
+    arr.forEach((v) => {
+      if (v && typeof v === 'string') {
+        const key = v.trim().toLowerCase();
+        if (key) map.set(key, normalizeLabel(v));
+      }
+    });
+    return Array.from(map.values());
+  };
+
+  // Content Niche add/remove
+  const addContentNiche = () => {
+    const value = window.prompt('Add a content niche label');
+    if (!value) return;
+    const label = normalizeLabel(value);
+    if (!label) return;
+    const current = (user.contentNiche || []) as string[];
+    const next = uniqueMerge([...current, label]);
+    updateProfileMutation.mutate({ contentNiche: next, replaceArrays: true } as any);
+  };
+
+  const removeContentNiche = (index: number) => {
+    const current = (user.contentNiche || []) as string[];
+    const next = current.filter((_, i) => i !== index);
+    updateProfileMutation.mutate({ contentNiche: next, replaceArrays: true } as any);
+  };
+
+  // Primary Platforms add/remove
+  const addPrimaryPlatform = () => {
+    const value = window.prompt('Add a primary platform (e.g., Instagram, TikTok)');
+    if (!value) return;
+    const label = normalizeLabel(value);
+    if (!label) return;
+    const current = ((user as any).primaryPlatforms && Array.isArray((user as any).primaryPlatforms)
+      ? (user as any).primaryPlatforms
+      : (user.primaryPlatform ? [user.primaryPlatform] : [])) as string[];
+    const next = uniqueMerge([...current, label]);
+    updateProfileMutation.mutate({ primaryPlatforms: next, primaryPlatform: next[0] ?? null, replaceArrays: true } as any);
+  };
+
+  const removePrimaryPlatform = (index: number) => {
+    const current = ((user as any).primaryPlatforms && Array.isArray((user as any).primaryPlatforms)
+      ? (user as any).primaryPlatforms
+      : (user.primaryPlatform ? [user.primaryPlatform] : [])) as string[];
+    const next = current.filter((_, i) => i !== index);
+    updateProfileMutation.mutate({ primaryPlatforms: next, primaryPlatform: next[0] ?? null, replaceArrays: true } as any);
   };
 
   const handleClearAllProfile = () => {
@@ -67,6 +125,7 @@ export default function ProfileSettings() {
       primaryPlatforms: [],
       profileData: null,
       profileCompleteness: "0",
+      replaceArrays: true,
     };
     updateProfileMutation.mutate(updateData);
   };
@@ -260,42 +319,62 @@ export default function ProfileSettings() {
                         <Target className="h-4 w-4 text-gray-600" />
                         <label className="text-sm font-medium text-gray-700">Content Focus Areas</label>
                       </div>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            disabled={updateProfileMutation.isPending}
-                            data-testid="button-delete-content-niche"
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Delete
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Content Focus Areas</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will remove all learned information about your content focus areas.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteField('contentNiche', 'Content Focus Areas')}
-                              className="bg-red-600 hover:bg-red-700"
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={addContentNiche}
+                          disabled={updateProfileMutation.isPending}
+                          data-testid="button-add-content-niche"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              disabled={updateProfileMutation.isPending}
+                              data-testid="button-delete-content-niche"
                             >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Delete All
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Content Focus Areas</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will remove all learned information about your content focus areas.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteField('contentNiche', 'Content Focus Areas')}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-2" data-testid="content-niche-list">
                       {user.contentNiche.map((niche: string, index: number) => (
-                        <Badge key={index} variant="secondary" className="text-sm">
-                          {String(niche)}
+                        <Badge key={index} variant="secondary" className="text-sm flex items-center">
+                          <span>{String(niche)}</span>
+                          <button
+                            className="ml-1 rounded hover:bg-red-50 text-gray-500 hover:text-red-600"
+                            onClick={() => removeContentNiche(index)}
+                            title="Remove"
+                            data-testid={`button-remove-content-niche-${index}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
                         </Badge>
                       ))}
                     </div>
@@ -310,45 +389,65 @@ export default function ProfileSettings() {
                         <Share2 className="h-4 w-4 text-gray-600" />
                         <label className="text-sm font-medium text-gray-700">Primary Platform(s)</label>
                       </div>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            disabled={updateProfileMutation.isPending}
-                            data-testid="button-delete-primary-platform"
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Delete
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Primary Platform(s)</AlertDialogTitle>
-                          <AlertDialogDescription>
-                              This will remove information about your primary content platform(s).
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => updateProfileMutation.mutate({ primaryPlatform: null, primaryPlatforms: [] } as any)}
-                              className="bg-red-600 hover:bg-red-700"
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={addPrimaryPlatform}
+                          disabled={updateProfileMutation.isPending}
+                          data-testid="button-add-primary-platform"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              disabled={updateProfileMutation.isPending}
+                              data-testid="button-delete-primary-platform"
                             >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Delete All
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Primary Platform(s)</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will remove information about your primary content platform(s).
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => updateProfileMutation.mutate({ primaryPlatform: null, primaryPlatforms: [], replaceArrays: true } as any)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {((user as any).primaryPlatforms?.length
                         ? (user as any).primaryPlatforms
                         : (user.primaryPlatform ? [user.primaryPlatform] : [])
                       ).map((p: string, idx: number) => (
-                        <Badge key={idx} variant="outline" className="text-sm" data-testid="text-primary-platform">
-                          {p}
+                        <Badge key={idx} variant="outline" className="text-sm flex items-center" data-testid="text-primary-platform">
+                          <span>{p}</span>
+                          <button
+                            className="ml-1 rounded hover:bg-red-50 text-gray-500 hover:text-red-600"
+                            onClick={() => removePrimaryPlatform(idx)}
+                            title="Remove"
+                            data-testid={`button-remove-primary-platform-${idx}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
                         </Badge>
                       ))}
                     </div>
