@@ -115,7 +115,7 @@ export function registerMessageRoutes(app: Express) {
         const memorySearchEnd = Date.now(); // Capture end time here
         console.log(`🔍 [CHAT_FLOW] Vector similarity search: ${memorySearchEnd - similaritySearchStart}ms`);
         console.log(`🎯 [CHAT_FLOW] Total memory search: ${memorySearchEnd - memorySearchStart}ms (found ${relevantMemories.length} memories)`);
-        
+
         // Log actual memory contents
         if (relevantMemories.length > 0) {
           console.log(`🧠 [CHAT_FLOW] Retrieved memories:`);
@@ -151,12 +151,63 @@ export function registerMessageRoutes(app: Express) {
         searchDecision = extractWebSearchDecision(unifiedDecision);
         workflowPhaseDecision = unifiedDecision.workflowPhase;
 
-        // Handle Instagram analysis if needed
-        if (instagramDecision.shouldAnalyze && instagramDecision.username && instagramDecision.confidence >= 0.7) {
-          console.log(`📸 [CHAT_FLOW] Performing Instagram analysis for @${instagramDecision.username}...`);
-          const analysisStart = Date.now();
-          instagramAnalysisResult = await performInstagramAnalysis(instagramDecision.username, userId);
-          console.log(`📸 [CHAT_FLOW] Instagram analysis completed: ${Date.now() - analysisStart}ms - success: ${instagramAnalysisResult.success}`);
+        // Perform Instagram analysis if needed
+        if (instagramDecision.shouldAnalyze && instagramDecision.username) {
+          const instagramAnalysisStart = Date.now();
+          try {
+            // Send Instagram analysis activity indicator
+            res.write(`data: ${JSON.stringify({ 
+              type: 'activity', 
+              activity: 'instagram_analyzing',
+              details: `@${instagramDecision.username}` 
+            })}\n\n`);
+            if (typeof (res as any).flush === 'function') {
+              try { (res as any).flush(); } catch {}
+            }
+
+            instagramAnalysisResult = await performInstagramAnalysis(
+              instagramDecision.username, 
+              userId,
+              (message: string) => {
+                // Send progress updates
+                res.write(`data: ${JSON.stringify({ 
+                  type: 'activity', 
+                  activity: 'instagram_analyzing',
+                  details: message 
+                })}\n\n`);
+                if (typeof (res as any).flush === 'function') {
+                  try { (res as any).flush(); } catch {}
+                }
+              }
+            );
+
+            // Clear activity indicator
+            res.write(`data: ${JSON.stringify({ 
+              type: 'activity', 
+              activity: null 
+            })}\n\n`);
+            if (typeof (res as any).flush === 'function') {
+              try { (res as any).flush(); } catch {}
+            }
+
+            console.log(`📸 [CHAT_FLOW] Instagram analysis completed: ${Date.now() - instagramAnalysisStart}ms - success: ${instagramAnalysisResult.success}`);
+          } catch (error) {
+            console.error(`❌ [CHAT_FLOW] Instagram analysis failed: ${Date.now() - instagramAnalysisStart}ms`, error);
+
+            // Clear activity indicator on error
+            res.write(`data: ${JSON.stringify({ 
+              type: 'activity', 
+              activity: null 
+            })}\n\n`);
+            if (typeof (res as any).flush === 'function') {
+              try { (res as any).flush(); } catch {}
+            }
+
+            instagramAnalysisResult = {
+              success: false,
+              error: 'Failed to analyze Instagram profile'
+            };
+          }
         }
 
         // Handle blog analysis if needed
@@ -286,7 +337,7 @@ export function registerMessageRoutes(app: Express) {
           // Use intent-driven profile extraction instead of always running it
           // Also trigger after successful blog/Instagram analysis when new data is available
           const hasSuccessfulAnalysis = (instagramAnalysisResult?.success || blogAnalysisResult?.success);
-          
+
           let conversationProfileUpdates: any = {};
           if ((profileUpdateDecision?.shouldExtract && profileUpdateDecision.confidence >= 0.7) || hasSuccessfulAnalysis) {
             const profileExtractionStart = Date.now();
@@ -317,17 +368,17 @@ export function registerMessageRoutes(app: Express) {
           // Check for automatic Instagram analysis during discovery
           if (combinedProfileUpdates.instagramUsername && !instagramAnalysisResult) {
             console.log(`📸 [CHAT_FLOW] Auto-triggering Instagram analysis for discovered username: @${combinedProfileUpdates.instagramUsername}`);
-            
+
             // Mark this as the user's own profile if detected during discovery
             if (combinedProfileUpdates.ownInstagramUsername) {
               combinedProfileUpdates.ownInstagramUsername = combinedProfileUpdates.instagramUsername;
             }
-            
+
             try {
               const autoAnalysisStart = Date.now();
               instagramAnalysisResult = await performInstagramAnalysis(combinedProfileUpdates.instagramUsername, userId);
               console.log(`📸 [CHAT_FLOW] Auto Instagram analysis completed: ${Date.now() - autoAnalysisStart}ms - success: ${instagramAnalysisResult.success}`);
-              
+
               // If analysis was successful, add a note to the response stream
               if (instagramAnalysisResult.success) {
                 res.write(`\n\n📸 **Discovered your Instagram!** I've analyzed @${combinedProfileUpdates.instagramUsername} to better understand your content style and audience. This will help me provide more personalized recommendations.\n\n`);

@@ -115,7 +115,7 @@ export async function performInstagramAnalysis(
   const startTime = Date.now();
   try {
     console.log(`📸 [INSTAGRAM_AI] Performing Instagram analysis for @${username}...`);
-    progressCallback?.(`Analyzing @${username} profile...`);
+    progressCallback?.(`🔍 Analyzing @${username} profile...`);
 
     // Check if profile was analyzed recently (within 24 hours)
     const user = await storage.getUser(userId);
@@ -152,7 +152,7 @@ export async function performInstagramAnalysis(
     }
 
     // Analyze the Instagram profile using HikerAPI
-    progressCallback?.(`Fetching profile data and posts...`);
+    progressCallback?.(`📊 Fetching profile data and posts...`);
     const instagramProfile = await hikerApiService.analyzeInstagramProfile(username);
 
     // Check if we got partial results (main profile succeeded but some similar accounts failed)

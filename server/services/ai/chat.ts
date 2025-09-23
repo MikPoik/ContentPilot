@@ -50,7 +50,7 @@ export async function generateChatResponse(
       confidence: 0.9
     };
   }
-  
+
   console.log(
     `🔄 [AI_SERVICE] Using workflow phase: ${workflowDecision.currentPhase}, block content: ${workflowDecision.shouldBlockContentGeneration}`,
   );

@@ -1,13 +1,13 @@
-
-import { Search, Globe, Brain, Eye, BarChart3, PenTool, Lightbulb } from "lucide-react";
+import { Search, Globe, Brain, Eye, BarChart3, PenTool, Lightbulb, Instagram } from "lucide-react";
 
 interface AIActivityIndicatorProps {
   activity: 'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | 'instagram_analyzing' | 'blog_analyzing' | null;
   message?: string;
   searchQuery?: string;
+  details?: string;
 }
 
-export default function AIActivityIndicator({ activity, message, searchQuery }: AIActivityIndicatorProps) {
+export default function AIActivityIndicator({ activity, message, searchQuery, details }: AIActivityIndicatorProps) {
   if (!activity) return null;
 
   const getActivityConfig = () => {
@@ -56,7 +56,7 @@ export default function AIActivityIndicator({ activity, message, searchQuery }: 
         };
       case 'instagram_analyzing':
         return {
-          icon: Search,
+          icon: Instagram,
           color: 'text-pink-600',
           text: message || 'Analyzing Instagram profile...',
           animation: 'animate-pulse'
@@ -82,14 +82,14 @@ export default function AIActivityIndicator({ activity, message, searchQuery }: 
   const IconComponent = config.icon;
 
   return (
-    <div 
+    <div
       className="flex items-center space-x-2 text-sm mb-2 animate-fade-in"
       data-testid="ai-activity-indicator"
     >
       <div className="flex items-center space-x-1">
         <IconComponent className={`h-4 w-4 ${config.color} ${config.animation}`} />
         {activity === 'searching' && <Globe className="h-3 w-3 animate-spin text-emerald-600" />}
-        {activity === 'instagram_analyzing' && <Brain className="h-3 w-3 animate-spin text-pink-600" />}
+        {activity === 'instagram_analyzing' && <Search className="h-3 w-3 animate-spin text-pink-600" />}
         {activity === 'blog_analyzing' && <Brain className="h-3 w-3 animate-spin text-blue-600" />}
       </div>
       <span className="text-gray-700">
