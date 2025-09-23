@@ -146,7 +146,8 @@ export function registerMessageRoutes(app: Express) {
         // Extract individual decisions for backward compatibility
         const instagramDecision = extractInstagramAnalysisDecision(unifiedDecision);
         const blogDecision = extractBlogAnalysisDecision(unifiedDecision);
-        const profileUpdateDecision = extractProfileUpdateDecision(unifiedDecision);
+        // Assign to the outer-scoped variable (avoid shadowing) so it can be used later
+        profileUpdateDecision = extractProfileUpdateDecision(unifiedDecision);
         searchDecision = extractWebSearchDecision(unifiedDecision);
         workflowPhaseDecision = unifiedDecision.workflowPhase;
 

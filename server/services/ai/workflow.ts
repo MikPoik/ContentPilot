@@ -106,7 +106,10 @@ ${workflowPhase.shouldBlockContentGeneration ? '\n⚠️ CONTENT GENERATION BLOC
     userContext += `\n\nCURRENT USER PROFILE:`;
     userContext += `\n- Name: ${user.firstName || 'Not provided'}${user.lastName ? ' ' + user.lastName : ''}`;
     userContext += `\n- Content Niche: ${user.contentNiche?.join(', ') || 'Not specified'}`;
-    userContext += `\n- Primary Platform: ${user.primaryPlatform || 'Not specified'}`;
+    const platforms = (user as any).primaryPlatforms?.length
+      ? (user as any).primaryPlatforms.join(', ')
+      : (user.primaryPlatform || 'Not specified');
+    userContext += `\n- Primary Platform(s): ${platforms}`;
 
     if (user.profileData) {
       const data = user.profileData as any;
@@ -269,11 +272,12 @@ export async function decideWorkflowPhase(messages: ChatMessage[], user?: User):
     const contextMessages = messages.slice(-8);
 
     // Build current user context
-    const currentProfile = {
+  const currentProfile = {
       firstName: user?.firstName || null,
       lastName: user?.lastName || null,
       contentNiche: user?.contentNiche || [],
       primaryPlatform: user?.primaryPlatform || null,
+      primaryPlatforms: (user as any)?.primaryPlatforms || [],
       profileData: user?.profileData || {}
     };
 
@@ -314,7 +318,7 @@ Return ONLY valid JSON:
   "missingFields": ["array of missing key info like name, niche, platform, audience, etc"],
   "readyToAdvance": boolean,
   "suggestedPrompts": ["array of 1-2 specific questions to ask next"],
-  "profilePatch": {"any new profile data to store like firstName, contentNiche, primaryPlatform, instagramUsername, etc"},
+  "profilePatch": {"any new profile data to store like firstName, contentNiche, primaryPlatforms (array), primaryPlatform (optional legacy), instagramUsername, etc"},
   "shouldBlockContentGeneration": boolean,
   "confidence": number (0.0 to 1.0)
 }`

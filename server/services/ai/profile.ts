@@ -14,6 +14,7 @@ function calculateProfileCompleteness(user: User, updates: any): string {
     lastName: updates.lastName || user.lastName,
     contentNiche: updates.contentNiche || user.contentNiche || [],
     primaryPlatform: updates.primaryPlatform || user.primaryPlatform,
+    primaryPlatforms: (updates as any).primaryPlatforms || (user as any).primaryPlatforms || [],
     profileData: {
       ...(user.profileData as any || {}),
       ...(updates.profileData || {})
@@ -30,8 +31,8 @@ function calculateProfileCompleteness(user: User, updates: any): string {
   // Content niche (1 field) - Weight: 10%
   if (mergedProfile.contentNiche && mergedProfile.contentNiche.length > 0) completedFields++;
 
-  // Primary platform (1 field) - Weight: 10%
-  if (mergedProfile.primaryPlatform) completedFields++;
+  // Primary platform(s) (1 field) - Weight: 10%
+  if (mergedProfile.primaryPlatform || (mergedProfile as any).primaryPlatforms?.length > 0) completedFields++;
 
   // Core profile data (3 fields) - Weight: 30%
   if (mergedProfile.profileData?.targetAudience) completedFields++;
@@ -74,7 +75,7 @@ export async function extractProfileInfo(userMessage: string, assistantResponse:
           role: 'system',
           content: `Extract user profile info from both user message AND assistant response. Return JSON emphasizing any CHANGED or NEW fields:
 
-Fields to consider: firstName, lastName, contentNiche (array), primaryPlatform, profileData: {targetAudience, brandVoice, businessType, contentGoals, businessLocation}
+Fields to consider: firstName, lastName, contentNiche (array), primaryPlatforms (array like ["Instagram","TikTok"]), primaryPlatform (string, optional legacy primary), profileData: {targetAudience, brandVoice, businessType, contentGoals, businessLocation}
 
 IMPORTANT: Do NOT modify blogProfile - it's reserved for blog content analysis only.
 
@@ -83,6 +84,7 @@ Current profile: ${JSON.stringify({
             lastName: user.lastName,
             contentNiche: user.contentNiche,
             primaryPlatform: user.primaryPlatform,
+            primaryPlatforms: (user as any).primaryPlatforms,
             profileData: user.profileData
           })}
 
@@ -104,7 +106,7 @@ DO NOT EXTRACT:
 
 SPECIAL HANDLING FOR EXPLICIT UPDATE REQUESTS:
 - When user explicitly asks to update profile information, ALWAYS extract the requested changes
-- For platform updates: if user mentions using multiple platforms, update primaryPlatform accordingly
+- For platform updates: if user mentions multiple platforms (e.g., "Instagram and TikTok"), set primaryPlatforms to a normalized distinct array (capitalize first letter). Also set primaryPlatform to the first item for backward compatibility.
 - For explicit requests, be more liberal with extraction than normal discovery
 
 CONTENT NICHE RULES:
@@ -129,7 +131,7 @@ FIELD USAGE RULES:
 
 CURRENT USER PROFILE FOR COMPARISON:
 - contentNiche: ${user.contentNiche?.join(', ') || 'Not set'}
-- primaryPlatform: ${user.primaryPlatform || 'Not set'}
+- primaryPlatform(s): ${((user as any).primaryPlatforms?.join(', ')) || user.primaryPlatform || 'Not set'}
 - targetAudience: ${(user.profileData as any)?.targetAudience || 'Not set'}
 - businessType: ${(user.profileData as any)?.businessType || 'Not set'}
 - businessLocation: ${(user.profileData as any)?.businessLocation || 'Not set'}

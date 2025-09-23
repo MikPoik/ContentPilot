@@ -23,7 +23,8 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   // Profile fields for conversation-driven learning
   contentNiche: text("content_niche").array(), // Array of content focus areas
-  primaryPlatform: varchar("primary_platform"), // Main social media platform
+  primaryPlatform: varchar("primary_platform"), // Main social media platform (legacy, kept for backward compatibility)
+  primaryPlatforms: text("primary_platforms").array(), // Multiple primary platforms support
   profileData: jsonb("profile_data"), // Flexible storage for learned info
   profileCompleteness: varchar("profile_completeness").default("0"), // Percentage as string
   // Stripe subscription fields
@@ -92,6 +93,7 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
 export const updateUserProfileSchema = createInsertSchema(users).pick({
   contentNiche: true,
   primaryPlatform: true,
+  primaryPlatforms: true,
   profileData: true,
   profileCompleteness: true,
 }).partial();

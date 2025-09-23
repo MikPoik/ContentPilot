@@ -157,6 +157,30 @@ export class DatabaseStorage implements IStorage {
       mergedProfileData.contentNiche = Array.from(normalized.values());
     }
 
+    // Handle primaryPlatforms merging (new multi-platform support)
+    if (profileData.primaryPlatforms && Array.isArray(profileData.primaryPlatforms)) {
+      const existingPlatforms = (currentUser as any).primaryPlatforms || [];
+      const newPlatforms = profileData.primaryPlatforms || [];
+
+      const all = [...existingPlatforms, ...newPlatforms];
+      const normalized = new Map<string, string>();
+      all.forEach((p) => {
+        if (typeof p === 'string') {
+          const trimmed = p.trim();
+          if (trimmed) {
+            const key = trimmed.toLowerCase();
+            if (!normalized.has(key)) normalized.set(key, trimmed);
+          }
+        }
+      });
+      mergedProfileData.primaryPlatforms = Array.from(normalized.values());
+
+      // Keep legacy single primaryPlatform in sync when array provided
+      if (!profileData.primaryPlatform && mergedProfileData.primaryPlatforms.length > 0) {
+        mergedProfileData.primaryPlatform = mergedProfileData.primaryPlatforms[0];
+      }
+    }
+
     // Handle profileData merging - merge nested object fields instead of replacing
     if (profileData.profileData && typeof profileData.profileData === 'object' && profileData.profileData !== null) {
       const existingProfileData = currentUser.profileData as any || {};

@@ -64,6 +64,7 @@ export default function ProfileSettings() {
     const updateData = {
       contentNiche: [],
       primaryPlatform: null,
+      primaryPlatforms: [],
       profileData: null,
       profileCompleteness: "0",
     };
@@ -110,7 +111,7 @@ export default function ProfileSettings() {
     );
   }
 
-  const hasProfileData = !!(user.contentNiche?.length || user.primaryPlatform || (user.profileData && Object.keys(user.profileData as object).length > 0));
+  const hasProfileData = !!(user.contentNiche?.length || (user as any).primaryPlatforms?.length || user.primaryPlatform || (user.profileData && Object.keys(user.profileData as object).length > 0));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -301,13 +302,13 @@ export default function ProfileSettings() {
                   </div>
                 ) : null}
 
-                {/* Primary Platform */}
-                {user.primaryPlatform ? (
+                {/* Primary Platform(s) */}
+                {(user as any).primaryPlatforms?.length || user.primaryPlatform ? (
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-2">
                         <Share2 className="h-4 w-4 text-gray-600" />
-                        <label className="text-sm font-medium text-gray-700">Primary Platform</label>
+                        <label className="text-sm font-medium text-gray-700">Primary Platform(s)</label>
                       </div>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -324,15 +325,15 @@ export default function ProfileSettings() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Primary Platform</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will remove information about your primary content platform.
+                            <AlertDialogTitle>Delete Primary Platform(s)</AlertDialogTitle>
+                          <AlertDialogDescription>
+                              This will remove information about your primary content platform(s).
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => handleDeleteField('primaryPlatform', 'Primary Platform')}
+                              onClick={() => updateProfileMutation.mutate({ primaryPlatform: null, primaryPlatforms: [] } as any)}
                               className="bg-red-600 hover:bg-red-700"
                             >
                               Delete
@@ -341,9 +342,16 @@ export default function ProfileSettings() {
                         </AlertDialogContent>
                       </AlertDialog>
                     </div>
-                    <Badge variant="outline" className="text-sm" data-testid="text-primary-platform">
-                      {user.primaryPlatform}
-                    </Badge>
+                    <div className="flex flex-wrap gap-2">
+                      {((user as any).primaryPlatforms?.length
+                        ? (user as any).primaryPlatforms
+                        : (user.primaryPlatform ? [user.primaryPlatform] : [])
+                      ).map((p: string, idx: number) => (
+                        <Badge key={idx} variant="outline" className="text-sm" data-testid="text-primary-platform">
+                          {p}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 ) : null}
 

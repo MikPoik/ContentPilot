@@ -179,7 +179,7 @@ export async function analyzeUnifiedIntent(
       // Check what we actually have
       const hasName = !!(user.firstName);
       const hasNiche = !!(user.contentNiche && user.contentNiche?.length > 0);
-      const hasPlatform = !!(user.primaryPlatform);
+      const hasPlatform = !!((user as any).primaryPlatforms?.length || user.primaryPlatform);
       const hasTargetAudience = !!(data.targetAudience);
       const hasBrandVoice = !!(data.brandVoice);
       const hasContentGoals = !!(data.contentGoals?.length);
@@ -188,7 +188,7 @@ export async function analyzeUnifiedIntent(
       userContext += `PROFILE COMPLETENESS:
 ${hasName ? '✅' : '❌'} Name: ${hasName ? user.firstName + (user.lastName ? ' ' + user.lastName : '') : 'Missing'}
 ${hasNiche ? '✅' : '❌'} Content Niche: ${hasNiche ? user.contentNiche?.join(", ") || 'Missing' : 'Missing'}
-${hasPlatform ? '✅' : '❌'} Primary Platform: ${hasPlatform ? user.primaryPlatform : 'Missing'}
+${hasPlatform ? '✅' : '❌'} Primary Platform(s): ${hasPlatform ? (((user as any).primaryPlatforms?.length ? (user as any).primaryPlatforms.join(', ') : user.primaryPlatform) as string) : 'Missing'}
 ${hasTargetAudience ? '✅' : '❌'} Target Audience: ${hasTargetAudience ? data.targetAudience : 'Missing'}
 ${hasBrandVoice ? '✅' : '❌'} Brand Voice: ${hasBrandVoice ? data.brandVoice : 'Missing'}
 ${hasContentGoals ? '✅' : '❌'} Content Goals: ${hasContentGoals ? data.contentGoals.join(", ") : 'Missing'}
@@ -204,6 +204,7 @@ ${JSON.stringify({
   firstName: user.firstName,
   contentNiche: user.contentNiche,
   primaryPlatform: user.primaryPlatform,
+  primaryPlatforms: (user as any).primaryPlatforms,
   profileData: data
 }, null, 2)}`;
     } else {

@@ -108,10 +108,13 @@ export async function decideWebSearch(
     // Build user context
     let userContext = '';
     if (user) {
+      const platforms = (user as any).primaryPlatforms?.length
+        ? (user as any).primaryPlatforms.join(', ')
+        : (user.primaryPlatform || 'Not specified');
       userContext = `User Profile:
 - Name: ${user.firstName || 'Not provided'}${user.lastName ? ' ' + user.lastName : ''}
 - Content Niche: ${user.contentNiche?.join(', ') || 'Not specified'}
-- Primary Platform: ${user.primaryPlatform || 'Not specified'}`;
+- Primary Platform(s): ${platforms}`;
 
       if (user.profileData) {
         const data = user.profileData as any;
