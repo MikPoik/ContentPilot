@@ -89,11 +89,11 @@ export default function MessageList({
               Let's start by getting to know your brand and interests!
             </p>
             <div className="mt-4 text-xs text-muted-foreground/80 space-y-1">
-              <p className="font-medium">💡 Try asking me to:</p>
-              <p>• Analyze your Instagram profile (@username)</p>
-              <p>• Research websites or blogs for inspiration</p>
-              <p>• Check out competitor content strategies</p>
-              <p>• Generate content ideas for your niche</p>
+              <p className="font-medium text-muted-foreground">💡 Try asking me to:</p>
+              <p className="font-medium text-muted-foreground">• Analyze your Instagram profile (@username)</p>
+              <p className="font-medium text-muted-foreground">• Research websites or blogs for inspiration</p>
+              <p className="font-medium text-muted-foreground">• Check out competitor content strategies</p>
+              <p className="font-medium text-muted-foreground">• Generate content ideas for your niche</p>
             </div>
           </div>
         </div>
