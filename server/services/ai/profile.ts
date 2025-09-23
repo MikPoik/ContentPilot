@@ -21,22 +21,36 @@ function calculateProfileCompleteness(user: User, updates: any): string {
   };
 
   let completedFields = 0;
-  const totalFields = 7; // Total profile fields we track
+  const totalFields = 10; // Updated total profile fields we track
 
-  // Basic info (2 fields)
+  // Basic info (2 fields) - Weight: 20%
   if (mergedProfile.firstName) completedFields++;
   if (mergedProfile.lastName) completedFields++;
 
-  // Content niche (1 field)
+  // Content niche (1 field) - Weight: 10%
   if (mergedProfile.contentNiche && mergedProfile.contentNiche.length > 0) completedFields++;
 
-  // Primary platform (1 field)
+  // Primary platform (1 field) - Weight: 10%
   if (mergedProfile.primaryPlatform) completedFields++;
 
-  // Profile data sub-fields (3 fields)
+  // Core profile data (3 fields) - Weight: 30%
   if (mergedProfile.profileData?.targetAudience) completedFields++;
   if (mergedProfile.profileData?.brandVoice) completedFields++;
   if (mergedProfile.profileData?.businessType) completedFields++;
+
+  // Enhanced profile data (3 fields) - Weight: 30%
+  if (mergedProfile.profileData?.contentGoals?.length > 0) completedFields++;
+  if (mergedProfile.profileData?.businessLocation) completedFields++;
+  
+  // Rich analysis data - if either Instagram or blog analysis exists, count as complete
+  const hasInstagramAnalysis = !!(mergedProfile.profileData?.instagramProfile?.username);
+  const hasBlogAnalysis = !!(mergedProfile.profileData?.blogProfile?.writingStyle);
+  const hasCompetitorAnalysis = !!(mergedProfile.profileData?.competitorAnalyses && 
+    Object.keys(mergedProfile.profileData.competitorAnalyses).length > 0);
+  
+  if (hasInstagramAnalysis || hasBlogAnalysis || hasCompetitorAnalysis) {
+    completedFields++;
+  }
 
   const percentage = Math.round((completedFields / totalFields) * 100);
   return percentage.toString();
