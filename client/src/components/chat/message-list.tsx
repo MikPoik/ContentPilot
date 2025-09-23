@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import SearchIndicator from "./search-indicator";
 import SearchCitations from "./search-citations";
 import AIActivityIndicator from "./ai-activity-indicator";
+import { RotateCcw, Trash2 } from "lucide-react";
 
 interface MessageListProps {
   messages: Message[];
@@ -16,6 +17,8 @@ interface MessageListProps {
   aiActivityMessage?: string;
   user?: User;
   conversationId?: string;
+  onRegenerateMessage?: (messageId: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
 }
 
 export default function MessageList({ 
@@ -28,7 +31,9 @@ export default function MessageList({
   aiActivity = null,
   aiActivityMessage = '',
   user,
-  conversationId 
+  conversationId,
+  onRegenerateMessage,
+  onDeleteMessage
 }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -120,7 +125,7 @@ export default function MessageList({
         return (
           <div 
             key={(message as any).metadata?.clientKey || message.id}
-            className={`flex items-start space-x-3 ${shouldAnimate ? 'animate-fade-in' : ''} ${
+            className={`group flex items-start space-x-3 ${shouldAnimate ? 'animate-fade-in' : ''} ${
               message.role === 'user' ? 'justify-end' : ''
             }`}
           >
@@ -205,6 +210,33 @@ export default function MessageList({
                     minute: '2-digit' 
                   })}
                 </span>
+                
+                {/* Action buttons for assistant messages */}
+                {!((message as any).metadata?.streaming) && (
+                  <div className="flex items-center gap-1 ml-2">
+                    {onRegenerateMessage && (
+                      <button
+                        onClick={() => onRegenerateMessage(message.id.toString())}
+                        className="opacity-0 group-hover:opacity-100 hover:opacity-100 p-1 rounded hover:bg-muted/50 transition-all duration-200"
+                        title="Regenerate response"
+                        data-testid={`button-regenerate-${message.id}`}
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                      </button>
+                    )}
+                    {onDeleteMessage && (
+                      <button
+                        onClick={() => onDeleteMessage(message.id.toString())}
+                        className="opacity-0 group-hover:opacity-100 hover:opacity-100 p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
+                        title="Delete message"
+                        data-testid={`button-delete-${message.id}`}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Show activity indicators for streaming assistant messages */}
                 {(message as any).metadata?.streaming && (
                   <>

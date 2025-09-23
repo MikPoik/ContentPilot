@@ -362,6 +362,69 @@ export default function Chat() {
   // Stabilize message count; only depend on length
   const messageCount = useMemo(() => allMessages.length, [allMessages.length]);
 
+  // Handle regenerate message
+  const handleRegenerateMessage = useCallback(async (messageId: string) => {
+    if (!conversationId) return;
+    
+    // Find the assistant message and get the previous user message
+    const messageIndex = allMessages.findIndex(m => m.id.toString() === messageId);
+    if (messageIndex === -1) return;
+    
+    // Find the user message that triggered this assistant response
+    let userMessage = null;
+    for (let i = messageIndex - 1; i >= 0; i--) {
+      if (allMessages[i].role === 'user') {
+        userMessage = allMessages[i];
+        break;
+      }
+    }
+    
+    if (!userMessage) return;
+    
+    // Remove the assistant message from local state first
+    setMessages(prev => prev.filter(m => m.id.toString() !== messageId));
+    
+    try {
+      // Regenerate the response using the same user content
+      await streamResponse(conversationId, userMessage.content);
+    } catch (error) {
+      console.error('Regenerate message error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to regenerate message",
+        variant: "destructive",
+      });
+    }
+  }, [conversationId, allMessages, toast]);
+
+  // Delete message mutation
+  const deleteMessageMutation = useMutation({
+    mutationFn: async (messageId: string) => {
+      return await apiRequest("DELETE", `/api/conversations/${conversationId}/messages/${messageId}`);
+    },
+    onSuccess: () => {
+      // Invalidate messages to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId, "messages"] });
+      toast({
+        title: "Success",
+        description: "Message deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Delete message error:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to delete message",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Handle delete message
+  const handleDeleteMessage = useCallback((messageId: string) => {
+    deleteMessageMutation.mutate(messageId);
+  }, [deleteMessageMutation]);
+
   // Memoize dropdown disabled state to prevent infinite re-renders
   const isExportDisabled = useMemo(() =>
     !conversationId || messageCount === 0,
@@ -521,6 +584,8 @@ export default function Chat() {
               aiActivityMessage={aiActivityMessage}
               user={user}
               conversationId={conversationId}
+              onRegenerateMessage={handleRegenerateMessage}
+              onDeleteMessage={handleDeleteMessage}
             />
           )}
         </div>
