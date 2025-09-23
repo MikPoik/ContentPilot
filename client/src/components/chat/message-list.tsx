@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown";
 import SearchIndicator from "./search-indicator";
 import SearchCitations from "./search-citations";
 import AIActivityIndicator from "./ai-activity-indicator";
-import { RotateCcw, Trash2 } from "lucide-react";
+import { RotateCcw, Trash2, Copy } from "lucide-react";
 
 interface MessageListProps {
   messages: Message[];
@@ -37,6 +37,14 @@ export default function MessageList({
 }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const copyMessageContent = useCallback((content: string) => {
+    navigator.clipboard.writeText(content).then(() => {
+      // You could add a toast notification here if needed
+    }).catch((err) => {
+      console.error('Failed to copy message content:', err);
+    });
+  }, []);
 
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
@@ -214,6 +222,14 @@ export default function MessageList({
                 {/* Action buttons for assistant messages */}
                 {!((message as any).metadata?.streaming) && (
                   <div className="flex items-center gap-1 ml-2">
+                    <button
+                      onClick={() => copyMessageContent(message.content)}
+                      className="opacity-0 group-hover:opacity-100 hover:opacity-100 p-1 rounded hover:bg-muted/50 transition-all duration-200"
+                      title="Copy message"
+                      data-testid={`button-copy-${message.id}`}
+                    >
+                      <Copy className="w-3 h-3" />
+                    </button>
                     {onRegenerateMessage && (
                       <button
                         onClick={() => onRegenerateMessage(message.id.toString())}
@@ -227,7 +243,7 @@ export default function MessageList({
                     {onDeleteMessage && (
                       <button
                         onClick={() => onDeleteMessage(message.id.toString())}
-                        className="opacity-0 group-hover:opacity-100 hover:opacity-100 p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
+                        className="opacity-0 group-hover:opacity-100 hover:opacity-100 p-1 rounded hover:bg-muted/50 transition-all duration-200"
                         title="Delete message"
                         data-testid={`button-delete-${message.id}`}
                       >
