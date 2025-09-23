@@ -410,29 +410,32 @@ export default function ProfileSettings() {
                                       <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
                                     </svg>
                                     <span>Blog Content Analysis</span>
-                                    <Badge variant="secondary" className="text-xs">Writing Style</Badge>
+                                    
                                   </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                     <div className="text-center p-2 bg-white rounded-lg border">
-                                      <div className="text-base font-semibold text-blue-600">{profileData.blogProfile.writingStyle || 'N/A'}</div>
-                                      <div className="text-xs text-gray-600">Writing Style</div>
+                                      <Badge variant="secondary" className="text-xs">Writing Style</Badge>
+                                      <div className="text-base font-normal text-blue-600">{profileData.blogProfile.writingStyle || 'N/A'}</div>
+
                                     </div>
                                     <div className="text-center p-2 bg-white rounded-lg border">
-                                      <div className="text-base font-semibold text-blue-600">{profileData.blogProfile.averagePostLength || 'N/A'}</div>
-                                      <div className="text-xs text-gray-600">Post Length</div>
+                                      <Badge variant="secondary" className="text-xs">Avg Post Length</Badge>
+                                      <div className="text-base font-normal text-blue-600">{profileData.blogProfile.averagePostLength || 'N/A'}</div>
+
                                     </div>
                                     <div className="text-center p-2 bg-white rounded-lg border">
-                                      <div className="text-base font-semibold text-blue-600">{profileData.blogProfile.analyzedUrls?.length || 0}</div>
-                                      <div className="text-xs text-gray-600">Analyzed Posts</div>
+                                      <Badge variant="secondary" className="text-xs">Analyzed Posts</Badge>
+                                      <div className="text-base font-normal text-blue-600">{profileData.blogProfile.analyzedUrls?.length || 0}</div>
+                                      
                                     </div>
                                   </div>
                                   
                                   {profileData.blogProfile.brandVoice && (
                                     <div>
                                       <label className="text-xs font-medium text-gray-700 mb-1 block">Brand Voice</label>
-                                      <p className="text-xs text-gray-600 bg-white p-2 rounded-lg border">{profileData.blogProfile.brandVoice}</p>
+                                      <p className="text-xs font-normal text-gray-600 bg-white p-2 rounded-lg border">{profileData.blogProfile.brandVoice}</p>
                                     </div>
                                   )}
                                   
