@@ -397,41 +397,41 @@ export default function ProfileSettings() {
                             {profileData.blogProfile && (
                               <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
                                 <CardHeader className="pb-3">
-                                  <CardTitle className="flex items-center space-x-2 text-lg">
-                                    <svg className="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                                  <CardTitle className="flex items-center space-x-2 text-base">
+                                    <svg className="h-4 w-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
                                       <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
                                     </svg>
                                     <span>Blog Content Analysis</span>
                                     <Badge variant="secondary" className="text-xs">Writing Style</Badge>
                                   </CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-4">
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div className="text-center p-3 bg-white rounded-lg border">
-                                      <div className="text-2xl font-bold text-blue-600">{profileData.blogProfile.writingStyle || 'N/A'}</div>
-                                      <div className="text-sm text-gray-600">Writing Style</div>
+                                <CardContent className="space-y-3">
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div className="text-center p-2 bg-white rounded-lg border">
+                                      <div className="text-base font-semibold text-blue-600">{profileData.blogProfile.writingStyle || 'N/A'}</div>
+                                      <div className="text-xs text-gray-600">Writing Style</div>
                                     </div>
-                                    <div className="text-center p-3 bg-white rounded-lg border">
-                                      <div className="text-2xl font-bold text-blue-600">{profileData.blogProfile.averagePostLength || 'N/A'}</div>
-                                      <div className="text-sm text-gray-600">Post Length</div>
+                                    <div className="text-center p-2 bg-white rounded-lg border">
+                                      <div className="text-base font-semibold text-blue-600">{profileData.blogProfile.averagePostLength || 'N/A'}</div>
+                                      <div className="text-xs text-gray-600">Post Length</div>
                                     </div>
-                                    <div className="text-center p-3 bg-white rounded-lg border">
-                                      <div className="text-2xl font-bold text-blue-600">{profileData.blogProfile.analyzedUrls?.length || 0}</div>
-                                      <div className="text-sm text-gray-600">Analyzed Posts</div>
+                                    <div className="text-center p-2 bg-white rounded-lg border">
+                                      <div className="text-base font-semibold text-blue-600">{profileData.blogProfile.analyzedUrls?.length || 0}</div>
+                                      <div className="text-xs text-gray-600">Analyzed Posts</div>
                                     </div>
                                   </div>
                                   
                                   {profileData.blogProfile.brandVoice && (
                                     <div>
-                                      <label className="text-sm font-medium text-gray-700 mb-1 block">Brand Voice</label>
-                                      <p className="text-sm text-gray-600 bg-white p-3 rounded-lg border">{profileData.blogProfile.brandVoice}</p>
+                                      <label className="text-xs font-medium text-gray-700 mb-1 block">Brand Voice</label>
+                                      <p className="text-xs text-gray-600 bg-white p-2 rounded-lg border">{profileData.blogProfile.brandVoice}</p>
                                     </div>
                                   )}
                                   
                                   {profileData.blogProfile.toneKeywords?.length > 0 && (
                                     <div>
-                                      <label className="text-sm font-medium text-gray-700 mb-2 block">Tone Keywords</label>
-                                      <div className="flex flex-wrap gap-2">
+                                      <label className="text-xs font-medium text-gray-700 mb-1 block">Tone Keywords</label>
+                                      <div className="flex flex-wrap gap-1">
                                         {profileData.blogProfile.toneKeywords.slice(0, 8).map((keyword: string, index: number) => (
                                           <Badge key={index} variant="outline" className="text-xs">{keyword}</Badge>
                                         ))}
@@ -441,8 +441,8 @@ export default function ProfileSettings() {
                                   
                                   {profileData.blogProfile.contentThemes?.length > 0 && (
                                     <div>
-                                      <label className="text-sm font-medium text-gray-700 mb-2 block">Content Themes</label>
-                                      <div className="flex flex-wrap gap-2">
+                                      <label className="text-xs font-medium text-gray-700 mb-1 block">Content Themes</label>
+                                      <div className="flex flex-wrap gap-1">
                                         {profileData.blogProfile.contentThemes.map((theme: string, index: number) => (
                                           <Badge key={index} variant="secondary" className="text-xs">{theme}</Badge>
                                         ))}
@@ -452,8 +452,8 @@ export default function ProfileSettings() {
                                   
                                   {profileData.blogProfile.commonTopics?.length > 0 && (
                                     <div>
-                                      <label className="text-sm font-medium text-gray-700 mb-2 block">Common Topics</label>
-                                      <div className="flex flex-wrap gap-2">
+                                      <label className="text-xs font-medium text-gray-700 mb-1 block">Common Topics</label>
+                                      <div className="flex flex-wrap gap-1">
                                         {profileData.blogProfile.commonTopics.map((topic: string, index: number) => (
                                           <Badge key={index} variant="outline" className="text-xs bg-blue-50">{topic}</Badge>
                                         ))}
@@ -463,15 +463,15 @@ export default function ProfileSettings() {
                                   
                                   {profileData.blogProfile.targetAudience && (
                                     <div>
-                                      <label className="text-sm font-medium text-gray-700 mb-1 block">Target Audience</label>
-                                      <p className="text-sm text-gray-600 bg-white p-3 rounded-lg border">{profileData.blogProfile.targetAudience}</p>
+                                      <label className="text-xs font-medium text-gray-700 mb-1 block">Target Audience</label>
+                                      <p className="text-xs text-gray-600 bg-white p-2 rounded-lg border">{profileData.blogProfile.targetAudience}</p>
                                     </div>
                                   )}
-                                  
+
                                   {profileData.blogProfile.postingPattern && (
                                     <div>
-                                      <label className="text-sm font-medium text-gray-700 mb-1 block">Content Pattern</label>
-                                      <p className="text-sm text-gray-600 bg-white p-3 rounded-lg border">{profileData.blogProfile.postingPattern}</p>
+                                      <label className="text-xs font-medium text-gray-700 mb-1 block">Content Pattern</label>
+                                      <p className="text-xs text-gray-600 bg-white p-2 rounded-lg border">{profileData.blogProfile.postingPattern}</p>
                                     </div>
                                   )}
                                   
