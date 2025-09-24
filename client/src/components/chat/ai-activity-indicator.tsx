@@ -1,7 +1,7 @@
-import { Search, Globe, Brain, Eye, BarChart3, PenTool, Lightbulb, Instagram } from "lucide-react";
+import { Search, Globe, Brain, Eye, BarChart3, PenTool, Lightbulb, Instagram, Hash } from "lucide-react";
 
 interface AIActivityIndicatorProps {
-  activity: 'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | 'instagram_analyzing' | 'blog_analyzing' | null;
+  activity: 'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | 'instagram_analyzing' | 'blog_analyzing' | 'hashtag_searching' | null;
   message?: string;
   searchQuery?: string;
   details?: string;
@@ -68,6 +68,15 @@ export default function AIActivityIndicator({ activity, message, searchQuery, de
           text: message || 'Analyzing blog content...',
           animation: 'animate-pulse'
         };
+      case 'hashtag_searching':
+        return {
+          icon: Instagram,
+          color: 'text-purple-600',
+          text: message?.startsWith('#')
+            ? `Searching ${message} for content ideas...`
+            : message || 'Searching hashtag for content ideas...',
+          animation: 'animate-pulse'
+        };
       default:
         return {
           icon: Brain,
@@ -91,6 +100,7 @@ export default function AIActivityIndicator({ activity, message, searchQuery, de
         {activity === 'searching' && <Globe className="h-3 w-3 animate-spin text-emerald-600" />}
         {activity === 'instagram_analyzing' && <Search className="h-3 w-3 animate-spin text-pink-600" />}
         {activity === 'blog_analyzing' && <Brain className="h-3 w-3 animate-spin text-blue-600" />}
+        {activity === 'hashtag_searching' && <Hash className="h-3 w-3 animate-spin text-purple-600" />}
       </div>
       <span className="text-gray-700">
         {config.text}
