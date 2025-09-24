@@ -75,16 +75,8 @@ export default function ProfileSettings() {
     },
   });
 
-  // Debounced update function
+  // Ref for cleanup (no longer used for debouncing)
   const debounceTimeoutRef = useRef<NodeJS.Timeout>();
-  const debouncedUpdate = useCallback((profileData: Partial<User>) => {
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-    debounceTimeoutRef.current = setTimeout(() => {
-      updateProfileMutation.mutate(profileData);
-    }, 1000); // 1 second delay
-  }, []); // Remove updateProfileMutation dependency to prevent recreation
 
   const handleDeleteField = (fieldName: keyof User, displayName: string) => {
     const updateData = {
@@ -932,18 +924,26 @@ export default function ProfileSettings() {
                                           <input
                                             type="text"
                                             value={localBusinessType}
-                                            onChange={(e) => {
-                                              setLocalBusinessType(e.target.value);
-                                              const newProfileData = {
-                                                ...(user.profileData as any || {}),
-                                                businessType: e.target.value
-                                              };
-                                              debouncedUpdate({ profileData: newProfileData });
-                                            }}
+                                            onChange={(e) => setLocalBusinessType(e.target.value)}
                                             placeholder="e.g., Therapy Practice, Coaching Service, Wellness Center"
                                             className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                             disabled={updateProfileMutation.isPending}
                                           />
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                              const newProfileData = {
+                                                ...(user.profileData as any || {}),
+                                                businessType: localBusinessType || null
+                                              };
+                                              updateProfileMutation.mutate({ profileData: newProfileData });
+                                            }}
+                                            disabled={updateProfileMutation.isPending || localBusinessType === ((user.profileData as any)?.businessType || "")}
+                                            className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                                          >
+                                            ✓
+                                          </Button>
                                           {localBusinessType && (
                                             <Button
                                               variant="ghost"
@@ -974,18 +974,26 @@ export default function ProfileSettings() {
                                           <input
                                             type="text"
                                             value={localBusinessLocation}
-                                            onChange={(e) => {
-                                              setLocalBusinessLocation(e.target.value);
-                                              const newProfileData = {
-                                                ...(user.profileData as any || {}),
-                                                businessLocation: e.target.value
-                                              };
-                                              debouncedUpdate({ profileData: newProfileData });
-                                            }}
+                                            onChange={(e) => setLocalBusinessLocation(e.target.value)}
                                             placeholder="e.g., Helsinki, Finland or Online"
                                             className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                             disabled={updateProfileMutation.isPending}
                                           />
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                              const newProfileData = {
+                                                ...(user.profileData as any || {}),
+                                                businessLocation: localBusinessLocation || null
+                                              };
+                                              updateProfileMutation.mutate({ profileData: newProfileData });
+                                            }}
+                                            disabled={updateProfileMutation.isPending || localBusinessLocation === ((user.profileData as any)?.businessLocation || "")}
+                                            className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                                          >
+                                            ✓
+                                          </Button>
                                           {localBusinessLocation && (
                                             <Button
                                               variant="ghost"
