@@ -5,8 +5,8 @@ import { generateChatResponse, generateConversationTitle, type ChatResponseWithM
 import { generateEmbedding } from "../services/openai";
 import { extractProfileInfo } from "../services/ai/profile";
 import { extractMemoriesFromConversation, rephraseQueryForEmbedding } from "../services/ai/memory";
-import { analyzeUnifiedIntent, extractWebSearchDecision, extractInstagramAnalysisDecision, extractBlogAnalysisDecision, extractProfileUpdateDecision } from "../services/ai/intent"; // Unified intent classification
-import { performInstagramAnalysis, formatInstagramAnalysisForChat } from "../services/ai/instagram"; // Added Instagram integration
+import { analyzeUnifiedIntent, extractWebSearchDecision, extractInstagramAnalysisDecision, extractInstagramHashtagDecision, extractBlogAnalysisDecision, extractProfileUpdateDecision } from "../services/ai/intent"; // Unified intent classification
+import { performInstagramAnalysis, performInstagramHashtagSearch, formatInstagramAnalysisForChat, formatInstagramHashtagSearchForChat } from "../services/ai/instagram"; // Added Instagram integration
 import { performBlogAnalysis, formatBlogAnalysisForChat } from "../services/ai/blog"; // Added blog analysis
 
 export function registerMessageRoutes(app: Express) {
@@ -133,6 +133,7 @@ export function registerMessageRoutes(app: Express) {
       // Use unified intent analysis to make all decisions in a single AI call
       const unifiedIntentStart = Date.now();
       let instagramAnalysisResult: any = null;
+      let instagramHashtagResult: any = null;
       let blogAnalysisResult: any = null;
       let searchDecision: any = null;
       let workflowPhaseDecision: any = null;
@@ -141,10 +142,11 @@ export function registerMessageRoutes(app: Express) {
       try {
         console.log(`🧠 [CHAT_FLOW] Starting unified intent analysis...`);
         const unifiedDecision = await analyzeUnifiedIntent(chatHistory, user);
-        console.log(`🧠 [CHAT_FLOW] Unified intent analysis: ${Date.now() - unifiedIntentStart}ms - webSearch: ${unifiedDecision.webSearch.shouldSearch}, instagram: ${unifiedDecision.instagramAnalysis.shouldAnalyze}, blog: ${unifiedDecision.blogAnalysis.shouldAnalyze}, profileUpdate: ${unifiedDecision.profileUpdate?.shouldExtract || false}, phase: ${unifiedDecision.workflowPhase.currentPhase}`);
+        console.log(`🧠 [CHAT_FLOW] Unified intent analysis: ${Date.now() - unifiedIntentStart}ms - webSearch: ${unifiedDecision.webSearch.shouldSearch}, instagram: ${unifiedDecision.instagramAnalysis.shouldAnalyze}, hashtag: ${unifiedDecision.instagramHashtagSearch.shouldSearch}, blog: ${unifiedDecision.blogAnalysis.shouldAnalyze}, profileUpdate: ${unifiedDecision.profileUpdate?.shouldExtract || false}, phase: ${unifiedDecision.workflowPhase.currentPhase}`);
 
         // Extract individual decisions for backward compatibility
         const instagramDecision = extractInstagramAnalysisDecision(unifiedDecision);
+        const instagramHashtagDecision = extractInstagramHashtagDecision(unifiedDecision);
         const blogDecision = extractBlogAnalysisDecision(unifiedDecision);
         // Assign to the outer-scoped variable (avoid shadowing) so it can be used later
         profileUpdateDecision = extractProfileUpdateDecision(unifiedDecision);
@@ -208,6 +210,51 @@ export function registerMessageRoutes(app: Express) {
           }
         }
 
+        // Perform Instagram hashtag search if needed
+        if (instagramHashtagDecision.shouldSearch && instagramHashtagDecision.hashtag) {
+          const hashtagSearchStart = Date.now();
+          try {
+            // Send hashtag search activity indicator
+            res.write(`[AI_ACTIVITY]{"type":"hashtag_searching","message":"#${instagramHashtagDecision.hashtag}"}[/AI_ACTIVITY]`);
+            if (typeof (res as any).flush === 'function') {
+              try { (res as any).flush(); } catch {}
+            }
+
+            instagramHashtagResult = await performInstagramHashtagSearch(
+              instagramHashtagDecision.hashtag, 
+              userId,
+              (message: string) => {
+                // Send progress updates
+                res.write(`[AI_ACTIVITY]{"type":"hashtag_searching","message":"${message}"}[/AI_ACTIVITY]`);
+                if (typeof (res as any).flush === 'function') {
+                  try { (res as any).flush(); } catch {}
+                }
+              }
+            );
+
+            // Clear activity indicator
+            res.write(`[AI_ACTIVITY]{"type":null,"message":""}[/AI_ACTIVITY]`);
+            if (typeof (res as any).flush === 'function') {
+              try { (res as any).flush(); } catch {}
+            }
+
+            console.log(`🏷️ [CHAT_FLOW] Hashtag search completed: ${Date.now() - hashtagSearchStart}ms - success: ${instagramHashtagResult.success}`);
+          } catch (error) {
+            console.error(`❌ [CHAT_FLOW] Hashtag search failed: ${Date.now() - hashtagSearchStart}ms`, error);
+
+            // Clear activity indicator on error
+            res.write(`[AI_ACTIVITY]{"type":null,"message":""}[/AI_ACTIVITY]`);
+            if (typeof (res as any).flush === 'function') {
+              try { (res as any).flush(); } catch {}
+            }
+
+            instagramHashtagResult = {
+              success: false,
+              error: 'Failed to search Instagram hashtag'
+            };
+          }
+        }
+
         // Handle blog analysis if needed
         if (blogDecision.shouldAnalyze && blogDecision.urls.length > 0 && blogDecision.confidence >= 0.7) {
           console.log(`📝 [CHAT_FLOW] Performing blog analysis for ${blogDecision.urls.length} URLs...`);
@@ -267,7 +314,7 @@ export function registerMessageRoutes(app: Express) {
       // Generate AI response stream with user profile and memories
       const aiResponseStart = Date.now();
       console.log(`🤖 [CHAT_FLOW] Starting AI response generation...`);
-      const responseWithMetadata: ChatResponseWithMetadata = await generateChatResponse(chatHistory, user, relevantMemories, searchDecision, instagramAnalysisResult, blogAnalysisResult, workflowPhaseDecision); // Pass workflow decision from unified intent analysis
+      const responseWithMetadata: ChatResponseWithMetadata = await generateChatResponse(chatHistory, user, relevantMemories, searchDecision, instagramAnalysisResult, instagramHashtagResult, blogAnalysisResult, workflowPhaseDecision); // Pass workflow decision from unified intent analysis
       let fullResponse = '';
 
       // Send search metadata immediately when search is performed (even with 0 citations)

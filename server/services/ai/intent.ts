@@ -33,6 +33,13 @@ export interface InstagramAnalysisDecision {
   reason: string;
 }
 
+export interface InstagramHashtagDecision {
+  shouldSearch: boolean;
+  hashtag?: string;
+  confidence: number;
+  reason: string;
+}
+
 export interface BlogAnalysisDecision {
   shouldAnalyze: boolean;
   urls: string[];
@@ -60,6 +67,7 @@ export interface ProfileUpdateDecision {
 export interface UnifiedIntentDecision {
   webSearch: WebSearchDecision;
   instagramAnalysis: InstagramAnalysisDecision;
+  instagramHashtagSearch: InstagramHashtagDecision;
   blogAnalysis: BlogAnalysisDecision;
   workflowPhase: WorkflowPhaseDecision;
   profileUpdate: ProfileUpdateDecision;
@@ -240,16 +248,21 @@ INTENT DETECTION:
 Use GROK for X/Twitter content, PERPLEXITY for general web
 
 2. INSTAGRAM ANALYSIS - Profile examination:
-• "Analyze @username" or competitor research
+• "Analyze @username" or competitor research  
 • Content/engagement pattern requests
 
-3. BLOG ANALYSIS - Content strategy examination:
+3. INSTAGRAM HASHTAG SEARCH - Ideas and content inspiration:
+• Requests for hashtag content ideas (like "show me #fitness posts", "get ideas from #marketing", "hashtag inspiration")
+• Looking for trending content by hashtag
+• Content research by hashtag for inspiration
+
+4. BLOG ANALYSIS - Content strategy examination:
 • EXPLICIT blog analysis requests with phrases like "analyze my blog", "check my blog posts", "review my writing style"
 • MUST be specifically about analyzing BLOG CONTENT, not just reading a website
 • For general website reading requests, use web search instead
 • Only trigger for URLs that are clearly blog posts or when user explicitly asks for blog content analysis
 
-4. WORKFLOW PHASE - User journey stage:
+5. WORKFLOW PHASE - User journey stage:
 • Discovery & Personalization: Getting to know user (name, niche, platform)
 • Brand Voice & Positioning: Understanding brand identity and voice
 • Collaborative Idea Generation: Content concepts and themes
@@ -271,6 +284,7 @@ STRICT VALIDATION RULES:
 - Extract usernames without @ symbol ONLY if explicitly mentioned
 - For blog analysis: REQUIRE explicit blog URLs or clear blog analysis requests
 - For Instagram analysis: REQUIRE explicit username mentions or analysis requests
+- For Instagram hashtag search: REQUIRE hashtag mentions (#hashtag) or explicit hashtag content requests
 - Do NOT hallucinate URLs, usernames, or requests that weren't mentioned
 - Be conservative - when in doubt, don't trigger analysis
 - Use semantic patterns, not keywords, but don't invent data
@@ -297,7 +311,8 @@ SEARCH QUERY RULES:
 Return JSON (only include fields when true/relevant):
 {
 "webSearch": {"refinedQuery": "string", "searchService": "perplexity|grok", "recency": "day", "confidence": 0.9} (only if shouldSearch=true),
-"instagramAnalysis": {"username": "string", "confidence": 0.9} (only if shouldAnalyze=true), 
+"instagramAnalysis": {"username": "string", "confidence": 0.9} (only if shouldAnalyze=true),
+"instagramHashtagSearch": {"hashtag": "hashtag_without_#", "confidence": 0.9} (only if shouldSearch=true), 
 "blogAnalysis": {"urls": ["url1"], "confidence": 0.9} (only if shouldAnalyze=true),
 "workflowPhase": {"currentPhase": "phase", "missingFields": ["field1"], "suggestedPrompts": ["prompt1"], "shouldBlockContentGeneration": true, "confidence": 0.9},
 "profileUpdate": {"expectedFields": ["field1"], "reason": "string", "confidence": 0.9} (only if shouldExtract=true OR user explicitly requests profile update)
@@ -406,6 +421,12 @@ function getDefaultUnifiedDecision(): UnifiedIntentDecision {
       confidence: 0.0,
       reason: "Error in analysis",
     },
+    instagramHashtagSearch: {
+      shouldSearch: false,
+      hashtag: undefined,
+      confidence: 0.0,
+      reason: "Error in analysis",
+    },
     blogAnalysis: {
       shouldAnalyze: false,
       urls: [],
@@ -458,6 +479,13 @@ function normalizeCondensedResponse(condensedResponse: any): UnifiedIntentDecisi
       reason: "AI recommended Instagram analysis",
     } : defaults.instagramAnalysis,
 
+    instagramHashtagSearch: condensedResponse.instagramHashtagSearch ? {
+      shouldSearch: true,
+      hashtag: condensedResponse.instagramHashtagSearch.hashtag,
+      confidence: condensedResponse.instagramHashtagSearch.confidence || 0.8,
+      reason: "AI recommended Instagram hashtag search",
+    } : defaults.instagramHashtagSearch,
+
     blogAnalysis: condensedResponse.blogAnalysis ? {
       shouldAnalyze: true,
       urls: condensedResponse.blogAnalysis.urls || [],
@@ -495,6 +523,12 @@ export function extractInstagramAnalysisDecision(
   unifiedDecision: UnifiedIntentDecision,
 ): InstagramAnalysisDecision {
   return unifiedDecision.instagramAnalysis;
+}
+
+export function extractInstagramHashtagDecision(
+  unifiedDecision: UnifiedIntentDecision,
+): InstagramHashtagDecision {
+  return unifiedDecision.instagramHashtagSearch;
 }
 
 export function extractBlogAnalysisDecision(

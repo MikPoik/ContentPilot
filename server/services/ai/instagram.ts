@@ -1,11 +1,13 @@
 import OpenAI from "openai";
-import { type User } from "@shared/schema";
+import { type User, type InstagramHashtagResult } from "@shared/schema";
 import { hikerApiService } from "../hikerapi.js";
+import { instagrapiService } from "../instagrapi.js";
 import { storage } from "../../storage.js";
 import { generateEmbedding } from "../openai.js";
 import {
   ChatMessage,
   InstagramAnalysisDecision,
+  InstagramHashtagDecision,
   safeJsonParse
 } from "./intent";
 
@@ -279,6 +281,193 @@ export async function performInstagramAnalysis(
 }
 
 /**
+ * Detects if the user is asking for Instagram hashtag search
+ */
+export async function decideInstagramHashtagSearch(
+  messages: ChatMessage[],
+  user?: User
+): Promise<InstagramHashtagDecision> {
+  const startTime = Date.now();
+  try {
+    console.log(`🏷️ [INSTAGRAM_HASHTAG] Analyzing if user wants hashtag search...`);
+
+    // Get last 2 messages for context
+    const contextMessages = messages.slice(-2);
+    const conversationContext = contextMessages
+      .map(msg => `${msg.role}: ${msg.content}`)
+      .join('\n');
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4.1-nano',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an Instagram hashtag search detector. Determine if the user is asking to search for hashtag content for ideas or inspiration.
+
+DETECTION RULES:
+- Look for hashtag mentions (like #fitness, #marketing, #travel)
+- Look for requests for "hashtag ideas", "content inspiration", "show me posts about X"
+- Look for requests to "get ideas from hashtag", "see what's trending in #hashtag"
+- Look for content research requests by hashtag for inspiration
+- Be liberal - if someone asks for ideas related to a topic that could be a hashtag, they likely want hashtag search
+
+RECENT CONVERSATION:
+${conversationContext}
+
+Return ONLY valid JSON:
+{
+  "shouldSearch": boolean,
+  "hashtag": "extracted hashtag without # symbol, or null",
+  "confidence": number (0.0 to 1.0),
+  "reason": "brief explanation of the decision"
+}`
+        }
+      ],
+      max_tokens: 150,
+      temperature: 0.1,
+    });
+
+    const result = response.choices[0]?.message?.content?.trim();
+    if (!result) {
+      console.log(`❌ [INSTAGRAM_HASHTAG] No response from GPT-4o-mini after ${Date.now() - startTime}ms`);
+      return {
+        shouldSearch: false,
+        confidence: 0.0,
+        reason: "No response from AI"
+      };
+    }
+
+    // Parse JSON with robust parsing
+    let sanitizedResult = result.trim();
+
+    if (sanitizedResult.startsWith('```') && sanitizedResult.endsWith('```')) {
+      const lines = sanitizedResult.split('\n');
+      sanitizedResult = lines.slice(1, -1).join('\n');
+    }
+
+    if (sanitizedResult.startsWith('json\n')) {
+      sanitizedResult = sanitizedResult.replace('json\n', '');
+    }
+
+    const decision: InstagramHashtagDecision = JSON.parse(sanitizedResult.trim());
+    console.log(`🏷️ [INSTAGRAM_HASHTAG] Hashtag search decision: ${Date.now() - startTime}ms - shouldSearch: ${decision.shouldSearch}, hashtag: ${decision.hashtag}, confidence: ${decision.confidence}`);
+    return decision;
+
+  } catch (error) {
+    console.error(`❌ [INSTAGRAM_HASHTAG] Instagram hashtag search detection error after ${Date.now() - startTime}ms:`, error);
+    return {
+      shouldSearch: false,
+      confidence: 0.0,
+      reason: "Error in hashtag search detection"
+    };
+  }
+}
+
+/**
+ * Performs Instagram hashtag search and returns formatted results for chat
+ */
+export async function performInstagramHashtagSearch(
+  hashtag: string,
+  userId: string,
+  progressCallback?: (message: string) => void
+): Promise<{
+  success: boolean;
+  hashtagResult?: InstagramHashtagResult;
+  cached?: boolean;
+  error?: string;
+}> {
+  const startTime = Date.now();
+  try {
+    console.log(`🏷️ [INSTAGRAM_HASHTAG] Performing hashtag search for #${hashtag}...`);
+    progressCallback?.(`🔍 Searching #${hashtag} for content ideas...`);
+
+    // Check if hashtag was searched recently (within 6 hours)
+    const user = await storage.getUser(userId);
+    const existingData = user?.profileData as any;
+
+    if (existingData?.hashtagSearches?.[hashtag]) {
+      const cachedAt = new Date(existingData.hashtagSearches[hashtag].cached_at);
+      const hoursSinceCache = (Date.now() - cachedAt.getTime()) / (1000 * 60 * 60);
+
+      if (hoursSinceCache < 6) {
+        console.log(`🏷️ [INSTAGRAM_HASHTAG] Using cached hashtag search for #${hashtag} (${hoursSinceCache.toFixed(1)}h old)`);
+        return {
+          success: true,
+          hashtagResult: existingData.hashtagSearches[hashtag],
+          cached: true
+        };
+      }
+    }
+
+    // Search for hashtag content using InstagrapiAPI
+    progressCallback?.(`📊 Fetching trending posts for #${hashtag}...`);
+    const hashtagResult = await instagrapiService.searchHashtag(hashtag, 12);
+
+    // Store the hashtag search results in user's profileData
+    const updatedProfileData = {
+      ...existingData,
+      hashtagSearches: {
+        ...(existingData?.hashtagSearches || {}),
+        [hashtag]: hashtagResult
+      }
+    };
+
+    await storage.updateUserProfile(userId, {
+      profileData: updatedProfileData
+    });
+
+    // Create memory entries for hashtag insights
+    const topPosts = hashtagResult.posts.slice(0, 5);
+    const memoryTexts = [
+      `Instagram hashtag search for #${hashtag}: Found ${hashtagResult.total_posts} trending posts with high engagement`,
+      `Top content themes for #${hashtag}: ${topPosts.map(p => p.username).join(', ')} are creating popular content`,
+      topPosts.length > 0 ? `Popular post examples for #${hashtag}: ${topPosts.map(p => `${p.username} (${p.like_count} likes)`).join(', ')}` : `Hashtag #${hashtag} content analyzed`
+    ];
+
+    // Generate embeddings and store memories with deduplication
+    for (const text of memoryTexts) {
+      try {
+        const embedding = await generateEmbedding(text);
+        await storage.upsertMemory({
+          userId,
+          content: text,
+          embedding,
+          metadata: {
+            source: 'hashtag_search',
+            hashtag: hashtag,
+            searchDate: hashtagResult.cached_at
+          }
+        }, 0.80); // 80% similarity threshold for hashtag memories
+      } catch (embeddingError) {
+        console.error('Error creating hashtag memory embedding:', embeddingError);
+      }
+    }
+
+    console.log(`🏷️ [INSTAGRAM_HASHTAG] Hashtag search completed: ${Date.now() - startTime}ms`);
+    return {
+      success: true,
+      hashtagResult: hashtagResult,
+      cached: false
+    };
+
+  } catch (error) {
+    console.error(`❌ [INSTAGRAM_HASHTAG] Hashtag search failed for #${hashtag} after ${Date.now() - startTime}ms:`, error);
+
+    let errorMessage = 'Failed to search Instagram hashtag';
+    if (error instanceof Error) {
+      if (error.message.includes('InstagrapiAPI Error')) {
+        errorMessage = 'Instagram hashtag search service temporarily unavailable';
+      }
+    }
+
+    return {
+      success: false,
+      error: errorMessage
+    };
+  }
+}
+
+/**
  * Formats Instagram analysis results for display in chat
  */
 export function formatInstagramAnalysisForChat(analysis: any, cached: boolean = false): string {
@@ -308,4 +497,38 @@ ${analysis.post_texts.slice(0, 2).map((text: string) => `"${text.substring(0, 10
 ${analysis.similar_accounts.slice(0, 3).map((acc: { username: string; followers: number }) => `@${acc.username} (${acc.followers.toLocaleString()} followers)`).join(' • ')}
 
 ${analysis.biography ? `\n📝 **Bio:** ${analysis.biography}` : ''}`;
+}
+
+/**
+ * Formats Instagram hashtag search results for display in chat
+ */
+export function formatInstagramHashtagSearchForChat(hashtagResult: InstagramHashtagResult, cached: boolean = false): string {
+  if (!hashtagResult || hashtagResult.posts.length === 0) {
+    return "Unable to retrieve hashtag content or no posts found for this hashtag.";
+  }
+
+  const cacheIndicator = cached ? " (from recent search)" : "";
+  const topPosts = hashtagResult.posts.slice(0, 8);
+
+  return `🏷️ **Hashtag Content Ideas: #${hashtagResult.hashtag}**${cacheIndicator}
+
+🔥 **Top Performing Posts:**
+${topPosts.map((post, index) => {
+  const engagement = post.like_count + post.comment_count;
+  const truncatedCaption = post.caption ? 
+    (post.caption.length > 80 ? post.caption.substring(0, 80) + '...' : post.caption) : 
+    'No caption';
+  
+  return `**${index + 1}.** @${post.username} (${engagement.toLocaleString()} total engagement)
+   "${truncatedCaption}"
+   👍 ${post.like_count.toLocaleString()} likes • 💬 ${post.comment_count.toLocaleString()} comments`;
+}).join('\n\n')}
+
+💡 **Content Inspiration Ideas:**
+• **Engagement leaders:** ${topPosts.slice(0, 3).map(p => `@${p.username}`).join(', ')} are getting high engagement
+• **Content variety:** Mix of ${Array.from(new Set(topPosts.map(p => p.media_type === 1 ? 'photos' : p.media_type === 2 ? 'videos' : 'carousels'))).join(' and ')}
+• **Posting patterns:** Active creators include ${Array.from(new Set(topPosts.map(p => p.username))).slice(0, 4).join(', ')}
+
+🎯 **Your Content Strategy:**
+Consider creating content that resonates with the #${hashtagResult.hashtag} community by studying these high-performing examples!`;
 }

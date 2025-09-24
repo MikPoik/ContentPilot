@@ -118,7 +118,8 @@ export class HikerAPIService {
         console.error(`Error fetching media chunk for user ${userId} (attempt ${consecutiveErrors}/${maxRetries}):`, error);
         
         // If this is a 403/404/private account, stop trying immediately
-        if (error.message.includes('403') || error.message.includes('404') || error.message.includes('Forbidden')) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('403') || errorMessage.includes('404') || errorMessage.includes('Forbidden')) {
           console.log(`User ${userId} has restricted access (private, forbidden, or no posts) - stopping media fetch`);
           break;
         }
@@ -262,12 +263,13 @@ export class HikerAPIService {
         console.error(`❌ [HIKER_API] Failed to analyze similar account @${accountData.username || 'unknown'}:`, error);
         
         // Log the specific error type for debugging
-        if (error.message.includes('403')) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('403')) {
           console.log(`📸 [HIKER_API] Account @${accountData.username} is private or restricted - skipping`);
-        } else if (error.message.includes('404')) {
+        } else if (errorMessage.includes('404')) {
           console.log(`📸 [HIKER_API] Account @${accountData.username} not found - skipping`);
         } else {
-          console.log(`📸 [HIKER_API] Account @${accountData.username} analysis failed due to: ${error.message} - skipping`);
+          console.log(`📸 [HIKER_API] Account @${accountData.username} analysis failed due to: ${errorMessage} - skipping`);
         }
         
         // Continue with next account instead of breaking the entire analysis

@@ -30,6 +30,7 @@ export async function generateChatResponse(
   relevantMemories: any[] = [],
   searchDecision?: any,
   instagramAnalysisResult?: any,
+  instagramHashtagResult?: any,
   blogAnalysisResult?: any,
   workflowDecision?: WorkflowPhaseDecision
 ): Promise<ChatResponseWithMetadata> {
@@ -150,6 +151,12 @@ export async function generateChatResponse(
   if (blogAnalysisResult?.success && blogAnalysisResult.analysis) {
     const { formatBlogAnalysisForChat } = await import('./blog.js');
     finalSystemPrompt += `\n\n=== RECENT BLOG ANALYSIS ===\n${formatBlogAnalysisForChat(blogAnalysisResult.analysis, blogAnalysisResult.cached)}`;
+  }
+
+  // Add hashtag search result to context if available
+  if (instagramHashtagResult?.success && instagramHashtagResult.hashtagResult) {
+    const { formatInstagramHashtagSearchForChat } = await import('./instagram.js');
+    finalSystemPrompt += `\n\n=== RECENT INSTAGRAM HASHTAG SEARCH ===\n${formatInstagramHashtagSearchForChat(instagramHashtagResult.hashtagResult, instagramHashtagResult.cached)}`;
   }
 
 

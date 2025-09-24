@@ -164,6 +164,27 @@ export interface InstagramPost {
   taken_at: number;
 }
 
+// Hashtag search result interfaces
+export interface InstagramHashtagPost {
+  id: string;
+  code: string;
+  caption?: string;
+  like_count: number;
+  comment_count: number;
+  media_type: number;
+  taken_at: number;
+  thumbnail_url?: string;
+  username: string;
+  user_id?: string;
+}
+
+export interface InstagramHashtagResult {
+  hashtag: string;
+  total_posts: number;
+  posts: InstagramHashtagPost[];
+  cached_at: string;
+}
+
 // Search metadata interface for messages
 export interface SearchMessageMetadata {
   citations?: string[];
@@ -177,6 +198,7 @@ export interface MessageMetadata extends Record<string, any> {
   searchQuery?: string;
   source?: string;
   instagramProfile?: InstagramProfile;
+  instagramHashtagResult?: InstagramHashtagResult;
 }
 
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
