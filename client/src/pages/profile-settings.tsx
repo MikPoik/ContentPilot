@@ -816,8 +816,7 @@ export default function ProfileSettings() {
                               delete otherData.blogProfile;
                               delete otherData.hashtagSearches;
                               
-                              if (Object.keys(otherData).length === 0) return null;
-                              
+                              // Always show this section for editable fields
                               return (
                                 <Card className="bg-gray-50">
                                   <CardHeader className="pb-3">
@@ -827,8 +826,91 @@ export default function ProfileSettings() {
                                     </CardTitle>
                                   </CardHeader>
                                   <CardContent>
-                                    <div className="space-y-3">
+                                    <div className="space-y-4">
+                                      {/* Editable Business Type */}
+                                      <div className="bg-white p-4 rounded-lg border">
+                                        <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                          Business Type
+                                        </label>
+                                        <div className="flex items-center space-x-2">
+                                          <input
+                                            type="text"
+                                            value={otherData.businessType || ''}
+                                            onChange={(e) => {
+                                              const newProfileData = {
+                                                ...(user.profileData as any || {}),
+                                                businessType: e.target.value
+                                              };
+                                              updateProfileMutation.mutate({ profileData: newProfileData });
+                                            }}
+                                            placeholder="e.g., Therapy Practice, Coaching Service, Wellness Center"
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            disabled={updateProfileMutation.isPending}
+                                          />
+                                          {otherData.businessType && (
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => {
+                                                const newProfileData = {
+                                                  ...(user.profileData as any || {}),
+                                                  businessType: null
+                                                };
+                                                updateProfileMutation.mutate({ profileData: newProfileData });
+                                              }}
+                                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                              disabled={updateProfileMutation.isPending}
+                                            >
+                                              <X className="h-4 w-4" />
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Editable Business Location */}
+                                      <div className="bg-white p-4 rounded-lg border">
+                                        <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                          Business Location
+                                        </label>
+                                        <div className="flex items-center space-x-2">
+                                          <input
+                                            type="text"
+                                            value={otherData.businessLocation || ''}
+                                            onChange={(e) => {
+                                              const newProfileData = {
+                                                ...(user.profileData as any || {}),
+                                                businessLocation: e.target.value
+                                              };
+                                              updateProfileMutation.mutate({ profileData: newProfileData });
+                                            }}
+                                            placeholder="e.g., Helsinki, Finland or Online"
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            disabled={updateProfileMutation.isPending}
+                                          />
+                                          {otherData.businessLocation && (
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => {
+                                                const newProfileData = {
+                                                  ...(user.profileData as any || {}),
+                                                  businessLocation: null
+                                                };
+                                                updateProfileMutation.mutate({ profileData: newProfileData });
+                                              }}
+                                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                              disabled={updateProfileMutation.isPending}
+                                            >
+                                              <X className="h-4 w-4" />
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Read-only Other Data */}
                                       {Object.entries(otherData).map(([key, value]) => {
+                                        // Skip the editable fields we've already handled
+                                        if (key === 'businessType' || key === 'businessLocation') return null;
                                         if (value === null || value === undefined) return null;
                                         
                                         return (
