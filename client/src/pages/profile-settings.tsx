@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,10 @@ export default function ProfileSettings() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
+  // Local state for input fields to prevent constant updates
+  const [localBusinessType, setLocalBusinessType] = useState("");
+  const [localBusinessLocation, setLocalBusinessLocation] = useState("");
+  
   // Get the 'from' parameter to know where to go back
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
   const fromPath = urlParams.get('from') || '/';
@@ -30,6 +34,15 @@ export default function ProfileSettings() {
   useEffect(() => {
     queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
   }, [queryClient]);
+
+  // Initialize local state when user data loads
+  useEffect(() => {
+    if (user?.profileData) {
+      const profileData = user.profileData as any;
+      setLocalBusinessType(profileData.businessType || "");
+      setLocalBusinessLocation(profileData.businessLocation || "");
+    }
+  }, [user?.profileData]);
 
   // Cleanup debounce timeout on unmount
   useEffect(() => {
@@ -918,8 +931,9 @@ export default function ProfileSettings() {
                                         <div className="flex items-center space-x-2">
                                           <input
                                             type="text"
-                                            value={otherData.businessType || ''}
+                                            value={localBusinessType}
                                             onChange={(e) => {
+                                              setLocalBusinessType(e.target.value);
                                               const newProfileData = {
                                                 ...(user.profileData as any || {}),
                                                 businessType: e.target.value
@@ -930,11 +944,12 @@ export default function ProfileSettings() {
                                             className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                             disabled={updateProfileMutation.isPending}
                                           />
-                                          {otherData.businessType && (
+                                          {localBusinessType && (
                                             <Button
                                               variant="ghost"
                                               size="sm"
                                               onClick={() => {
+                                                setLocalBusinessType("");
                                                 const newProfileData = {
                                                   ...(user.profileData as any || {}),
                                                   businessType: null
@@ -958,8 +973,9 @@ export default function ProfileSettings() {
                                         <div className="flex items-center space-x-2">
                                           <input
                                             type="text"
-                                            value={otherData.businessLocation || ''}
+                                            value={localBusinessLocation}
                                             onChange={(e) => {
+                                              setLocalBusinessLocation(e.target.value);
                                               const newProfileData = {
                                                 ...(user.profileData as any || {}),
                                                 businessLocation: e.target.value
@@ -970,11 +986,12 @@ export default function ProfileSettings() {
                                             className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                             disabled={updateProfileMutation.isPending}
                                           />
-                                          {otherData.businessLocation && (
+                                          {localBusinessLocation && (
                                             <Button
                                               variant="ghost"
                                               size="sm"
                                               onClick={() => {
+                                                setLocalBusinessLocation("");
                                                 const newProfileData = {
                                                   ...(user.profileData as any || {}),
                                                   businessLocation: null
