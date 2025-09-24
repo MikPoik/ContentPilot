@@ -31,6 +31,15 @@ export default function ProfileSettings() {
     queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
   }, [queryClient]);
 
+  // Cleanup debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Mutation for updating profile data
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData: Partial<User>) => {
@@ -62,7 +71,7 @@ export default function ProfileSettings() {
     debounceTimeoutRef.current = setTimeout(() => {
       updateProfileMutation.mutate(profileData);
     }, 1000); // 1 second delay
-  }, [updateProfileMutation]);
+  }, []); // Remove updateProfileMutation dependency to prevent recreation
 
   const handleDeleteField = (fieldName: keyof User, displayName: string) => {
     const updateData = {
