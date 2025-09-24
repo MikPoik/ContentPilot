@@ -59,7 +59,7 @@ Focus on patterns, not specific language keywords. Be universal and language-agn
     }
 
     const analysis = JSON.parse(cleanResult);
-    
+
     return {
       toneKeywords: Array.isArray(analysis.toneKeywords) ? analysis.toneKeywords.slice(0, 10) : [],
       avgSentenceLength: typeof analysis.avgSentenceLength === 'number' ? Math.round(analysis.avgSentenceLength) : 12,
@@ -76,13 +76,13 @@ Focus on patterns, not specific language keywords. Be universal and language-agn
 }
 
 export async function buildWorkflowAwareSystemPrompt(
-  workflowPhase: WorkflowPhaseDecision,
+  workflowDecision: WorkflowPhaseDecision,
   user?: User,
-  memories?: any[],
+  relevantMemories: any[] = [],
   webSearchContext?: { context: string; citations: string[] },
-  instagramAnalysisContext?: { analysis: any; cached: boolean; error?: string }
+  instagramAnalysisResult?: any
 ): Promise<string> {
-  const baseWorkflowPrompt = `You are ContentCraft AI, a world-class social media content strategist and creative partner with web search capabilities to provide current information.
+  let prompt = `You are ContentCraft AI, a world-class social media content strategist and creative partner with web search capabilities to provide current information.
 
 CRITICAL WORKFLOW RULES:
 - Always follow the natural conversation flow while guiding users through the 6 phases
@@ -92,115 +92,57 @@ CRITICAL WORKFLOW RULES:
 - Ask thoughtful follow-up questions to gather missing information naturally
 - Present options and get feedback before advancing to next phases
 
-CURRENT WORKFLOW PHASE: ${workflowPhase.currentPhase}
+CURRENT WORKFLOW PHASE: ${workflowDecision.currentPhase}
 
-PHASE-SPECIFIC GUIDANCE:
-${getPhaseSpecificGuidance(workflowPhase)}
+${getPhaseGuidance(workflowDecision.currentPhase)}
 
-MISSING INFORMATION: ${workflowPhase.missingFields.length > 0 ? workflowPhase.missingFields.join(', ') : 'None'}
-${workflowPhase.shouldBlockContentGeneration ? '\n⚠️ CONTENT GENERATION BLOCKED - Must complete discovery first' : ''}`;
+${workflowDecision.missingFields.length > 0 ? 
+  `MISSING INFORMATION: ${workflowDecision.missingFields.join(', ')}` : 
+  'MISSING INFORMATION: None'
+}
 
-  // Add current user context
-  let userContext = '';
-  if (user) {
-    userContext += `\n\nCURRENT USER PROFILE:`;
-    userContext += `\n- Name: ${user.firstName || 'Not provided'}${user.lastName ? ' ' + user.lastName : ''}`;
-    userContext += `\n- Content Niche: ${user.contentNiche?.join(', ') || 'Not specified'}`;
-    const platforms = (user as any).primaryPlatforms?.length
-      ? (user as any).primaryPlatforms.join(', ')
-      : (user.primaryPlatform || 'Not specified');
-    userContext += `\n- Primary Platform(s): ${platforms}`;
+${workflowDecision.shouldBlockContentGeneration ? 
+  '⚠️ CONTENT GENERATION BLOCKED - Must complete discovery first' : 
+  '✅ READY FOR CONTENT GENERATION'
+}
 
-    if (user.profileData) {
-      const data = user.profileData as any;
-      if (data.targetAudience) userContext += `\n- Target Audience: ${data.targetAudience}`;
-      if (data.brandVoice) userContext += `\n- Brand Voice: ${data.brandVoice}`;
-      if (data.businessType) userContext += `\n- Business Type: ${data.businessType}`;
-      if (data.contentGoals?.length) userContext += `\n- Content Goals: ${data.contentGoals.join(', ')}`;
-    }
+CURRENT USER PROFILE:
+${formatUserProfile(user)}`;
+
+  // Add detailed profile analysis data if available
+  const profileData = user?.profileData as any;
+  if (profileData) {
+    prompt += await formatDetailedProfileData(profileData);
   }
 
-  // Add relevant memories to context
-  if (memories && memories.length > 0) {
-    userContext += `\n\nRELEVANT MEMORIES FROM PAST CONVERSATIONS:`;
-    memories.forEach((memory, index) => {
-      userContext += `\n${index + 1}. ${memory.content} (similarity: ${(memory.similarity * 100).toFixed(1)}%)`;
-    });
+  // Add memories section if available
+  if (relevantMemories.length > 0) {
+    prompt += `\n\nRELEVANT MEMORIES FROM PAST CONVERSATIONS:
+${relevantMemories.map((memory, index) => 
+  `${index + 1}. ${memory.content} (similarity: ${(memory.similarity * 100).toFixed(1)}%)`
+).join('\n')}`;
   }
 
   // Add web search context if available
-  if (webSearchContext && webSearchContext.context) {
-    userContext += `\n\nCURRENT WEB SEARCH RESULTS:`;
-    userContext += `\n${webSearchContext.context}`;
-    if (webSearchContext.citations.length > 0) {
-      userContext += `\nSOURCES: ${webSearchContext.citations.slice(0, 3).join(', ')}`;
-    }
+  if (webSearchContext?.context) {
+    prompt += `\n\nCURRENT WEB SEARCH CONTEXT:
+${webSearchContext.context}
+
+Sources: ${webSearchContext.citations.join(', ')}`;
   }
 
-  // Add Instagram analysis context if available
-  if (instagramAnalysisContext) {
-    userContext += `\n\nINSTAGRAM ANALYSIS RESULTS:`;
-    if (instagramAnalysisContext.error) {
-      userContext += `\nERROR: ${instagramAnalysisContext.error}`;
-      userContext += `\nProvide helpful guidance on Instagram analysis and suggest alternative approaches.`;
-    } else if (instagramAnalysisContext.analysis) {
-      const analysis = instagramAnalysisContext.analysis;
-      const cacheStatus = instagramAnalysisContext.cached ? ' (from recent analysis)' : ' (fresh analysis)';
-      userContext += `\nAnalysis for @${analysis.username}${cacheStatus}:`;
-      userContext += `\n- ${analysis.followers.toLocaleString()} followers, ${analysis.engagement_rate.toFixed(2)}% engagement rate`;
-      userContext += `\n- Top hashtags: ${analysis.top_hashtags.slice(0, 5).join(', ')}`;
-      userContext += `\n- Avg engagement: ${Math.round(analysis.avg_likes).toLocaleString()} likes, ${Math.round(analysis.avg_comments).toLocaleString()} comments`;
-      if (analysis.similar_accounts?.length > 0) {
-        userContext += `\n- Similar accounts: ${analysis.similar_accounts.slice(0, 3).map((acc: { username: string }) => `@${acc.username}`).join(', ')}`;
-      }
-
-      // Analyze user's writing style from their post texts
-      if (analysis.post_texts && analysis.post_texts.length > 0) {
-        try {
-          const styleAnalysis = await analyzeUserWritingStyle(analysis.post_texts);
-          if (styleAnalysis) {
-          userContext += `\n\nUSER'S AUTHENTIC WRITING STYLE ANALYSIS:`;
-          userContext += `\n- Voice: ${styleAnalysis.voiceCharacteristics}`;
-          userContext += `\n- Avg sentence length: ${styleAnalysis.avgSentenceLength} words (${
-            styleAnalysis.avgSentenceLength > 15 ? 'detailed posts' :
-            styleAnalysis.avgSentenceLength < 8 ? 'concise posts' : 'moderate length posts'
-          })`;
-          userContext += `\n- Punctuation style: ${styleAnalysis.punctuationStyle}`;
-          if (styleAnalysis.toneKeywords.length > 0) {
-            userContext += `\n- Common tone words: ${styleAnalysis.toneKeywords.slice(0, 6).join(', ')}`;
-          }
-          if (styleAnalysis.commonPhrases.length > 0) {
-            userContext += `\n- Signature phrases: "${styleAnalysis.commonPhrases.slice(0, 3).join('", "')}"`;
-          }
-          if (styleAnalysis.contentThemes.length > 0) {
-            userContext += `\n- Content themes: ${styleAnalysis.contentThemes.join(', ')}`;
-          }
-
-          userContext += `\n\n🎯 CRITICAL INSTRUCTION FOR CONTENT GENERATION:`;
-          userContext += `\nWhen creating content suggestions (phases 3+), MATCH this authentic style:`;
-          userContext += `\n- Use similar sentence structure (${styleAnalysis.avgSentenceLength} word average)`;
-          userContext += `\n- Mirror their ${styleAnalysis.punctuationStyle} punctuation style`;
-          userContext += `\n- Incorporate their tone words naturally: ${styleAnalysis.toneKeywords.slice(0, 4).join(', ')}`;
-          if (styleAnalysis.commonPhrases.length > 0) {
-            userContext += `\n- Reference their signature phrases when relevant`;
-          }
-          userContext += `\n- Maintain their ${styleAnalysis.voiceCharacteristics} voice`;
-          userContext += `\nDO NOT use generic social media language - make it sound authentically like THEM.`;
-          }
-        } catch (styleError) {
-          console.error('Error in writing style analysis:', styleError);
-        }
-      }
-
-      userContext += `\nProvide detailed insights and actionable recommendations based on this data.`;
-    }
+  // Add Instagram analysis if available and recent
+  if (instagramAnalysisResult?.success && !instagramAnalysisResult.cached) {
+    const { formatInstagramAnalysisForChat } = await import('./instagram');
+    prompt += `\n\n=== FRESH INSTAGRAM ANALYSIS ===
+${formatInstagramAnalysisForChat(instagramAnalysisResult.analysis, false)}`;
   }
 
-  return baseWorkflowPrompt + userContext;
+  return prompt;
 }
 
-function getPhaseSpecificGuidance(workflowPhase: WorkflowPhaseDecision): string {
-  switch (workflowPhase.currentPhase) {
+function getPhaseGuidance(currentPhase: string): string {
+  switch (currentPhase) {
     case "Discovery & Personalization":
       return `Focus on getting to know the user personally:
 - Ask for their name if not provided
@@ -261,6 +203,109 @@ CRITICAL: Make content sound like THEM, not generic social media copy.`;
     default:
       return `Stay in discovery mode and focus on getting to know the user better through natural conversation.`;
   }
+}
+
+function formatUserProfile(user?: User): string {
+  if (!user) return "No user profile available";
+
+  const profile = [
+    user.firstName && user.lastName ? `- Name: ${user.firstName} ${user.lastName}` : null,
+    user.contentNiche?.length ? `- Content Niche: ${user.contentNiche.join(', ')}` : null,
+    (user as any).primaryPlatforms?.length ? `- Primary Platform(s): ${(user as any).primaryPlatforms.join(', ')}` : 
+      user.primaryPlatform ? `- Primary Platform: ${user.primaryPlatform}` : null,
+  ].filter(Boolean);
+
+  // Add profile data if available
+  const profileData = user.profileData as any;
+  if (profileData) {
+    if (profileData.targetAudience) {
+      profile.push(`- Target Audience: ${profileData.targetAudience}`);
+    }
+    if (profileData.brandVoice) {
+      profile.push(`- Brand Voice: ${profileData.brandVoice}`);
+    }
+    if (profileData.businessType) {
+      profile.push(`- Business Type: ${profileData.businessType}`);
+    }
+    if (profileData.contentGoals?.length) {
+      profile.push(`- Content Goals: ${profileData.contentGoals.join(', ')}`);
+    }
+  }
+
+  return profile.join('\n') || "No profile information available";
+}
+
+async function formatDetailedProfileData(profileData: any): Promise<string> {
+  let detailedInfo = '';
+
+  // Instagram Profile Analysis
+  if (profileData.instagramProfile) {
+    const ig = profileData.instagramProfile;
+    detailedInfo += `\n\n📸 INSTAGRAM PROFILE INSIGHTS (@${ig.username}):
+• ${ig.followers?.toLocaleString() || 'N/A'} followers, ${ig.engagement_rate?.toFixed(2) || 'N/A'}% engagement rate
+• Top hashtags: ${ig.top_hashtags?.slice(0, 8).join(', ') || 'None'}
+• Content style: ${ig.post_texts?.slice(0, 2).map((text: string) => `"${text.substring(0, 120)}${text.length > 120 ? '...' : ''}"`).join(' | ') || 'No samples'}
+• Similar accounts: ${ig.similar_accounts?.slice(0, 3).map((acc: any) => `@${acc.username} (${acc.followers?.toLocaleString() || 'N/A'} followers)`).join(', ') || 'None'}`;
+
+    if (ig.biography) {
+      detailedInfo += `\n• Bio: "${ig.biography}"`;
+    }
+  }
+
+  // Blog Profile Analysis
+  if (profileData.blogProfile) {
+    const blog = profileData.blogProfile;
+    detailedInfo += `\n\n📝 BLOG CONTENT INSIGHTS:
+• Writing style: ${blog.writingStyle || 'Unknown'}
+• Brand voice: ${blog.brandVoice || 'Not defined'}
+• Average post length: ${blog.averagePostLength || 'Unknown'}
+• Content themes: ${blog.contentThemes?.join(', ') || 'None'}
+• Common topics: ${blog.commonTopics?.slice(0, 5).join(', ') || 'None'}
+• Tone keywords: ${blog.toneKeywords?.slice(0, 5).join(', ') || 'None'}`;
+
+    if (blog.targetAudience) {
+      detailedInfo += `\n• Target audience: ${blog.targetAudience}`;
+    }
+    if (blog.postingPattern) {
+      detailedInfo += `\n• Content pattern: ${blog.postingPattern}`;
+    }
+  }
+
+  // Competitor Analysis
+  if (profileData.competitorAnalyses && Object.keys(profileData.competitorAnalyses).length > 0) {
+    const competitors = Object.entries(profileData.competitorAnalyses).slice(0, 3);
+    detailedInfo += `\n\n🎯 COMPETITOR INSIGHTS:`;
+
+    competitors.forEach(([username, analysis]: [string, any]) => {
+      detailedInfo += `\n• @${username}: ${analysis.followers?.toLocaleString() || 'N/A'} followers, ${analysis.engagement_rate?.toFixed(2) || 'N/A'}% engagement`;
+      if (analysis.top_hashtags?.length > 0) {
+        detailedInfo += ` | Top tags: ${analysis.top_hashtags.slice(0, 3).join(', ')}`;
+      }
+    });
+  }
+
+  // Recent Hashtag Research
+  if (profileData.hashtagSearches && Object.keys(profileData.hashtagSearches).length > 0) {
+    const recentSearches = Object.entries(profileData.hashtagSearches)
+      .sort(([, a]: [string, any], [, b]: [string, any]) => new Date(b.cached_at).getTime() - new Date(a.cached_at).getTime())
+      .slice(0, 2);
+
+    if (recentSearches.length > 0) {
+      detailedInfo += `\n\n🏷️ RECENT HASHTAG RESEARCH:`;
+
+      recentSearches.forEach(([hashtag, data]: [string, any]) => {
+        const topPosts = data.posts?.slice(0, 3) || [];
+        detailedInfo += `\n• #${hashtag}: ${topPosts.length} trending posts analyzed`;
+        if (topPosts.length > 0) {
+          const avgEngagement = Math.round(topPosts.reduce((sum: number, p: any) => sum + (p.like_count || 0) + (p.comment_count || 0), 0) / topPosts.length);
+          detailedInfo += ` | Avg engagement: ${avgEngagement.toLocaleString()}`;
+          detailedInfo += ` | Top creators: ${topPosts.map((p: any) => `@${p.username}`).join(', ')}`;
+        }
+      });
+    }
+  }
+
+  return detailedInfo;
 }
 
 export async function decideWorkflowPhase(messages: ChatMessage[], user?: User): Promise<WorkflowPhaseDecision> {
