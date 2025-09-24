@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,17 @@ export default function ProfileSettings() {
       });
     },
   });
+
+  // Debounced update function
+  const debounceTimeoutRef = useRef<NodeJS.Timeout>();
+  const debouncedUpdate = useCallback((profileData: Partial<User>) => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    debounceTimeoutRef.current = setTimeout(() => {
+      updateProfileMutation.mutate(profileData);
+    }, 1000); // 1 second delay
+  }, [updateProfileMutation]);
 
   const handleDeleteField = (fieldName: keyof User, displayName: string) => {
     const updateData = {
@@ -116,6 +127,69 @@ export default function ProfileSettings() {
       : (user.primaryPlatform ? [user.primaryPlatform] : [])) as string[];
     const next = current.filter((_, i) => i !== index);
     updateProfileMutation.mutate({ primaryPlatforms: next, primaryPlatform: next[0] ?? null, replaceArrays: true } as any);
+  };
+
+  // Brand Voice add/remove
+  const addBrandVoice = () => {
+    const value = window.prompt('Add a brand voice trait (e.g., Professional, Friendly, Inspiring)');
+    if (!value) return;
+    const label = normalizeLabel(value);
+    if (!label) return;
+    const profileData = user.profileData as any || {};
+    const current = Array.isArray(profileData.brandVoice) ? profileData.brandVoice : [];
+    const next = uniqueMerge([...current, label]);
+    const newProfileData = { ...profileData, brandVoice: next };
+    updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+  };
+
+  const removeBrandVoice = (index: number) => {
+    const profileData = user.profileData as any || {};
+    const current = Array.isArray(profileData.brandVoice) ? profileData.brandVoice : [];
+    const next = current.filter((_, i) => i !== index);
+    const newProfileData = { ...profileData, brandVoice: next };
+    updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+  };
+
+  // Content Goals add/remove
+  const addContentGoal = () => {
+    const value = window.prompt('Add a content goal (e.g., Increase engagement, Build trust, Drive sales)');
+    if (!value) return;
+    const label = normalizeLabel(value);
+    if (!label) return;
+    const profileData = user.profileData as any || {};
+    const current = Array.isArray(profileData.contentGoals) ? profileData.contentGoals : [];
+    const next = uniqueMerge([...current, label]);
+    const newProfileData = { ...profileData, contentGoals: next };
+    updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+  };
+
+  const removeContentGoal = (index: number) => {
+    const profileData = user.profileData as any || {};
+    const current = Array.isArray(profileData.contentGoals) ? profileData.contentGoals : [];
+    const next = current.filter((_, i) => i !== index);
+    const newProfileData = { ...profileData, contentGoals: next };
+    updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+  };
+
+  // Target Audience add/remove
+  const addTargetAudience = () => {
+    const value = window.prompt('Add a target audience segment (e.g., Young professionals, Parents, Students)');
+    if (!value) return;
+    const label = normalizeLabel(value);
+    if (!label) return;
+    const profileData = user.profileData as any || {};
+    const current = Array.isArray(profileData.targetAudience) ? profileData.targetAudience : [];
+    const next = uniqueMerge([...current, label]);
+    const newProfileData = { ...profileData, targetAudience: next };
+    updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+  };
+
+  const removeTargetAudience = (index: number) => {
+    const profileData = user.profileData as any || {};
+    const current = Array.isArray(profileData.targetAudience) ? profileData.targetAudience : [];
+    const next = current.filter((_, i) => i !== index);
+    const newProfileData = { ...profileData, targetAudience: next };
+    updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
   };
 
   const handleClearAllProfile = () => {
@@ -841,7 +915,7 @@ export default function ProfileSettings() {
                                                 ...(user.profileData as any || {}),
                                                 businessType: e.target.value
                                               };
-                                              updateProfileMutation.mutate({ profileData: newProfileData });
+                                              debouncedUpdate({ profileData: newProfileData });
                                             }}
                                             placeholder="e.g., Therapy Practice, Coaching Service, Wellness Center"
                                             className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -881,7 +955,7 @@ export default function ProfileSettings() {
                                                 ...(user.profileData as any || {}),
                                                 businessLocation: e.target.value
                                               };
-                                              updateProfileMutation.mutate({ profileData: newProfileData });
+                                              debouncedUpdate({ profileData: newProfileData });
                                             }}
                                             placeholder="e.g., Helsinki, Finland or Online"
                                             className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -906,6 +980,248 @@ export default function ProfileSettings() {
                                           )}
                                         </div>
                                       </div>
+
+                                      {/* Editable Brand Voice */}
+                                      {(() => {
+                                        const profileData = user.profileData as any || {};
+                                        const brandVoice = Array.isArray(profileData.brandVoice) ? profileData.brandVoice : [];
+                                        return brandVoice.length > 0 || true ? (
+                                          <div className="bg-white p-4 rounded-lg border">
+                                            <div className="flex items-center justify-between mb-3">
+                                              <div className="flex items-center space-x-2">
+                                                <svg className="h-4 w-4 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                                                  <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+                                                </svg>
+                                                <label className="text-sm font-medium text-gray-700">Brand Voice</label>
+                                              </div>
+                                              <div className="flex items-center gap-1">
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  onClick={addBrandVoice}
+                                                  disabled={updateProfileMutation.isPending}
+                                                >
+                                                  <Plus className="h-3 w-3 mr-1" />
+                                                  Add
+                                                </Button>
+                                                {brandVoice.length > 0 && (
+                                                  <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                        disabled={updateProfileMutation.isPending}
+                                                      >
+                                                        <Trash2 className="h-3 w-3 mr-1" />
+                                                        Delete All
+                                                      </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                      <AlertDialogHeader>
+                                                        <AlertDialogTitle>Delete Brand Voice</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                          This will remove all brand voice traits.
+                                                        </AlertDialogDescription>
+                                                      </AlertDialogHeader>
+                                                      <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction
+                                                          onClick={() => {
+                                                            const newProfileData = { ...profileData, brandVoice: [] };
+                                                            updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+                                                          }}
+                                                          className="bg-red-600 hover:bg-red-700"
+                                                        >
+                                                          Delete
+                                                        </AlertDialogAction>
+                                                      </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                  </AlertDialog>
+                                                )}
+                                              </div>
+                                            </div>
+                                            {brandVoice.length > 0 ? (
+                                              <div className="flex flex-wrap gap-2">
+                                                {brandVoice.map((voice: string, index: number) => (
+                                                  <Badge key={index} variant="secondary" className="text-sm flex items-center">
+                                                    <span>{voice}</span>
+                                                    <button
+                                                      className="ml-1 rounded hover:bg-red-50 text-gray-500 hover:text-red-600"
+                                                      onClick={() => removeBrandVoice(index)}
+                                                      title="Remove"
+                                                    >
+                                                      <X className="h-3 w-3" />
+                                                    </button>
+                                                  </Badge>
+                                                ))}
+                                              </div>
+                                            ) : (
+                                              <p className="text-sm text-gray-500">No brand voice traits defined. Click "Add" to get started.</p>
+                                            )}
+                                          </div>
+                                        ) : null;
+                                      })()}
+
+                                      {/* Editable Content Goals */}
+                                      {(() => {
+                                        const profileData = user.profileData as any || {};
+                                        const contentGoals = Array.isArray(profileData.contentGoals) ? profileData.contentGoals : [];
+                                        return contentGoals.length > 0 || true ? (
+                                          <div className="bg-white p-4 rounded-lg border">
+                                            <div className="flex items-center justify-between mb-3">
+                                              <div className="flex items-center space-x-2">
+                                                <Target className="h-4 w-4 text-gray-600" />
+                                                <label className="text-sm font-medium text-gray-700">Content Goals</label>
+                                              </div>
+                                              <div className="flex items-center gap-1">
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  onClick={addContentGoal}
+                                                  disabled={updateProfileMutation.isPending}
+                                                >
+                                                  <Plus className="h-3 w-3 mr-1" />
+                                                  Add
+                                                </Button>
+                                                {contentGoals.length > 0 && (
+                                                  <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                        disabled={updateProfileMutation.isPending}
+                                                      >
+                                                        <Trash2 className="h-3 w-3 mr-1" />
+                                                        Delete All
+                                                      </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                      <AlertDialogHeader>
+                                                        <AlertDialogTitle>Delete Content Goals</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                          This will remove all content goals.
+                                                        </AlertDialogDescription>
+                                                      </AlertDialogHeader>
+                                                      <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction
+                                                          onClick={() => {
+                                                            const newProfileData = { ...profileData, contentGoals: [] };
+                                                            updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+                                                          }}
+                                                          className="bg-red-600 hover:bg-red-700"
+                                                        >
+                                                          Delete
+                                                        </AlertDialogAction>
+                                                      </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                  </AlertDialog>
+                                                )}
+                                              </div>
+                                            </div>
+                                            {contentGoals.length > 0 ? (
+                                              <div className="flex flex-wrap gap-2">
+                                                {contentGoals.map((goal: string, index: number) => (
+                                                  <Badge key={index} variant="secondary" className="text-sm flex items-center">
+                                                    <span>{goal}</span>
+                                                    <button
+                                                      className="ml-1 rounded hover:bg-red-50 text-gray-500 hover:text-red-600"
+                                                      onClick={() => removeContentGoal(index)}
+                                                      title="Remove"
+                                                    >
+                                                      <X className="h-3 w-3" />
+                                                    </button>
+                                                  </Badge>
+                                                ))}
+                                              </div>
+                                            ) : (
+                                              <p className="text-sm text-gray-500">No content goals defined. Click "Add" to get started.</p>
+                                            )}
+                                          </div>
+                                        ) : null;
+                                      })()}
+
+                                      {/* Editable Target Audience */}
+                                      {(() => {
+                                        const profileData = user.profileData as any || {};
+                                        const targetAudience = Array.isArray(profileData.targetAudience) ? profileData.targetAudience : [];
+                                        return targetAudience.length > 0 || true ? (
+                                          <div className="bg-white p-4 rounded-lg border">
+                                            <div className="flex items-center justify-between mb-3">
+                                              <div className="flex items-center space-x-2">
+                                                <UserIcon className="h-4 w-4 text-gray-600" />
+                                                <label className="text-sm font-medium text-gray-700">Target Audience</label>
+                                              </div>
+                                              <div className="flex items-center gap-1">
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  onClick={addTargetAudience}
+                                                  disabled={updateProfileMutation.isPending}
+                                                >
+                                                  <Plus className="h-3 w-3 mr-1" />
+                                                  Add
+                                                </Button>
+                                                {targetAudience.length > 0 && (
+                                                  <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                        disabled={updateProfileMutation.isPending}
+                                                      >
+                                                        <Trash2 className="h-3 w-3 mr-1" />
+                                                        Delete All
+                                                      </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                      <AlertDialogHeader>
+                                                        <AlertDialogTitle>Delete Target Audience</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                          This will remove all target audience segments.
+                                                        </AlertDialogDescription>
+                                                      </AlertDialogHeader>
+                                                      <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction
+                                                          onClick={() => {
+                                                            const newProfileData = { ...profileData, targetAudience: [] };
+                                                            updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+                                                          }}
+                                                          className="bg-red-600 hover:bg-red-700"
+                                                        >
+                                                          Delete
+                                                        </AlertDialogAction>
+                                                      </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                  </AlertDialog>
+                                                )}
+                                              </div>
+                                            </div>
+                                            {targetAudience.length > 0 ? (
+                                              <div className="flex flex-wrap gap-2">
+                                                {targetAudience.map((audience: string, index: number) => (
+                                                  <Badge key={index} variant="secondary" className="text-sm flex items-center">
+                                                    <span>{audience}</span>
+                                                    <button
+                                                      className="ml-1 rounded hover:bg-red-50 text-gray-500 hover:text-red-600"
+                                                      onClick={() => removeTargetAudience(index)}
+                                                      title="Remove"
+                                                    >
+                                                      <X className="h-3 w-3" />
+                                                    </button>
+                                                  </Badge>
+                                                ))}
+                                              </div>
+                                            ) : (
+                                              <p className="text-sm text-gray-500">No target audience segments defined. Click "Add" to get started.</p>
+                                            )}
+                                          </div>
+                                        ) : null;
+                                      })()}
 
                                       {/* Read-only Other Data */}
                                       {Object.entries(otherData).map(([key, value]) => {
