@@ -297,6 +297,26 @@ export async function decideInstagramHashtagSearch(
       .map(msg => `${msg.role}: ${msg.content}`)
       .join('\n');
 
+    // Build user's available hashtags for suggestions (excluding their own handle)
+    let userHashtagContext = '';
+    if (user?.profileData) {
+      const profileData = user.profileData as any;
+      
+      // Get hashtags from Instagram profile, excluding the user's own username
+      let availableHashtags: string[] = [];
+      
+      if (profileData.instagramProfile?.top_hashtags) {
+        const userHandle = profileData.instagramProfile.username?.toLowerCase();
+        availableHashtags = profileData.instagramProfile.top_hashtags.filter((tag: string) => 
+          tag.toLowerCase() !== userHandle
+        );
+      }
+
+      if (availableHashtags.length > 0) {
+        userHashtagContext = `\n\nUSER'S TOP HASHTAGS (available for suggestions): ${availableHashtags.slice(0, 8).join(', ')}`;
+      }
+    }
+
     const response = await openai.chat.completions.create({
       model: 'gpt-4.1-nano',
       messages: [
@@ -310,6 +330,7 @@ DETECTION RULES:
 - Look for requests to "get ideas from hashtag", "see what's trending in #hashtag"
 - Look for content research requests by hashtag for inspiration
 - Be liberal - if someone asks for ideas related to a topic that could be a hashtag, they likely want hashtag search
+- If no specific hashtag is mentioned but user asks for ideas, suggest from their top hashtags${userHashtagContext}
 
 RECENT CONVERSATION:
 ${conversationContext}
@@ -317,7 +338,7 @@ ${conversationContext}
 Return ONLY valid JSON:
 {
   "shouldSearch": boolean,
-  "hashtag": "extracted hashtag without # symbol, or null",
+  "hashtag": "extracted hashtag without # symbol, or suggested from user's top hashtags if no specific one mentioned",
   "confidence": number (0.0 to 1.0),
   "reason": "brief explanation of the decision"
 }`
