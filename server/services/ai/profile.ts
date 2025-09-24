@@ -113,6 +113,7 @@ CONTENT NICHE RULES:
 - Only add new contentNiche items if they represent a genuinely different field/industry
 - If the new topic is a subcategory or variation of an existing niche, DO NOT extract it
 - Example: If user has "fitness", don't add "weight training" (it's the same field)
+- Keep total items in contentNiche to 10 or fewer
 
 DUPLICATE PREVENTION:
 - For arrays (contentNiche, targetAudience, brandVoice, contentGoals): Only add items that aren't already covered by existing entries

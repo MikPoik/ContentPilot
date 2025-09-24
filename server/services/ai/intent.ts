@@ -174,8 +174,8 @@ export async function analyzeUnifiedIntent(
   try {
     console.log(`🧠 [UNIFIED_INTENT] Starting unified intent analysis...`);
 
-    // Get last 6 messages for context (optimized for performance)
-    const contextMessages = messages.slice(-6);
+    // Get last 4 messages for context (optimized for performance)
+    const contextMessages = messages.slice(-4);
     const currentDate = new Date().toISOString().split("T")[0];
 
     // Build user context efficiently

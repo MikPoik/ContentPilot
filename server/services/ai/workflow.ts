@@ -269,7 +269,7 @@ export async function decideWorkflowPhase(messages: ChatMessage[], user?: User):
     console.log(`🔄 [AI_SERVICE] Analyzing workflow phase with GPT-4o-mini...`);
 
     // Get last 8 messages for context
-    const contextMessages = messages.slice(-8);
+    const contextMessages = messages.slice(-4);
 
     // Build current user context
   const currentProfile = {

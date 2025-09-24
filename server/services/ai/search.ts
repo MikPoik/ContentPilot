@@ -16,7 +16,7 @@ export async function decideBlogAnalysis(
     console.log(`📝 [BLOG_AI] Analyzing if user wants blog analysis...`);
 
     // Get last 3 messages for context
-    const contextMessages = messages.slice(-3);
+    const contextMessages = messages.slice(-2);
     const conversationContext = contextMessages
       .map(msg => `${msg.role}: ${msg.content}`)
       .join('\n');
@@ -102,7 +102,7 @@ export async function decideWebSearch(
     console.log(`🧠 [AI_SERVICE] Analyzing search decision with GPT-4o-mini...`);
 
     // Get last 5-8 messages for context
-    const contextMessages = messages.slice(-8);
+    const contextMessages = messages.slice(-2);
     const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
     // Build user context

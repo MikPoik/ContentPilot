@@ -152,7 +152,7 @@ export async function generateChatResponse(
     const { formatBlogAnalysisForChat } = await import('./blog.js');
     finalSystemPrompt += `\n\n=== RECENT BLOG ANALYSIS ===\n${formatBlogAnalysisForChat(blogAnalysisResult.analysis, blogAnalysisResult.cached)}`;
   }
-
+  console.log(`🤖 [AI_SERVICE] Final system prompt length: ${finalSystemPrompt}`)
   // Add hashtag search result to context if available
   if (instagramHashtagResult?.success && instagramHashtagResult.hashtagResult) {
     const { formatInstagramHashtagSearchForChat } = await import('./instagram.js');
@@ -162,7 +162,7 @@ export async function generateChatResponse(
 
   const chatMessages: ChatMessage[] = [
     { role: "system", content: finalSystemPrompt },
-    ...messages,
+    ...messages.slice(-20),
   ];
 
   console.log(
