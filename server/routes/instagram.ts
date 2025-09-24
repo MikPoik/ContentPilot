@@ -189,8 +189,8 @@ export function registerInstagramRoutes(app: Express): void {
         }
       }
 
-      // Search for hashtag content using InstagrapiAPI
-      const hashtagResult = await instagrapiService.searchHashtag(hashtag, amount);
+      // Search for hashtag content using HikerAPI
+      const hashtagResult = await hikerApiService.searchHashtag(hashtag, amount);
 
       // Store the hashtag search results in user's profileData
       const updatedProfileData = {
@@ -248,7 +248,7 @@ export function registerInstagramRoutes(app: Express): void {
         });
       }
 
-      if (error instanceof Error && error.message.includes('InstagrapiAPI Error')) {
+      if (error instanceof Error && error.message.includes('HikerAPI Error')) {
         return res.status(502).json({
           error: 'Instagram hashtag search service error',
           message: 'Unable to fetch hashtag data at this time'

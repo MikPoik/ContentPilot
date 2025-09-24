@@ -420,9 +420,9 @@ export async function performInstagramHashtagSearch(
       }
     }
 
-    // Search for hashtag content using InstagrapiAPI
+    // Search for hashtag content using HikerAPI
     progressCallback?.(`📊 Fetching trending posts for #${hashtag}...`);
-    const hashtagResult = await instagrapiService.searchHashtag(hashtag, 12);
+    const hashtagResult = await hikerApiService.searchHashtag(hashtag, 12);
 
     // Store the hashtag search results in user's profileData
     const updatedProfileData = {

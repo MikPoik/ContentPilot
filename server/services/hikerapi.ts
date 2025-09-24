@@ -150,6 +150,47 @@ export class HikerAPIService {
     }
   }
 
+  async searchHashtag(hashtag: string, amount: number = 12): Promise<import('../../shared/schema.js').InstagramHashtagResult> {
+    console.log(`🏷️ [HIKER_API] Searching hashtag #${hashtag} with ${amount} posts...`);
+    
+    // Remove # if provided in hashtag name
+    const cleanHashtag = hashtag.replace('#', '');
+    
+    const response = await this.request<HikerAPIResponse>(`/v1/hashtag/medias/top`, {
+      name: cleanHashtag,
+      amount: Math.min(amount, 50) // Cap at 50 posts max
+    });
+
+    // Parse the response data structure
+    const posts: import('../../shared/schema.js').InstagramHashtagPost[] = [];
+    
+    if (response && Array.isArray(response)) {
+      for (const item of response) {
+        if (item && typeof item === 'object') {
+          posts.push({
+            id: item.id || item.pk || String(item.code || Date.now()),
+            code: item.code || '',
+            caption: item.caption_text || item.caption || '',
+            like_count: item.like_count || 0,
+            comment_count: item.comment_count || 0,
+            media_type: item.media_type || 1,
+            taken_at: item.taken_at || Date.now(),
+            thumbnail_url: item.thumbnail_url || item.display_url || '',
+            username: item.user?.username || item.username || 'unknown',
+            user_id: item.user?.pk || item.user_id || ''
+          });
+        }
+      }
+    }
+
+    return {
+      hashtag: cleanHashtag,
+      total_posts: posts.length,
+      posts: posts,
+      cached_at: new Date().toISOString()
+    };
+  }
+
   async analyzeInstagramProfile(username: string): Promise<InstagramProfile> {
     const userProfile = await this.getUserByUsername(username);
     const posts = await this.getAllUserMedias(userProfile.pk, 20);
