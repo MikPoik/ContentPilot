@@ -402,11 +402,11 @@ export default function Chat() {
   // Handle regenerate message
   const handleRegenerateMessage = useCallback(async (messageId: string) => {
     if (!conversationId) return;
-    
+
     // Find the assistant message and get the previous user message
     const messageIndex = allMessages.findIndex(m => m.id.toString() === messageId);
     if (messageIndex === -1) return;
-    
+
     // Find the user message that triggered this assistant response
     let userMessage = null;
     for (let i = messageIndex - 1; i >= 0; i--) {
@@ -415,12 +415,12 @@ export default function Chat() {
         break;
       }
     }
-    
+
     if (!userMessage) return;
-    
+
     // Remove the assistant message from local state first
     setMessages(prev => prev.filter(m => m.id.toString() !== messageId));
-    
+
     try {
       // Regenerate the response using the same user content
       await streamResponse(conversationId, userMessage.content);
@@ -625,34 +625,40 @@ export default function Chat() {
         </header>
 
         {/* Messages or Memory Tester */}
-        <div className="flex-1 overflow-y-auto flex flex-col">
+        <div className="flex-1 min-h-0 overflow-hidden">
           {showMemoryTester ? (
-            <MemoryTester />
+            <div className="h-full overflow-y-auto">
+              <MemoryTester />
+            </div>
           ) : (
-            <MessageList
-              messages={allMessages}
-              streamingMessage={streamingMessage}
-              isStreaming={isStreaming}
-              isSearching={isSearching}
-              searchQuery={searchQuery}
-              searchCitations={searchCitations}
-              aiActivity={aiActivity}
-              aiActivityMessage={aiActivityMessage}
-              user={user}
-              conversationId={conversationId}
-              onRegenerateMessage={handleRegenerateMessage}
-              onDeleteMessage={handleDeleteMessage}
-            />
+            <div className="h-full pb-16 md:pb-20 overflow-y-auto relative">
+              <MessageList
+                messages={allMessages}
+                streamingMessage={streamingMessage}
+                isStreaming={isStreaming}
+                isSearching={isSearching}
+                searchQuery={searchQuery}
+                searchCitations={searchCitations}
+                aiActivity={aiActivity}
+                aiActivityMessage={aiActivityMessage}
+                user={user}
+                conversationId={conversationId}
+                onRegenerateMessage={handleRegenerateMessage}
+                onDeleteMessage={handleDeleteMessage}
+              />
+            </div>
           )}
         </div>
 
         {/* Message input - only show when not in memory tester mode */}
         {!showMemoryTester && (
-          <MessageInput
-            onSendMessage={handleSendMessage}
-            isLoading={sendMessageMutation.isPending || isStreaming} // Also consider isStreaming as loading
-            disabled={isStreaming}
-          />
+          <div className="flex-shrink-0 bg-card border-t border-border">
+            <MessageInput
+              onSendMessage={handleSendMessage}
+              isLoading={sendMessageMutation.isPending || isStreaming}
+              disabled={isStreaming}
+            />
+          </div>
         )}
       </div>
     </div>

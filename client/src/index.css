@@ -74,17 +74,45 @@
   .animate-slide-in {
     animation: slideIn 0.3s ease-out;
   }
-  
+
   .animate-fade-in {
     animation: fadeIn 0.2s ease-out;
   }
-  
+
   .animate-typing {
     animation: typing 1.5s infinite;
   }
-  
+
   .animate-bounce-subtle {
     animation: bounceSubtle 2s infinite;
+  }
+
+  /* Mobile viewport utilities */
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Fix for mobile viewport height */
+  .h-dvh {
+    height: 100dvh;
+  }
+
+  @supports (-webkit-touch-callout: none) {
+    .h-screen {
+      height: -webkit-fill-available;
+    }
+    .h-dvh {
+      height: -webkit-fill-available;
+    }
+  }
+
+  /* Ensure mobile browsers handle viewport properly */
+  @media (max-width: 768px) {
+    .h-screen, .h-dvh {
+      height: 100vh;
+      height: 100dvh;
+      height: -webkit-fill-available;
+    }
   }
 }
 
