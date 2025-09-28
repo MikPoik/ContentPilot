@@ -51,6 +51,9 @@ export default function Chat() {
   const queryClient = useQueryClient();
   const { user } = useAuth() as { user: User | undefined };
   const { toast } = useToast();
+  
+  // Dynamic viewport height for mobile
+  const [viewportHeight, setViewportHeight] = useState<number>(window.innerHeight);
 
   // State for the typing indicator and the search query extracted from streaming data
   const [typingIndicator, setTypingIndicator] = useState(false);
@@ -495,6 +498,24 @@ export default function Chat() {
     window.location.href = "/api/logout";
   }, []);
 
+  // Update viewport height on resize for mobile browsers
+  useEffect(() => {
+    const updateViewportHeight = () => {
+      setViewportHeight(window.innerHeight);
+    };
+
+    window.addEventListener('resize', updateViewportHeight);
+    window.addEventListener('orientationchange', updateViewportHeight);
+    
+    // Initial update
+    updateViewportHeight();
+
+    return () => {
+      window.removeEventListener('resize', updateViewportHeight);
+      window.removeEventListener('orientationchange', updateViewportHeight);
+    };
+  }, []);
+
   // Close sidebar when route changes and clear states
   useEffect(() => {
     setSidebarOpen(false); // Always close sidebar when conversation changes
@@ -517,7 +538,10 @@ export default function Chat() {
   }, [conversationId]);
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div 
+      className="flex bg-background overflow-hidden"
+      style={{ height: isMobile ? `${viewportHeight}px` : '100vh' }}
+    >
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-card shadow-xl transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:w-64 lg:flex-shrink-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
