@@ -7,20 +7,20 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserProfile(id: string, profileData: Partial<UpdateUserProfile>): Promise<User | undefined>;
-
+  
   // Conversations
   getConversations(userId: string): Promise<Conversation[]>;
   getConversation(id: string): Promise<Conversation | undefined>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   updateConversation(id: string, updates: Partial<Conversation>): Promise<Conversation | undefined>;
   deleteConversation(id: string): Promise<boolean>;
-
+  
   // Messages
   getMessages(conversationId: string): Promise<Message[]>;
   getMessage(id: string): Promise<Message | undefined>;
   createMessage(message: InsertMessage): Promise<Message>;
   deleteMessage(id: string): Promise<boolean>;
-
+  
   // Memories
   getMemories(userId: string): Promise<Memory[]>;
   getMemory(id: string): Promise<Memory | undefined>;
@@ -28,7 +28,7 @@ export interface IStorage {
   upsertMemory(memory: InsertMemory, similarityThreshold?: number): Promise<Memory>;
   deleteMemory(id: string): Promise<boolean>;
   searchSimilarMemories(userId: string, embedding: number[], limit?: number): Promise<(Memory & { similarity: number })[]>;
-
+  
   // Subscription operations
   updateUserSubscription(id: string, subscriptionData: Partial<UpdateUserSubscription>): Promise<User | undefined>;
   getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
@@ -116,13 +116,13 @@ export class DatabaseStorage implements IStorage {
       .insert(messages)
       .values(insertMessage)
       .returning();
-
+    
     // Update conversation's updatedAt
     await db
       .update(conversations)
       .set({ updatedAt: new Date() })
       .where(eq(conversations.id, insertMessage.conversationId));
-
+    
     return { ...message, metadata: message.metadata as MessageMetadata | null };
   }
 
@@ -131,55 +131,68 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount! > 0;
   }
 
-  async updateUserProfile(id: string, updateData: any): Promise<User | undefined> {
+  async updateUserProfile(id: string, profileData: Partial<UpdateUserProfile>): Promise<User | undefined> {
+    // First get the current user data to merge array fields properly
     const currentUser = await this.getUser(id);
-    if (!currentUser) return undefined;
+    if (!currentUser) {
+      return undefined;
+    }
 
-    // Handle array replacement flag
-    const shouldReplaceArrays = updateData.replaceArrays === true;
-    delete updateData.replaceArrays;
-
-    // Merge top-level fields (simple fields like firstName, lastName, etc.)
-    const mergedProfileData: any = { ...currentUser };
-
-    // Handle each top-level field
-    for (const [key, value] of Object.entries(updateData)) {
-      if (key === 'profileData') {
-        // Handle nested profileData separately below
-        continue;
-      }
-
-      // For arrays, either replace or merge based on flag
-      if (Array.isArray(value)) {
-        if (shouldReplaceArrays) {
-          mergedProfileData[key] = value;
-        } else {
-          const currentArray = Array.isArray(mergedProfileData[key]) ? mergedProfileData[key] : [];
-          mergedProfileData[key] = [...new Set([...currentArray, ...value])];
+    const replaceArrays = (profileData as any).replaceArrays === true;
+    // Handle contentNiche merging or replacement
+    let mergedProfileData = { ...profileData } as any;
+    if (profileData.contentNiche && Array.isArray(profileData.contentNiche)) {
+      const base = replaceArrays ? [] : (currentUser.contentNiche || []);
+      const incoming = profileData.contentNiche;
+      const normalized = new Map<string, string>();
+      [...base, ...incoming].forEach((niche) => {
+        if (niche && typeof niche === 'string') {
+          const trimmed = niche.trim();
+          if (trimmed) {
+            const key = trimmed.toLowerCase();
+            if (!normalized.has(key)) normalized.set(key, trimmed);
+          }
         }
-      } else {
-        // For non-arrays, ALWAYS update if value is provided (even if falsy like empty string)
-        // Only skip if explicitly null or undefined
-        if (value !== null && value !== undefined) {
-          mergedProfileData[key] = value;
+      });
+      mergedProfileData.contentNiche = Array.from(normalized.values());
+    }
+
+    // Handle primaryPlatforms merging or replacement (new multi-platform support)
+    if (profileData.primaryPlatforms && Array.isArray(profileData.primaryPlatforms)) {
+      const base = replaceArrays ? [] : ((currentUser as any).primaryPlatforms || []);
+      const incoming = profileData.primaryPlatforms || [];
+      const normalized = new Map<string, string>();
+      [...base, ...incoming].forEach((p) => {
+        if (typeof p === 'string') {
+          const trimmed = p.trim();
+          if (trimmed) {
+            const key = trimmed.toLowerCase();
+            if (!normalized.has(key)) normalized.set(key, trimmed);
+          }
         }
-        // If value is null/undefined, keep existing value (don't overwrite)
+      });
+      mergedProfileData.primaryPlatforms = Array.from(normalized.values());
+
+      // Keep legacy single primaryPlatform in sync when array provided
+      if (!profileData.primaryPlatform) {
+        mergedProfileData.primaryPlatform = mergedProfileData.primaryPlatforms[0] || null;
       }
     }
 
-    // Handle nested profileData merging
-    if (updateData.profileData && typeof updateData.profileData === 'object' && updateData.profileData !== null) {
+    // Handle profileData merging - merge nested object fields instead of replacing
+    if (profileData.profileData && typeof profileData.profileData === 'object' && profileData.profileData !== null) {
       const existingProfileData = currentUser.profileData as any || {};
-      const newProfileData = updateData.profileData as any;
-
+      const newProfileData = profileData.profileData as any;
+      
+      // Merge the profileData objects, preserving existing fields
       const mergedNestedProfileData = { ...existingProfileData };
-
+      
       Object.keys(newProfileData).forEach(key => {
         const newValue = newProfileData[key];
-
+        
         // Handle array fields (like contentGoals) - respect replaceArrays flag
         if (Array.isArray(newValue) && Array.isArray(mergedNestedProfileData[key])) {
-          if (shouldReplaceArrays) {
+          if (replaceArrays) {
             // Replace the array completely when replaceArrays is true
             mergedNestedProfileData[key] = newValue;
           } else {
@@ -194,7 +207,7 @@ export class DatabaseStorage implements IStorage {
         }
         // If newValue is null/undefined/empty, keep existing value (don't overwrite)
       });
-
+      
       mergedProfileData.profileData = mergedNestedProfileData;
     }
 
@@ -233,10 +246,10 @@ export class DatabaseStorage implements IStorage {
     if (!insertMemory.embedding) {
       throw new Error('Embedding is required for upsert operation');
     }
-
+    
     const similarMemories = await this.searchSimilarMemories(
-      insertMemory.userId,
-      insertMemory.embedding,
+      insertMemory.userId, 
+      insertMemory.embedding, 
       5
     );
 
@@ -275,9 +288,9 @@ export class DatabaseStorage implements IStorage {
 
   async searchSimilarMemories(userId: string, embedding: number[], limit: number = 10): Promise<(Memory & { similarity: number })[]> {
     const embeddingString = `[${embedding.join(',')}]`;
-
+    
     const result = await db.execute(sql`
-      SELECT
+      SELECT 
         id,
         user_id,
         content,
@@ -285,7 +298,7 @@ export class DatabaseStorage implements IStorage {
         metadata,
         created_at,
         1 - (embedding <=> ${embeddingString}::vector) as similarity
-      FROM memories
+      FROM memories 
       WHERE user_id = ${userId}
       ORDER BY embedding <=> ${embeddingString}::vector
       LIMIT ${limit}
@@ -336,7 +349,7 @@ export class DatabaseStorage implements IStorage {
   async incrementMessageUsage(userId: string): Promise<User | undefined> {
     const [user] = await db
       .update(users)
-      .set({
+      .set({ 
         messagesUsed: sql`${users.messagesUsed} + 1`,
         updatedAt: new Date()
       })
@@ -348,7 +361,7 @@ export class DatabaseStorage implements IStorage {
   async resetMessageUsage(userId: string): Promise<User | undefined> {
     const [user] = await db
       .update(users)
-      .set({
+      .set({ 
         messagesUsed: 0,
         updatedAt: new Date()
       })
