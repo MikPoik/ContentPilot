@@ -428,11 +428,25 @@ export async function performInstagramHashtagSearch(
     progressCallback?.(`📊 Fetching trending posts for #${hashtag}...`);
     const hashtagResult = await hikerApiService.searchHashtag(hashtag, 12);
 
-    // Store the hashtag search results in user's profileData
+    // Store the hashtag search results in user's profileData with limit of 20 searches
+    const existingSearches = existingData?.hashtagSearches || {};
+    const searchEntries = Object.entries(existingSearches);
+    
+    // If we're at the limit (20 searches), remove the oldest one
+    if (searchEntries.length >= 20 && !existingSearches[hashtag]) {
+      // Sort by cached_at date and remove oldest
+      searchEntries.sort(([, a]: [string, any], [, b]: [string, any]) => 
+        new Date(a.cached_at).getTime() - new Date(b.cached_at).getTime()
+      );
+      const [oldestKey] = searchEntries[0];
+      delete existingSearches[oldestKey];
+      console.log(`🏷️ [INSTAGRAM_HASHTAG] Removed oldest hashtag search: #${oldestKey} (limit: 20)`);
+    }
+    
     const updatedProfileData = {
       ...existingData,
       hashtagSearches: {
-        ...(existingData?.hashtagSearches || {}),
+        ...existingSearches,
         [hashtag]: hashtagResult
       }
     };

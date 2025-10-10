@@ -119,7 +119,8 @@ CONTENT NICHE RULES:
 - Only add new contentNiche items if they represent a genuinely different field/industry
 - If the new topic is a subcategory or variation of an existing niche, DO NOT extract it
 - Example: If user has "fitness", don't add "weight training" (it's the same field)
-- Keep total items in contentNiche to 10 or fewer
+- STRICT LIMIT: Maximum 10 items in contentNiche array
+- If at limit, only replace if new niche is MORE specific to user's actual business
 
 DUPLICATE PREVENTION:
 - For arrays (contentNiche, targetAudience, brandVoice, contentGoals): Only add items that aren't already covered by existing entries
@@ -143,6 +144,9 @@ FIELD USAGE RULES:
 - businessLocation: For physical business address/location
 - businessType: For services offered/industry
 - blogProfile: NEVER modify - reserved for blog content analysis only
+- targetAudience: Maximum 5 items (keep most relevant)
+- contentGoals: Maximum 5 items (keep most relevant)
+- brandVoice: Maximum 3 descriptors (keep most distinctive)
 
 CURRENT USER PROFILE FOR COMPARISON:
 - contentNiche: ${user.contentNiche?.join(', ') || 'Not set'}
@@ -247,6 +251,70 @@ Extract new/changed BUSINESS info from both sources, focusing on factual discove
       const profileUpdates = JSON.parse(cleanResult);
       console.log(`👤 [PROFILE_EXTRACT] Parsed updates:`, profileUpdates);
 
+      // Enforce contentNiche limit of 10 items
+      if (profileUpdates.contentNiche && Array.isArray(profileUpdates.contentNiche)) {
+        const currentNiches = user.contentNiche || [];
+        const combinedNiches = [...new Set([...currentNiches, ...profileUpdates.contentNiche])];
+        
+        if (combinedNiches.length > 10) {
+          const remainingSlots = 10 - currentNiches.length;
+          if (remainingSlots > 0) {
+            profileUpdates.contentNiche = profileUpdates.contentNiche.slice(0, remainingSlots);
+          } else {
+            delete profileUpdates.contentNiche;
+          }
+          console.log(`👤 [PROFILE_EXTRACT] ContentNiche at limit (10), restricting new additions`);
+        }
+      }
+
+      // Enforce profileData array limits
+      if (profileUpdates.profileData) {
+        const currentProfileData = (user.profileData as any) || {};
+        
+        // targetAudience limit: 5 items
+        if (profileUpdates.profileData.targetAudience) {
+          const current = Array.isArray(currentProfileData.targetAudience) ? currentProfileData.targetAudience : [];
+          const combined = [...new Set([...current, ...profileUpdates.profileData.targetAudience])];
+          if (combined.length > 5) {
+            const remainingSlots = 5 - current.length;
+            profileUpdates.profileData.targetAudience = remainingSlots > 0 
+              ? profileUpdates.profileData.targetAudience.slice(0, remainingSlots)
+              : [];
+            console.log(`👤 [PROFILE_EXTRACT] TargetAudience at limit (5), restricting additions`);
+          }
+        }
+        
+        // contentGoals limit: 5 items
+        if (profileUpdates.profileData.contentGoals) {
+          const current = Array.isArray(currentProfileData.contentGoals) ? currentProfileData.contentGoals : [];
+          const combined = [...new Set([...current, ...profileUpdates.profileData.contentGoals])];
+          if (combined.length > 5) {
+            const remainingSlots = 5 - current.length;
+            profileUpdates.profileData.contentGoals = remainingSlots > 0
+              ? profileUpdates.profileData.contentGoals.slice(0, remainingSlots)
+              : [];
+            console.log(`👤 [PROFILE_EXTRACT] ContentGoals at limit (5), restricting additions`);
+          }
+        }
+        
+        // brandVoice limit: 3 items
+        if (profileUpdates.profileData.brandVoice) {
+          const voices = Array.isArray(profileUpdates.profileData.brandVoice) 
+            ? profileUpdates.profileData.brandVoice 
+            : [profileUpdates.profileData.brandVoice];
+          const current = Array.isArray(currentProfileData.brandVoice) 
+            ? currentProfileData.brandVoice 
+            : (currentProfileData.brandVoice ? [currentProfileData.brandVoice] : []);
+          const combined = [...new Set([...current, ...voices])];
+          if (combined.length > 3) {
+            const remainingSlots = 3 - current.length;
+            profileUpdates.profileData.brandVoice = remainingSlots > 0
+              ? voices.slice(0, remainingSlots)
+              : [];
+            console.log(`👤 [PROFILE_EXTRACT] BrandVoice at limit (3), restricting additions`);
+          }
+        }
+      }
 
       // Only return non-empty updates
       const hasUpdates = Object.keys(profileUpdates).some(key => {
