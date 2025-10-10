@@ -124,6 +124,14 @@ DUPLICATE PREVENTION:
 EXTRACTION SOURCES:
 1. USER MESSAGE: Only extract if user explicitly states NEW business info, goals, or major changes
 2. ASSISTANT RESPONSE: Only extract from website/Instagram analysis or other concrete business discoveries, avoiding duplicates of recent analysis results
+3. INSTAGRAM ANALYSIS: Extract business insights from Instagram profile data when analysis is fresh
+
+INSTAGRAM PROFILE EXTRACTION RULES:
+- Extract contentNiche from top hashtags (e.g., #fitness, #wellness → "fitness", "wellness")
+- Extract targetAudience hints from bio, category, and engagement patterns
+- Extract brandVoice from content style if clear patterns emerge (e.g., "inspirational", "educational")
+- Extract businessType from bio or category if mentioned
+- Only extract if Instagram data is NEW and provides information not already in profile
 
 FIELD USAGE RULES:
 - businessLocation: For physical business address/location

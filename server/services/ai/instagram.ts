@@ -254,11 +254,14 @@ export async function performInstagramAnalysis(
     }
 
     console.log(`📸 [INSTAGRAM_AI] Instagram analysis completed: ${Date.now() - startTime}ms`);
+    
+    // Return flag indicating new analysis data is available for profile extraction
     return {
       success: true,
       analysis: instagramProfile,
       cached: false,
-      partialSuccess: partialSuccess
+      partialSuccess: partialSuccess,
+      shouldExtractProfile: true // Signal that profile extraction should run
     };
 
   } catch (error) {
@@ -396,6 +399,7 @@ export async function performInstagramHashtagSearch(
   hashtagResult?: InstagramHashtagResult;
   cached?: boolean;
   error?: string;
+  shouldExtractProfile?: boolean;
 }> {
   const startTime = Date.now();
   try {

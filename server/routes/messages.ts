@@ -421,6 +421,9 @@ export function registerMessageRoutes(app: Express) {
           if (combinedProfileUpdates.instagramUsername && !instagramAnalysisResult) {
             console.log(`📸 [CHAT_FLOW] Auto-triggering Instagram analysis for discovered username: @${combinedProfileUpdates.instagramUsername}`);
 
+            // Mark that we should extract profile from this new Instagram data
+            profileUpdateDecision = { shouldExtract: true, confidence: 0.9 };
+
             // Mark this as the user's own profile if detected during discovery
             if (combinedProfileUpdates.ownInstagramUsername) {
               combinedProfileUpdates.ownInstagramUsername = combinedProfileUpdates.instagramUsername;
