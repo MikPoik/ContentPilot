@@ -17,9 +17,11 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
   // Auto-resize textarea based on content
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = '44px';
       const scrollHeight = textareaRef.current.scrollHeight;
-      textareaRef.current.style.height = `${Math.min(scrollHeight, 100)}px`;
+      if (scrollHeight > 44) {
+        textareaRef.current.style.height = `${Math.min(scrollHeight, 100)}px`;
+      }
     }
   }, [message]);
 
@@ -69,7 +71,7 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             placeholder=""
-            className="min-h-[44px] max-h-[100px] resize-none border border-input rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-muted-foreground text-sm leading-relaxed overflow-y-auto bg-background text-foreground"
+            className="h-[44px] max-h-[100px] resize-none border border-input rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-muted-foreground text-sm leading-[1.2] overflow-y-auto bg-background text-foreground"
             disabled={disabled}
             data-testid="input-message"
           />
