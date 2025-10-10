@@ -43,7 +43,7 @@ export async function rephraseQueryForEmbedding(
     }
 
     const response = await geminiClient.chat.completions.create({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-2.5-flash-lite",
       messages: [
         {
           role: "system",
@@ -101,7 +101,7 @@ export async function extractMemoriesFromConversation(
 ): Promise<string[]> {
   try {
     const response = await geminiClient.chat.completions.create({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-2.5-flash-lite",
       messages: [
         {
           role: "system",

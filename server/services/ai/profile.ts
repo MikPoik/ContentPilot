@@ -75,7 +75,7 @@ export async function extractProfileInfo(
     const isInstagramAnalysis = context?.instagramAnalysisPerformed || false;
 
     const response = await geminiClient.chat.completions.create({
-      model: "gemini-2.0-flash-lite", // Faster model for simple decisions
+      model: "gemini-2.5-flash-lite", // Faster model for simple decisions
       messages: [
         {
           role: 'system',
