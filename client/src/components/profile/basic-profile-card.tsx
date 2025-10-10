@@ -28,8 +28,8 @@ export default function BasicProfileCard({ user }: BasicProfileCardProps) {
           <div>
             <label className="text-sm font-medium text-gray-700">Name</label>
             <p className="mt-1 text-gray-900" data-testid="text-user-name">
-              {user.firstName && user.lastName 
-                ? `${user.firstName} ${user.lastName}` 
+              {user.firstName || user.lastName
+                ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
                 : "Not provided"}
             </p>
           </div>
