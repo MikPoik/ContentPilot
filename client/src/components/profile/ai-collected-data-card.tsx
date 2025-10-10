@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -126,6 +125,60 @@ export default function AiCollectedDataCard({ user }: AiCollectedDataCardProps) 
 
   const profileData = user.profileData as any || {};
 
+  const removeContentGoal = (index: number) => {
+    const profileData = user.profileData as any || {};
+    // Handle both string and array cases
+    let current: string[] = [];
+    if (Array.isArray(profileData.contentGoals)) {
+      current = profileData.contentGoals;
+    } else if (typeof profileData.contentGoals === 'string' && profileData.contentGoals) {
+      current = [profileData.contentGoals];
+    }
+    const next = current.filter((_, i) => i !== index);
+    const newProfileData = { ...profileData, contentGoals: next.length > 0 ? next : [] };
+    updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+  };
+
+  const deleteAllContentGoals = () => {
+    const profileData = user.profileData as any || {};
+    const newProfileData = { ...profileData, contentGoals: [] };
+    updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+  };
+
+  const removeTargetAudience = (index: number) => {
+    const profileData = user.profileData as any || {};
+    // Handle both string and array cases
+    let current: string[] = [];
+    if (Array.isArray(profileData.targetAudience)) {
+      current = profileData.targetAudience;
+    } else if (typeof profileData.targetAudience === 'string' && profileData.targetAudience) {
+      current = [profileData.targetAudience];
+    }
+    const next = current.filter((_, i) => i !== index);
+    const newProfileData = { ...profileData, targetAudience: next.length > 0 ? next : [] };
+    updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+  };
+
+  const deleteAllTargetAudience = () => {
+    const profileData = user.profileData as any || {};
+    const newProfileData = { ...profileData, targetAudience: [] };
+    updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+  };
+
+  // Handle both string and array cases for contentGoals
+  const contentGoals = (() => {
+    if (Array.isArray(profileData?.contentGoals)) return profileData.contentGoals;
+    if (typeof profileData?.contentGoals === 'string' && profileData.contentGoals) return [profileData.contentGoals];
+    return [];
+  })();
+
+  // Handle both string and array cases for targetAudience
+  const targetAudience = (() => {
+    if (Array.isArray(profileData?.targetAudience)) return profileData.targetAudience;
+    if (typeof profileData?.targetAudience === 'string' && profileData.targetAudience) return [profileData.targetAudience];
+    return [];
+  })();
+
   return (
     <Card>
       <CardHeader>
@@ -215,6 +268,34 @@ export default function AiCollectedDataCard({ user }: AiCollectedDataCardProps) 
               />
             )}
 
+            {/* Content Goals */}
+            {contentGoals.length > 0 && (
+              <EditableArrayField
+                title="Content Goals"
+                icon={<Target className="h-4 w-4 text-gray-600" />}
+                items={contentGoals}
+                onAdd={() => {}} // Add functionality for content goals if needed
+                onRemove={removeContentGoal}
+                onDeleteAll={deleteAllContentGoals}
+                isUpdating={updateProfileMutation.isPending}
+                testId="content-goals"
+              />
+            )}
+
+            {/* Target Audience */}
+            {targetAudience.length > 0 && (
+              <EditableArrayField
+                title="Target Audience"
+                icon={<Share2 className="h-4 w-4 text-gray-600" />}
+                items={targetAudience}
+                onAdd={() => {}} // Add functionality for target audience if needed
+                onRemove={removeTargetAudience}
+                onDeleteAll={deleteAllTargetAudience}
+                isUpdating={updateProfileMutation.isPending}
+                testId="target-audience"
+              />
+            )}
+
             {/* Additional Profile Data */}
             {user.profileData && typeof user.profileData === 'object' && user.profileData !== null && Object.keys(user.profileData).length > 0 && (
               <>
@@ -239,8 +320,8 @@ export default function AiCollectedDataCard({ user }: AiCollectedDataCardProps) 
                 )}
 
                 {/* Other Profile Data */}
-                <OtherProfileDataCard 
-                  user={user} 
+                <OtherProfileDataCard
+                  user={user}
                   updateProfileMutation={updateProfileMutation}
                 />
               </>
@@ -256,7 +337,7 @@ export default function AiCollectedDataCard({ user }: AiCollectedDataCardProps) 
               <label className="text-sm font-medium text-gray-700">Profile Completeness</label>
               <div className="mt-2 flex items-center space-x-3">
                 <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${user.profileCompleteness}%` }}
                   />
