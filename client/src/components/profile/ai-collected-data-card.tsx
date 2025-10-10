@@ -126,41 +126,25 @@ export default function AiCollectedDataCard({ user }: AiCollectedDataCardProps) 
   const profileData = user.profileData as any || {};
 
   const removeContentGoal = (index: number) => {
-    const profileData = user.profileData as any || {};
-    // Handle both string and array cases
-    let current: string[] = [];
-    if (Array.isArray(profileData.contentGoals)) {
-      current = profileData.contentGoals;
-    } else if (typeof profileData.contentGoals === 'string' && profileData.contentGoals) {
-      current = [profileData.contentGoals];
-    }
+    const current = contentGoals; // Use the already normalized array
     const next = current.filter((_, i) => i !== index);
     const newProfileData = { ...profileData, contentGoals: next };
     updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
   };
 
   const deleteAllContentGoals = () => {
-    const profileData = user.profileData as any || {};
     const newProfileData = { ...profileData, contentGoals: [] };
     updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
   };
 
   const removeTargetAudience = (index: number) => {
-    const profileData = user.profileData as any || {};
-    // Handle both string and array cases
-    let current: string[] = [];
-    if (Array.isArray(profileData.targetAudience)) {
-      current = profileData.targetAudience;
-    } else if (typeof profileData.targetAudience === 'string' && profileData.targetAudience) {
-      current = [profileData.targetAudience];
-    }
+    const current = targetAudience; // Use the already normalized array
     const next = current.filter((_, i) => i !== index);
     const newProfileData = { ...profileData, targetAudience: next };
     updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
   };
 
   const deleteAllTargetAudience = () => {
-    const profileData = user.profileData as any || {};
     const newProfileData = { ...profileData, targetAudience: [] };
     updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
   };
