@@ -17,7 +17,7 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
   // Auto-resize textarea based on content
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = '36px'; // Reset to min height
       const scrollHeight = textareaRef.current.scrollHeight;
       textareaRef.current.style.height = `${Math.min(scrollHeight, 100)}px`;
     }
