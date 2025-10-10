@@ -190,12 +190,17 @@ export class DatabaseStorage implements IStorage {
       Object.keys(newProfileData).forEach(key => {
         const newValue = newProfileData[key];
         
-        // Handle array fields (like contentGoals) - merge arrays instead of replacing
+        // Handle array fields (like contentGoals) - respect replaceArrays flag
         if (Array.isArray(newValue) && Array.isArray(mergedNestedProfileData[key])) {
-          // Merge arrays and remove duplicates
-          const combined = [...(mergedNestedProfileData[key] || []), ...newValue];
-          const uniqueFiltered = combined.filter(item => item != null && item !== '');
-          mergedNestedProfileData[key] = Array.from(new Set(uniqueFiltered));
+          if (replaceArrays) {
+            // Replace the array completely when replaceArrays is true
+            mergedNestedProfileData[key] = newValue;
+          } else {
+            // Merge arrays and remove duplicates
+            const combined = [...(mergedNestedProfileData[key] || []), ...newValue];
+            const uniqueFiltered = combined.filter(item => item != null && item !== '');
+            mergedNestedProfileData[key] = Array.from(new Set(uniqueFiltered));
+          }
         } else if (newValue !== null && newValue !== undefined && newValue !== '') {
           // For non-array fields, update only if new value is meaningful
           mergedNestedProfileData[key] = newValue;
