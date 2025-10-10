@@ -51,6 +51,19 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    // Allow the paste to happen first, then adjust height
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = '44px';
+        const scrollHeight = textareaRef.current.scrollHeight;
+        if (scrollHeight > 44) {
+          textareaRef.current.style.height = `${Math.min(scrollHeight, 100)}px`;
+        }
+      }
+    }, 0);
+  };
+
   const isValid = message.trim().length > 0 && message.length <= maxChars;
 
   return (
@@ -70,6 +83,7 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
             value={message}
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             placeholder=""
             className="!h-[44px] !min-h-[44px] max-h-[100px] resize-none border border-input rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-muted-foreground text-sm leading-[1.2] overflow-y-auto bg-background text-foreground"
             disabled={disabled}
