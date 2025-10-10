@@ -389,11 +389,23 @@ export function registerMessageRoutes(app: Express) {
           // Use intent-driven profile extraction instead of always running it
           // Also trigger after successful blog/Instagram analysis when new data is available
           const hasSuccessfulAnalysis = (instagramAnalysisResult?.success || blogAnalysisResult?.success);
+          const userMessage = content; // Keep original user message for extraction
+          const assistantMessage = fullResponse; // Use the full generated response for extraction
 
           let conversationProfileUpdates: any = {};
           if ((profileUpdateDecision?.shouldExtract && profileUpdateDecision.confidence >= 0.7) || hasSuccessfulAnalysis) {
             const profileExtractionStart = Date.now();
-            conversationProfileUpdates = await extractProfileInfo(content, fullResponse, user!);
+            // Updated to pass analysis context flags
+            const extractedProfile = await extractProfileInfo(
+              userMessage,
+              assistantMessage,
+              user,
+              {
+                blogAnalysisPerformed: blogAnalysisResult?.success,
+                instagramAnalysisPerformed: instagramAnalysisResult?.success
+              }
+            );
+            conversationProfileUpdates = extractedProfile; // Assign the result directly
             const reason = hasSuccessfulAnalysis ? "post-analysis extraction" : (profileUpdateDecision?.reason || "intent analysis");
             console.log(`👤 [CHAT_FLOW] Profile extraction (intent-driven): ${Date.now() - profileExtractionStart}ms - reason: ${reason}`);
           } else {

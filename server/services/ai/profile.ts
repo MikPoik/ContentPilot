@@ -57,16 +57,22 @@ function calculateProfileCompleteness(user: User, updates: any): string {
   return percentage.toString();
 }
 
-export async function extractProfileInfo(userMessage: string, assistantResponse: string, user: User): Promise<any> {
+export async function extractProfileInfo(
+  userMessage: string, 
+  assistantResponse: string, 
+  user: User,
+  context?: {
+    blogAnalysisPerformed?: boolean;
+    instagramAnalysisPerformed?: boolean;
+  }
+): Promise<any> {
   try {
     console.log(`👤 [PROFILE_EXTRACT] Input - User: "${userMessage.substring(0, 100)}..."`);
     console.log(`👤 [PROFILE_EXTRACT] Input - Assistant: "${assistantResponse.substring(0, 100)}..."`);
 
-    // Check if blog analysis was just performed - if so, be extra conservative about extracting profile data
-    const isBlogAnalysis = assistantResponse.includes('Blog Content Analysis') || 
-                          assistantResponse.includes('blogProfile') ||
-                          userMessage.includes('blogi') ||
-                          userMessage.includes('/blog');
+    // Use analysis flags instead of keyword matching for better detection
+    const isBlogAnalysis = context?.blogAnalysisPerformed || false;
+    const isInstagramAnalysis = context?.instagramAnalysisPerformed || false;
 
     const response = await geminiClient.chat.completions.create({
       model: "gemini-2.0-flash-lite", // Faster model for simple decisions
@@ -147,9 +153,18 @@ CURRENT USER PROFILE FOR COMPARISON:
 
 ${isBlogAnalysis ? `
 ⚠️ BLOG ANALYSIS CONTEXT - BE EXTRA CONSERVATIVE:
-This conversation involves blog analysis. The assistant response already contains structured blog data.
+Blog analysis was just performed. The assistant response already contains structured blog data.
 DO NOT extract profile information that duplicates or rephrases existing profile data.
 ONLY extract if there are completely new business facts not previously known.
+` : ''}
+${isInstagramAnalysis ? `
+⚠️ INSTAGRAM ANALYSIS CONTEXT - EXTRACT BUSINESS INSIGHTS:
+Instagram analysis was just performed. Extract relevant business insights like:
+- Content niche from top hashtags and themes
+- Brand voice from content style patterns
+- Target audience from engagement and follower data
+- Business type from bio or category information
+ONLY extract NEW information not already in the profile.
 ` : ''}
 
 ONLY extract if there's genuinely NEW or SIGNIFICANTLY DIFFERENT information.`
