@@ -146,7 +146,7 @@ FIELD USAGE RULES:
 - blogProfile: NEVER modify - reserved for blog content analysis only
 - targetAudience: Maximum 5 items (keep most relevant)
 - contentGoals: Maximum 5 items (keep most relevant)
-- brandVoice: Maximum 3 descriptors (keep most distinctive)
+- brandVoice: Maximum 5 descriptors (keep most distinctive)
 
 CURRENT USER PROFILE FOR COMPARISON:
 - contentNiche: ${user.contentNiche?.join(', ') || 'Not set'}
@@ -297,7 +297,7 @@ Extract new/changed BUSINESS info from both sources, focusing on factual discove
           }
         }
         
-        // brandVoice limit: 3 items
+        // brandVoice limit: 5 items
         if (profileUpdates.profileData.brandVoice) {
           const voices = Array.isArray(profileUpdates.profileData.brandVoice) 
             ? profileUpdates.profileData.brandVoice 
@@ -306,12 +306,12 @@ Extract new/changed BUSINESS info from both sources, focusing on factual discove
             ? currentProfileData.brandVoice 
             : (currentProfileData.brandVoice ? [currentProfileData.brandVoice] : []);
           const combined = [...new Set([...current, ...voices])];
-          if (combined.length > 3) {
-            const remainingSlots = 3 - current.length;
+          if (combined.length > 5) {
+            const remainingSlots = 5 - current.length;
             profileUpdates.profileData.brandVoice = remainingSlots > 0
               ? voices.slice(0, remainingSlots)
               : [];
-            console.log(`👤 [PROFILE_EXTRACT] BrandVoice at limit (3), restricting additions`);
+            console.log(`👤 [PROFILE_EXTRACT] BrandVoice at limit (5), restricting additions`);
           }
         }
       }
