@@ -69,7 +69,7 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             placeholder=""
-            className="min-h-[44px] max-h-[100px] resize-none border border-input rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-muted-foreground text-sm leading-relaxed overflow-y-auto bg-background text-foreground"
+            className="min-h-[36px] max-h-[100px] resize-none border border-input rounded-xl px-4 py-2 pr-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-muted-foreground text-sm leading-normal overflow-y-auto bg-background text-foreground"
             disabled={disabled}
             data-testid="input-message"
           />
