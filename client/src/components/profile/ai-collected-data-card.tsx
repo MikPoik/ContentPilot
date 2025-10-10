@@ -135,7 +135,7 @@ export default function AiCollectedDataCard({ user }: AiCollectedDataCardProps) 
       current = [profileData.contentGoals];
     }
     const next = current.filter((_, i) => i !== index);
-    const newProfileData = { ...profileData, contentGoals: next.length > 0 ? next : [] };
+    const newProfileData = { ...profileData, contentGoals: next };
     updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
   };
 
@@ -155,7 +155,7 @@ export default function AiCollectedDataCard({ user }: AiCollectedDataCardProps) 
       current = [profileData.targetAudience];
     }
     const next = current.filter((_, i) => i !== index);
-    const newProfileData = { ...profileData, targetAudience: next.length > 0 ? next : [] };
+    const newProfileData = { ...profileData, targetAudience: next };
     updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
   };
 
