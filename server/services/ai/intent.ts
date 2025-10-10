@@ -183,7 +183,6 @@ export async function analyzeUnifiedIntent(
     if (user) {
       const data = user.profileData as any || {};
 
-
       // Check what we actually have
       const hasName = !!(user.firstName);
       const hasNiche = !!(user.contentNiche && user.contentNiche?.length > 0);
@@ -193,7 +192,13 @@ export async function analyzeUnifiedIntent(
       const hasContentGoals = !!(data.contentGoals?.length);
       const hasBusinessType = !!(data.businessType);
 
-      userContext += `PROFILE COMPLETENESS:
+      // Calculate profile completeness score
+      const profileScore = parseInt(user.profileCompleteness || '0');
+
+      userContext += `PROFILE COMPLETENESS SCORE: ${profileScore}%
+${profileScore >= 60 ? '✅ Profile is substantial enough for content generation' : '❌ Profile needs more information before content generation'}
+
+INDIVIDUAL FIELD STATUS:
 ${hasName ? '✅' : '❌'} Name: ${hasName ? user.firstName + (user.lastName ? ' ' + user.lastName : '') : 'Missing'}
 ${hasNiche ? '✅' : '❌'} Content Niche: ${hasNiche ? user.contentNiche?.join(", ") || 'Missing' : 'Missing'}
 ${hasPlatform ? '✅' : '❌'} Primary Platform(s): ${hasPlatform ? (((user as any).primaryPlatforms?.length ? (user as any).primaryPlatforms.join(', ') : user.primaryPlatform) as string) : 'Missing'}
@@ -202,10 +207,11 @@ ${hasBrandVoice ? '✅' : '❌'} Brand Voice: ${hasBrandVoice ? data.brandVoice 
 ${hasContentGoals ? '✅' : '❌'} Content Goals: ${hasContentGoals ? data.contentGoals.join(", ") : 'Missing'}
 ${hasBusinessType ? '✅' : '❌'} Business Type: ${hasBusinessType ? data.businessType : 'Missing'}
 
-WORKFLOW PHASE DETERMINATION:
-- Discovery complete if: name + niche + platform are provided
-- Ready for positioning if: discovery complete + some additional profile data
-- Ready for content generation if: sufficient profile data for personalized content
+WORKFLOW PHASE DETERMINATION RULES:
+- Discovery complete if: name + niche + platform are provided (minimum ~30% completeness)
+- Ready for positioning if: discovery complete + some additional profile data (~40-50% completeness)
+- Ready for content generation if: profile score >= 60% AND sufficient profile data for personalized content
+- CRITICAL: If profile score < 60%, MUST set shouldBlockContentGeneration=true regardless of user request
 
 EXISTING DATA TO CONSIDER:
 ${JSON.stringify({
@@ -271,14 +277,15 @@ Use GROK for X/Twitter content, PERPLEXITY for general web
 • Finalization & Scheduling: Final touches and publishing
 
 WORKFLOW PROGRESSION RULES:
-- Discovery complete when: name + contentNiche + primaryPlatform exist
-- Can advance to positioning when: discovery complete + some additional context
-- Only advance to content phases when: sufficient profile data for personalized recommendations
-- ALWAYS check the PROFILE COMPLETENESS section to see what data actually exists
+- Discovery complete when: name + contentNiche + primaryPlatform exist (minimum ~30% completeness)
+- Can advance to positioning when: discovery complete + some additional context (~40-50% completeness)
+- CRITICAL: Content generation phases REQUIRE profile score >= 60%
+- If profile score < 60%, MUST block content generation regardless of user requests
+- ALWAYS check both the PROFILE COMPLETENESS SCORE and individual field status
 - Missing fields should only include fields that are truly empty/null/undefined
 - Do NOT suggest prompts asking for information that already exists (marked with ✅)
 - Only suggest prompts for fields marked with ❌ Missing
-- If all key fields exist, focus on content-related prompts rather than profile gathering
+- If profile score >= 60% and key fields exist, allow content-related prompts and generation
 
 STRICT VALIDATION RULES:
 - Extract usernames without @ symbol ONLY if explicitly mentioned
