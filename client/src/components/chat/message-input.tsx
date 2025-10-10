@@ -12,7 +12,7 @@ interface MessageInputProps {
 export default function MessageInput({ onSendMessage, isLoading, disabled }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const maxChars = 15000;
+  const maxChars = 20000;
 
   // Auto-resize textarea based on content
   useEffect(() => {
