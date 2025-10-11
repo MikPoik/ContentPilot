@@ -209,7 +209,7 @@ function formatUserProfile(user?: User): string {
   if (!user) return "No user profile available";
 
   const profile = [
-    user.firstName && user.lastName ? `- Name: ${user.firstName} ${user.lastName}` : null,
+    user.firstName || user.lastName ? `- Name: ${[user.firstName, user.lastName].filter(Boolean).join(' ')}` : null,
     user.contentNiche?.length ? `- Content Niche: ${user.contentNiche.join(', ')}` : null,
     (user as any).primaryPlatforms?.length ? `- Primary Platform(s): ${(user as any).primaryPlatforms.join(', ')}` : 
       user.primaryPlatform ? `- Primary Platform: ${user.primaryPlatform}` : null,
