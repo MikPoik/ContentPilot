@@ -36,7 +36,8 @@ export default function ProfileSettings() {
 
   // Refetch user data when the page mounts to ensure fresh data
   useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    // Force refetch by resetting the cache
+    queryClient.resetQueries({ queryKey: ["/api/auth/user"] });
   }, [queryClient]);
 
   // Initialize local state when user data loads
@@ -265,8 +266,8 @@ export default function ProfileSettings() {
   const hasProfileData = !!(user.contentNiche?.length || (user as any).primaryPlatforms?.length || user.primaryPlatform || (user.profileData && Object.keys(user.profileData as object).length > 0));
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto p-4 space-y-6">
+    <div className="min-h-screen bg-gray-50 overflow-y-auto">
+      <div className="max-w-4xl mx-auto p-4 space-y-6 pb-20">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
