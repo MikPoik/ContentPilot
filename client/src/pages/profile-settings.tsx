@@ -265,10 +265,10 @@ export default function ProfileSettings() {
   const hasProfileData = !!(user.contentNiche?.length || (user as any).primaryPlatforms?.length || user.primaryPlatform || (user.profileData && Object.keys(user.profileData as object).length > 0));
 
   return (
-    <div className="min-h-screen bg-gray-50 overflow-y-auto">
-      <div className="max-w-4xl mx-auto p-4 space-y-6 pb-20">
+    <div className="h-screen bg-gray-50 overflow-y-scroll">
+      <div className="max-w-4xl mx-auto p-4 space-y-6 pb-32">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center space-x-4">
             <Button
               variant="ghost"
@@ -279,18 +279,29 @@ export default function ProfileSettings() {
             >
               <Link href={fromPath}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Chat
+                Back
               </Link>
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900" data-testid="text-page-title">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900" data-testid="text-page-title">
                 Profile Settings
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 mt-1 hidden sm:block">
                 Manage your AI-collected profile information
               </p>
             </div>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+              window.location.reload();
+            }}
+            data-testid="button-refresh-profile"
+          >
+            Refresh Data
+          </Button>
         </div>
 
         {/* Privacy Notice */}
