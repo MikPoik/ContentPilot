@@ -91,6 +91,8 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
 });
 
 export const updateUserProfileSchema = createInsertSchema(users).pick({
+  firstName: true,
+  lastName: true,
   contentNiche: true,
   primaryPlatform: true,
   primaryPlatforms: true,
