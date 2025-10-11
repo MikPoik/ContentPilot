@@ -36,8 +36,7 @@ export default function ProfileSettings() {
 
   // Refetch user data when the page mounts to ensure fresh data
   useEffect(() => {
-    // Force refetch by resetting the cache
-    queryClient.resetQueries({ queryKey: ["/api/auth/user"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
   }, [queryClient]);
 
   // Initialize local state when user data loads
