@@ -165,49 +165,44 @@ export default function AiCollectedDataCard({ user }: AiCollectedDataCardProps) 
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Database className="h-5 w-5" />
-            <span>AI-Collected Profile Data</span>
-          </div>
-          {hasProfileData ? (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  disabled={updateProfileMutation.isPending}
-                  data-testid="button-clear-all-profile"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Clear All
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Clear All Profile Data</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete all AI-collected profile information. 
-                    This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => handleClearAllProfile()}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    Clear All Data
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          ) : null}
+      <CardHeader className="pb-3 flex flex-row items-center justify-between">
+        <CardTitle className="flex items-center space-x-2 text-lg">
+          <Database className="h-5 w-5 text-muted-foreground" />
+          <span>AI-Collected Profile Data</span>
         </CardTitle>
-        <CardDescription>
-          Information learned from your conversations to personalize assistance
-        </CardDescription>
+        {hasProfileData ? (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={updateProfileMutation.isPending}
+                data-testid="button-clear-all-profile"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Clear All
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Clear All Profile Data</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete all AI-collected profile information.
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => handleClearAllProfile()}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Clear All Data
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : null}
       </CardHeader>
       <CardContent className="space-y-6">
         {!hasProfileData ? (

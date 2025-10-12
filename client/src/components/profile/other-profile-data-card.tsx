@@ -166,10 +166,10 @@ export default function OtherProfileDataCard({ user, updateProfileMutation }: Ot
   const targetAudience = Array.isArray(profileData.targetAudience) ? profileData.targetAudience : [];
 
   return (
-    <Card className="bg-gray-50">
+    <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center space-x-2 text-lg">
-          <Database className="h-5 w-5 text-gray-600" />
+          <Database className="h-5 w-5 text-muted-foreground" />
           <span>Other Profile Information</span>
         </CardTitle>
       </CardHeader>
