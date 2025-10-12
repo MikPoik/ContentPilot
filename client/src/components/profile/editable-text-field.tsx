@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
@@ -40,8 +39,8 @@ export default function EditableTextField({
   const hasChanged = localValue !== value;
 
   return (
-    <div className="bg-white p-4 rounded-lg border">
-      <label className="text-sm font-medium text-gray-700 mb-2 block">
+    <div className="bg-card p-4 rounded-lg border">
+      <label className="text-sm font-medium text-muted-foreground mb-2 block">
         {label}
       </label>
       <div className="flex items-center space-x-2">

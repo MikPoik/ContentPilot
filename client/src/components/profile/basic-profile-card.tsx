@@ -22,12 +22,12 @@ export default function BasicProfileCard({ user }: BasicProfileCardProps) {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium text-gray-700">Email</label>
-            <p className="mt-1 text-gray-900" data-testid="text-user-email">{user.email}</p>
+            <label className="text-sm font-medium text-muted-foreground">Email</label>
+            <p className="mt-1 text-foreground" data-testid="text-user-email">{user.email}</p>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Name</label>
-            <p className="mt-1 text-gray-900" data-testid="text-user-name">
+            <label className="text-sm font-medium text-muted-foreground">Name</label>
+            <p className="mt-1 text-foreground" data-testid="text-user-name">
               {user.firstName || user.lastName
                 ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
                 : "Not provided"}

@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -30,7 +29,7 @@ export default function EditableArrayField({
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-2">
           {icon}
-          <label className="text-sm font-medium text-gray-700">{title}</label>
+          <label className="text-sm font-medium text-foreground">{title}</label>
         </div>
         <div className="flex items-center gap-1">
           <Button
