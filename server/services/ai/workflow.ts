@@ -190,7 +190,33 @@ Be collaborative - don't overwhelm with too many ideas at once.`;
 - Ask for feedback and be ready to iterate on both content and style
 - Include specific calls-to-action tailored to their goals using their authentic voice
 - Suggest visual content directions when relevant
-CRITICAL: Make content sound like THEM, not generic social media copy.`;
+
+INSTAGRAM REELS CONTENT STRUCTURE (use when user hasn't defined their own):
+Apply the universal HOOK-BODY-CTA framework:
+
+1. HOOK (First 3 seconds):
+   - Pattern interrupt (surprising stat, bold statement, question)
+   - Visual hook that stops the scroll
+   - Examples: "This changed everything...", "You're doing X wrong", "The secret to Y is..."
+
+2. BODY (Middle section):
+   - Deliver on the hook's promise
+   - 3-5 key points or steps
+   - Keep it concise and valuable
+   - Use text overlays for key points
+
+3. CTA (Final 3-5 seconds):
+   - Clear next step (follow, comment, save, share)
+   - Tease next content
+   - Examples: "Save this for later", "Comment X if you want more", "Follow for part 2"
+
+ALTERNATIVE TEMPLATES:
+- Problem-Agitate-Solution (PAS): Present problem → Make it urgent → Offer solution
+- Before-After-Bridge (BAB): Show before state → Show after state → Bridge the gap
+- Storytelling Arc: Setup → Conflict → Resolution → Lesson
+- Educational Listicle: Intro hook → 3-5 tips with text overlays → Summary CTA
+
+CRITICAL: Make content sound like THEM, not generic social media copy. Adapt template to their authentic voice.`;
 
     case "Finalization & Scheduling":
       return `Help finalize and optimize their content:
