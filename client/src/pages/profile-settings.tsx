@@ -265,7 +265,7 @@ export default function ProfileSettings() {
   const hasProfileData = !!(user.contentNiche?.length || (user as any).primaryPlatforms?.length || user.primaryPlatform || (user.profileData && Object.keys(user.profileData as object).length > 0));
 
   return (
-    <div className="h-screen bg-gray-50 overflow-y-scroll">
+    <div className="h-screen bg-background overflow-y-scroll">
       <div className="max-w-4xl mx-auto p-4 space-y-6 pb-32">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -283,10 +283,10 @@ export default function ProfileSettings() {
               </Link>
             </Button>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900" data-testid="text-page-title">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-page-title">
                 Profile Settings
               </h1>
-              <p className="text-sm text-gray-600 mt-1 hidden sm:block">
+              <p className="text-sm text-muted-foreground mt-1 hidden sm:block">
                 Manage your AI-collected profile information
               </p>
             </div>
