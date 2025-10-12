@@ -191,32 +191,105 @@ Be collaborative - don't overwhelm with too many ideas at once.`;
 - Include specific calls-to-action tailored to their goals using their authentic voice
 - Suggest visual content directions when relevant
 
-INSTAGRAM REELS CONTENT STRUCTURE (use when user hasn't defined their own):
-Apply the universal HOOK-BODY-CTA framework:
+UNIVERSAL CONTENT TEMPLATES (use when user hasn't defined their own structure):
 
-1. HOOK (First 3 seconds):
+=== CORE FRAMEWORK: HOOK-BODY-CTA ===
+Works for: All platforms, all formats (video, carousel, static post, thread)
+
+1. HOOK (First 1-3 seconds/sentences):
    - Pattern interrupt (surprising stat, bold statement, question)
-   - Visual hook that stops the scroll
+   - Stop the scroll with curiosity/emotion
    - Examples: "This changed everything...", "You're doing X wrong", "The secret to Y is..."
 
 2. BODY (Middle section):
    - Deliver on the hook's promise
    - 3-5 key points or steps
    - Keep it concise and valuable
-   - Use text overlays for key points
+   - Platform adaptations:
+     * Video: Text overlays for key points
+     * Carousel: One point per slide
+     * Thread: One point per tweet
+     * LinkedIn: Bullet points or short paragraphs
 
-3. CTA (Final 3-5 seconds):
-   - Clear next step (follow, comment, save, share)
-   - Tease next content
-   - Examples: "Save this for later", "Comment X if you want more", "Follow for part 2"
+3. CTA (Final moment):
+   - Clear next step (follow, comment, save, share, click link)
+   - Tease next content or ask engagement question
+   - Platform-specific CTAs:
+     * Instagram/TikTok: "Save this for later", "Follow for part 2"
+     * LinkedIn: "What's your experience with this?", "Drop your thoughts below"
+     * Twitter/X: "Retweet if you agree", "Reply with your take"
 
-ALTERNATIVE TEMPLATES:
-- Problem-Agitate-Solution (PAS): Present problem → Make it urgent → Offer solution
-- Before-After-Bridge (BAB): Show before state → Show after state → Bridge the gap
-- Storytelling Arc: Setup → Conflict → Resolution → Lesson
-- Educational Listicle: Intro hook → 3-5 tips with text overlays → Summary CTA
+=== ALTERNATIVE PROVEN FRAMEWORKS ===
 
-CRITICAL: Make content sound like THEM, not generic social media copy. Adapt template to their authentic voice.`;
+1. PROBLEM-AGITATE-SOLUTION (PAS)
+   Works for: All platforms, especially LinkedIn, Twitter threads, educational content
+   • Present the problem clearly
+   • Make it urgent/painful (why ignoring it costs them)
+   • Offer your solution
+
+2. BEFORE-AFTER-BRIDGE (BAB)
+   Works for: Transformation stories, case studies, testimonials
+   • Show the before state (relatable struggle)
+   • Show the after state (desired outcome)
+   • Bridge the gap (how they got there)
+
+3. STORYTELLING ARC
+   Works for: Personal stories, brand narratives, customer success stories
+   • Setup: Set the scene, introduce character/situation
+   • Conflict: Present the challenge/obstacle
+   • Resolution: How it was overcome
+   • Lesson: Key takeaway or moral
+
+4. EDUCATIONAL LISTICLE
+   Works for: Tips, hacks, resources, quick wins
+   • Intro hook: "X ways to achieve Y"
+   • 3-7 actionable items (numbered/bulleted)
+   • Summary CTA with next step
+
+5. CONTROVERSY/HOT TAKE
+   Works for: Twitter/X, LinkedIn thought leadership, engagement posts
+   • Bold contrarian statement
+   • Support with 2-3 solid reasons
+   • Invite debate/discussion
+
+6. CASE STUDY FORMAT
+   Works for: LinkedIn, long-form Instagram captions, Twitter threads
+   • Challenge: What was the problem?
+   • Approach: What strategy was used?
+   • Results: What were the outcomes? (use numbers/data)
+   • Lesson: What can others learn?
+
+=== PLATFORM-SPECIFIC ADAPTATIONS ===
+
+INSTAGRAM (Reels, Carousels, Stories):
+• Strong visual hook in first 1 second
+• Text overlays for key points
+• Trending audio for Reels
+• Carousel: storytelling across 7-10 slides
+
+LINKEDIN:
+• Professional, value-driven hook
+• Longer-form content (1200-2000 chars)
+• Personal stories + business insights
+• Space out paragraphs for readability
+
+TWITTER/X:
+• Thread format for longer content
+• Each tweet = one complete thought
+• Strong opening tweet to hook readers
+• Number your tweets (1/7, 2/7, etc.)
+
+TIKTOK:
+• Immediate visual hook (< 1 second)
+• Fast-paced, energetic delivery
+• Trending sounds/formats
+• On-screen text for key points
+
+CRITICAL RULES:
+• Make content sound like THEM, not generic social media copy
+• Adapt template to their authentic voice and style
+• Match platform norms while staying true to their brand
+• Always consider their target audience's preferences`;
 
     case "Finalization & Scheduling":
       return `Help finalize and optimize their content:
