@@ -25,11 +25,11 @@ export default function ProfileSettings() {
   const [location] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   // Local state for input fields to prevent constant updates
   const [localBusinessType, setLocalBusinessType] = useState("");
   const [localBusinessLocation, setLocalBusinessLocation] = useState("");
-  
+
   // Get the 'from' parameter to know where to go back
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
   const fromPath = urlParams.get('from') || '/';
@@ -308,7 +308,7 @@ export default function ProfileSettings() {
         <Alert>
           <Shield className="h-4 w-4" />
           <AlertDescription>
-            ContentCraft AI learns about your content creation preferences through conversations to provide personalized assistance. 
+            ContentCraft AI learns about your content creation preferences through conversations to provide personalized assistance.
             You can review and delete any collected information at any time.
           </AlertDescription>
         </Alert>
