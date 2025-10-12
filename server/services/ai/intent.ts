@@ -415,7 +415,7 @@ function getDefaultUnifiedDecision(): UnifiedIntentDecision {
     webSearch: {
       shouldSearch: false,
       confidence: 0.0,
-      reason: "Error in analysis",
+      reason: "Analysis failed - defaulting to no search",
       refinedQuery: "",
       recency: "week",
       domains: [],
@@ -477,7 +477,16 @@ function normalizeCondensedResponse(condensedResponse: any): UnifiedIntentDecisi
       domains: condensedResponse.webSearch.domains || [],
       searchService: condensedResponse.webSearch.searchService || "perplexity",
       socialHandles: condensedResponse.webSearch.socialHandles || [],
-    } : defaults.webSearch,
+    } : {
+      shouldSearch: false,
+      confidence: 0.9,
+      reason: "No web search needed for this query",
+      refinedQuery: "",
+      recency: "week",
+      domains: [],
+      searchService: "perplexity",
+      socialHandles: [],
+    },
 
     instagramAnalysis: condensedResponse.instagramAnalysis ? {
       shouldAnalyze: true,
