@@ -46,11 +46,11 @@ export async function buildMemorySearchQuery(
         .slice()
         .reverse()
         .find(m => m.role === 'assistant');
-      
+
       if (lastAssistant) {
         // Combine user message with snippet of last response
         const contextQuery = `${userMessage.trim()} ${lastAssistant.content.substring(0, 150)}`;
-        
+
         if (contextQuery.length <= OPTIMAL_MAX) {
           console.log(
             `✅ [AI_SERVICE] Using user message + assistant context (${contextQuery.length} chars): ${Date.now() - startTime}ms`
@@ -316,7 +316,7 @@ Return JSON array or [] if no confirmed user insights found.`,
         });
 
       const memories = JSON.parse(cleanResult);
-      
+
       // Post-processing filter to catch problematic extractions
       const filteredMemories = Array.isArray(memories)
         ? memories.filter((m) => {
@@ -325,46 +325,63 @@ Return JSON array or [] if no confirmed user insights found.`,
 
             // Basic sanity checks
             if (trimmed.length < 10 || trimmed.length > 500) return false;
-            
-            // Filter out obviously broken content (too much punctuation/symbols)
+
             const meaningfulChars = trimmed.replace(/[\s\p{P}\p{S}]/gu, '');
             if (meaningfulChars.length < trimmed.length * 0.4) return false;
 
-            // POST-PROCESSING FILTER: Remove common problematic patterns
-            const lowerMemory = trimmed.toLowerCase();
-            
-            // Filter out AI suggestions/recommendations
-            const suggestionPatterns = [
-              'could try', 'might', 'consider', 'recommend', 'suggest',
-              'you should', 'you could', 'try to', 'it would be',
-              'assistant suggests', 'assistant recommends', 'assistant asks',
-              'user is asked', 'user is prompted', 'how about', 'what about'
-            ];
-            if (suggestionPatterns.some(pattern => lowerMemory.includes(pattern))) {
-              console.log(`🧠 [MEMORY_FILTER] Filtered suggestion/question: "${trimmed}"`);
+            // POST-PROCESSING FILTER: Truly language-agnostic using structural patterns only
+
+            // 1. Filter out questions (universal - ends with ?)
+            if (trimmed.match(/\?$/)) {
+              console.log(`🧠 [MEMORY_FILTER] Filtered question (ends with ?): "${trimmed}"`);
               return false;
             }
 
-            // Filter out content that's phrased as questions
-            if (trimmed.match(/\?$/) || lowerMemory.startsWith('what ') || lowerMemory.startsWith('how ')) {
-              console.log(`🧠 [MEMORY_FILTER] Filtered question: "${trimmed}"`);
+            // 2. Filter out JSON-like structures or malformed extractions
+            if (trimmed.match(/^\{.*".*".*\}$/) || trimmed.match(/^\[.*\]$/)) {
+              console.log(`🧠 [MEMORY_FILTER] Filtered JSON structure: "${trimmed}"`);
               return false;
             }
 
-            // Filter out generic/vague statements
-            const vaguePatterns = [
-              'content ideas', 'some ideas', 'various options', 'several ways',
-              'different approaches', 'here are', 'these are'
-            ];
-            if (vaguePatterns.some(pattern => lowerMemory.includes(pattern))) {
-              console.log(`🧠 [MEMORY_FILTER] Filtered vague statement: "${trimmed}"`);
+            // 3. Statistical pattern: Too many punctuation marks = likely malformed or meta-text
+            const punctuationCount = (trimmed.match(/[,;:.!?]/g) || []).length;
+            const wordCount = trimmed.split(/\s+/).length;
+            const punctuationRatio = punctuationCount / wordCount;
+
+            // If more than 30% of words followed by punctuation, likely a list or malformed text
+            if (punctuationRatio > 0.3 && wordCount > 3) {
+              console.log(`🧠 [MEMORY_FILTER] Filtered high punctuation ratio (${punctuationRatio.toFixed(2)}): "${trimmed}"`);
               return false;
             }
 
+            // 4. Detect quoted text patterns - often indicates suggestions or examples
+            const quoteCount = (trimmed.match(/["'«»"'"]/g) || []).length;
+            if (quoteCount >= 4) { // At least 2 quoted phrases
+              console.log(`🧠 [MEMORY_FILTER] Filtered multiple quoted phrases: "${trimmed}"`);
+              return false;
+            }
+
+            // 5. Statistical: Very short or very long memories are often malformed
+            if (wordCount < 3) {
+              console.log(`🧠 [MEMORY_FILTER] Filtered too short (${wordCount} words): "${trimmed}"`);
+              return false;
+            }
+
+            if (wordCount > 50) {
+              console.log(`🧠 [MEMORY_FILTER] Filtered too long (${wordCount} words): "${trimmed}"`);
+              return false;
+            }
+
+            // 6. Detect parenthetical/explanatory text patterns - often meta-commentary
+            const parenCount = (trimmed.match(/[()[\]]/g) || []).length;
+            if (parenCount >= 4) { // Multiple parenthetical phrases
+              console.log(`🧠 [MEMORY_FILTER] Filtered excessive parentheticals: "${trimmed}"`);
+              return false;
+            }
             return true;
           })
         : [];
-      
+
       console.log(`🧠 [AI_SERVICE] Extracted ${filteredMemories.length} memories after post-processing filter`);
       return filteredMemories;
     } catch (parseError) {
@@ -383,7 +400,7 @@ Return JSON array or [] if no confirmed user insights found.`,
 
               // Basic fallback filtering - keep it simple
               if (trimmed.length < 10 || trimmed.length > 500) return false;
-              
+
               // Filter out content that's mostly punctuation/symbols
               const meaningfulChars = trimmed.replace(/[\s\p{P}\p{S}]/gu, '');
               if (meaningfulChars.length < trimmed.length * 0.4) return false;
