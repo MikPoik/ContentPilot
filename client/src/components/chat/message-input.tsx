@@ -11,6 +11,7 @@ interface MessageInputProps {
 
 export default function MessageInput({ onSendMessage, isLoading, disabled }: MessageInputProps) {
   const [message, setMessage] = useState("");
+  const [isOverflowing, setIsOverflowing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const maxChars = 20000;
 
@@ -19,7 +20,11 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
     if (textareaRef.current) {
       textareaRef.current.style.height = '36px'; // Reset to min height
       const scrollHeight = textareaRef.current.scrollHeight;
-      textareaRef.current.style.height = `${Math.min(scrollHeight, 100)}px`;
+      const newHeight = Math.min(scrollHeight, 100);
+      textareaRef.current.style.height = `${newHeight}px`;
+      // Detect if content is overflowing the visible area and show scrollbar only then
+      const isNowOverflowing = scrollHeight > 100;
+      setIsOverflowing(isNowOverflowing);
     }
   }, [message]);
 
@@ -69,7 +74,7 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             placeholder=""
-            className="min-h-[36px] max-h-[100px] resize-none border border-input rounded-xl px-4 py-2 pr-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-muted-foreground text-sm leading-normal overflow-y-auto bg-background text-foreground flex items-center"
+            className={`min-h-[36px] max-h-[100px] resize-none border border-input rounded-xl px-4 py-2 pr-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-muted-foreground text-sm leading-normal ${isOverflowing ? 'overflow-y-auto' : 'overflow-y-hidden hide-scrollbar'} bg-background text-foreground`}
             disabled={disabled}
             data-testid="input-message"
           />

@@ -91,7 +91,7 @@ export default function OtherProfileDataCard({ user, updateProfileMutation }: Ot
 
   const removeBrandVoice = (index: number) => {
     const current = Array.isArray(profileData.brandVoice) ? profileData.brandVoice : [];
-    const next = current.filter((_, i) => i !== index);
+    const next = current.filter((_: string, i: number) => i !== index);
     const newProfileData = { ...profileData, brandVoice: next };
     updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
   };
@@ -115,7 +115,7 @@ export default function OtherProfileDataCard({ user, updateProfileMutation }: Ot
 
   const removeContentGoal = (index: number) => {
     const current = Array.isArray(profileData.contentGoals) ? profileData.contentGoals : [];
-    const next = current.filter((_, i) => i !== index);
+    const next = current.filter((_: string, i: number) => i !== index);
     const newProfileData = { ...profileData, contentGoals: next };
     updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
   };
@@ -139,7 +139,7 @@ export default function OtherProfileDataCard({ user, updateProfileMutation }: Ot
 
   const removeTargetAudience = (index: number) => {
     const current = Array.isArray(profileData.targetAudience) ? profileData.targetAudience : [];
-    const next = current.filter((_, i) => i !== index);
+    const next = current.filter((_: string, i: number) => i !== index);
     const newProfileData = { ...profileData, targetAudience: next };
     updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
   };

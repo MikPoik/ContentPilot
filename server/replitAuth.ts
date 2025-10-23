@@ -57,13 +57,24 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
-  await storage.upsertUser({
+  // Avoid overwriting user-provided names: only set first/last name from claims
+  // when there is no existing value in the database.
+  const existing = await storage.getUser(claims["sub"]);
+
+  const upsertPayload: any = {
     id: claims["sub"],
     email: claims["email"],
-    firstName: claims["first_name"],
-    lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
-  });
+  };
+
+  if (!existing || !existing.firstName) {
+    upsertPayload.firstName = claims["first_name"];
+  }
+  if (!existing || !existing.lastName) {
+    upsertPayload.lastName = claims["last_name"];
+  }
+
+  await storage.upsertUser(upsertPayload);
 }
 
 function resolveDomain(host: string): string {

@@ -7,56 +7,6 @@ const geminiClient = new OpenAI({
   baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/"
 });
 
-function calculateProfileCompleteness(user: User, updates: any): string {
-  // Create a merged profile to calculate completeness
-  const mergedProfile = {
-    firstName: updates.firstName || user.firstName,
-    lastName: updates.lastName || user.lastName,
-    contentNiche: updates.contentNiche || user.contentNiche || [],
-    primaryPlatform: updates.primaryPlatform || user.primaryPlatform,
-    primaryPlatforms: (updates as any).primaryPlatforms || (user as any).primaryPlatforms || [],
-    profileData: {
-      ...(user.profileData as any || {}),
-      ...(updates.profileData || {})
-    }
-  };
-
-  let completedFields = 0;
-  const totalFields = 10; // Updated total profile fields we track
-
-  // Basic info (2 fields) - Weight: 20%
-  if (mergedProfile.firstName) completedFields++;
-  if (mergedProfile.lastName) completedFields++;
-
-  // Content niche (1 field) - Weight: 10%
-  if (mergedProfile.contentNiche && mergedProfile.contentNiche.length > 0) completedFields++;
-
-  // Primary platform(s) (1 field) - Weight: 10%
-  if (mergedProfile.primaryPlatform || (mergedProfile as any).primaryPlatforms?.length > 0) completedFields++;
-
-  // Core profile data (3 fields) - Weight: 30%
-  if (mergedProfile.profileData?.targetAudience) completedFields++;
-  if (mergedProfile.profileData?.brandVoice) completedFields++;
-  if (mergedProfile.profileData?.businessType) completedFields++;
-
-  // Enhanced profile data (3 fields) - Weight: 30%
-  if (mergedProfile.profileData?.contentGoals?.length > 0) completedFields++;
-  if (mergedProfile.profileData?.businessLocation) completedFields++;
-  
-  // Rich analysis data - if either Instagram or blog analysis exists, count as complete
-  const hasInstagramAnalysis = !!(mergedProfile.profileData?.instagramProfile?.username);
-  const hasBlogAnalysis = !!(mergedProfile.profileData?.blogProfile?.writingStyle);
-  const hasCompetitorAnalysis = !!(mergedProfile.profileData?.competitorAnalyses && 
-    Object.keys(mergedProfile.profileData.competitorAnalyses).length > 0);
-  
-  if (hasInstagramAnalysis || hasBlogAnalysis || hasCompetitorAnalysis) {
-    completedFields++;
-  }
-
-  const percentage = Math.round((completedFields / totalFields) * 100);
-  return percentage.toString();
-}
-
 export async function extractProfileInfo(
   userMessage: string, 
   assistantResponse: string, 
@@ -94,50 +44,53 @@ Current profile: ${JSON.stringify({
             profileData: user.profileData
           })}
 
-EXTRACTION GUIDELINES - BE MORE SELECTIVE:
+EXTRACTION GUIDELINES - BE HIGHLY SELECTIVE AND CONSERVATIVE:
 
-ONLY EXTRACT SIGNIFICANT PROFILE CHANGES:
-1. NEW business information not already in the profile
-2. MAJOR corrections or updates to existing information
-3. CONCRETE business details discovered through analysis (website, Instagram, etc.)
-4. EXPLICIT user statements about their business/goals that ADD new information
-5. EXPLICIT profile update requests (like "update my profile")
+ONLY EXTRACT IN THESE SPECIFIC CASES:
+1. Explicit profile update request: "Update my profile", "Change my business type to X", "My name is Y"
+2. NEW concrete business information NOT already captured in profile
+3. Major corrections to existing incorrect information
+4. Concrete business details discovered through external analysis (website, Instagram, blog) that are NOT duplicates
 
 DO NOT EXTRACT:
-- Minor variations of existing contentNiche items ()
-- Repeated information already in the profile
-- General conversation topics that don't add new profile data
-- Content ideas or recommendations without explicit user adoption
-- Sub-topics or variations of existing niches unless they represent a completely different field
+- Casual conversation about business without new concrete data
+- Content ideas or suggestions (not profile data)
+- Information already present in profile (even if rephrased)
+- Minor variations or subcategories of existing contentNiche items
+- Generic acknowledgments or questions
+- Vague statements like "I want to grow my business" (no specific data)
+- Discussion of content strategies (unless explicitly updating goals)
+
+CONTENT NICHE RULES (VERY STRICT):
+- Only add if it's a genuinely different field/industry NOT already covered
+- Don't add subcategories: "weight training" when "fitness" exists
+- Don't add variations: "mental wellness" when "mental health" exists
+- Don't add method variations: "couples therapy" when "therapy" and "relationship coaching" exist
+- STRICT LIMIT: Maximum 10 items total
+- When at limit, DO NOT extract any new niches
+
+DUPLICATE PREVENTION (CRITICAL):
+- For arrays: Only add truly NEW items not semantically covered by existing entries
+- Check if new item is a variation/subset of existing items
+- For brandVoice: "warm" is duplicate of "warm and approachable"
+- For contentNiche: "startup consulting" is duplicate of "business consulting" + "startups"
+- For targetAudience: "young professionals" is duplicate of "professionals aged 25-35"
 
 SPECIAL HANDLING FOR EXPLICIT UPDATE REQUESTS:
-- When user explicitly asks to update profile information, ALWAYS extract the requested changes
-- For platform updates: if user mentions multiple platforms (e.g., "Instagram and TikTok"), set primaryPlatforms to a normalized distinct array (capitalize first letter). Also set primaryPlatform to the first item for backward compatibility.
-- For explicit requests, be more liberal with extraction than normal discovery
+- When user explicitly asks to update specific fields, ALWAYS extract those changes
+- For platform updates: normalize and capitalize (["Instagram", "TikTok"])
+- Set primaryPlatform to first item for backward compatibility
+- Be more liberal only for explicit requests, not casual mentions
 
-CONTENT NICHE RULES:
-- Only add new contentNiche items if they represent a genuinely different field/industry
-- If the new topic is a subcategory or variation of an existing niche, DO NOT extract it
-- Example: If user has "fitness", don't add "weight training" (it's the same field)
-- STRICT LIMIT: Maximum 10 items in contentNiche array
-- If at limit, only replace if new niche is MORE specific to user's actual business
+EXTRACTION SOURCES PRIORITY:
+1. USER MESSAGE: Only explicit new business info or update requests
+2. ASSISTANT RESPONSE ANALYSIS RESULTS: Only concrete discoveries from external sources
+3. DO NOT extract from: AI suggestions, content ideas, general advice, questions
 
-DUPLICATE PREVENTION:
-- For arrays (contentNiche, targetAudience, brandVoice, contentGoals): Only add items that aren't already covered by existing entries
-- For brandVoice: Don't add similar descriptions like "warm" if "warm and approachable" already exists
-- For contentNiche: Don't add multiple therapy variations if therapy categories already exist
-- When blog analysis has just been performed, focus ONLY on truly new business information
-
-EXTRACTION SOURCES:
-1. USER MESSAGE: Only extract if user explicitly states NEW business info, goals, or major changes
-2. ASSISTANT RESPONSE: Only extract from website/Instagram analysis or other concrete business discoveries, avoiding duplicates of recent analysis results
-3. INSTAGRAM ANALYSIS: Extract business insights from Instagram profile data when analysis is fresh
-
-INSTAGRAM PROFILE EXTRACTION RULES:
-- Extract contentNiche from top hashtags (e.g., #fitness, #wellness → "fitness", "wellness")
-- Extract targetAudience hints from bio, category, and engagement patterns
-- Extract brandVoice from content style if clear patterns emerge (e.g., "inspirational", "educational")
-- Extract businessType from bio or category if mentioned
+INSTAGRAM PROFILE EXTRACTION RULES (WHEN instagramAnalysisPerformed=true):
+- Extract contentNiche from top hashtags if NOT already covered (max 2-3 new items)
+- Extract businessType from bio/category if missing and clearly stated
+- Only extract if adding genuinely NEW information not in current profile
 - Only extract if Instagram data is NEW and provides information not already in profile
 
 FIELD USAGE RULES:
@@ -327,14 +280,9 @@ Extract new/changed BUSINESS info from both sources, focusing on factual discove
       console.log(`👤 [PROFILE_EXTRACT] Has updates: ${hasUpdates}`);
 
       if (hasUpdates) {
-        // Calculate and add profile completeness
-        const profileCompleteness = calculateProfileCompleteness(user, profileUpdates);
-        const finalResult = {
-          ...profileUpdates,
-          profileCompleteness
-        };
-        console.log(`👤 [PROFILE_EXTRACT] Final result with ${profileCompleteness}% completeness:`, finalResult);
-        return finalResult;
+        // Profile completeness will be calculated and cached in storage.updateUserProfile
+        console.log(`👤 [PROFILE_EXTRACT] Final result:`, profileUpdates);
+        return profileUpdates;
       }
 
       console.log(`👤 [PROFILE_EXTRACT] No updates to return`);

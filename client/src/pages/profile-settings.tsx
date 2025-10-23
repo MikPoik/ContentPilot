@@ -88,7 +88,7 @@ export default function ProfileSettings() {
       // Ensure arrays get replaced (cleared) on server
       ...(fieldName === 'contentNiche' ? { replaceArrays: true } : {}),
     };
-    updateProfileMutation.mutate(updateData);
+    updateProfileMutation.mutate(updateData as any);
   };
 
   // Helpers for array normalization and updates
@@ -115,14 +115,14 @@ export default function ProfileSettings() {
     if (!value) return;
     const label = normalizeLabel(value);
     if (!label) return;
-    const current = (user.contentNiche || []) as string[];
+    const current = (user!.contentNiche || []) as string[];
     const next = uniqueMerge([...current, label]);
     updateProfileMutation.mutate({ contentNiche: next, replaceArrays: true } as any);
   };
 
   const removeContentNiche = (index: number) => {
-    const current = (user.contentNiche || []) as string[];
-    const next = current.filter((_, i) => i !== index);
+    const current = (user!.contentNiche || []) as string[];
+    const next = current.filter((_: string, i: number) => i !== index);
     updateProfileMutation.mutate({ contentNiche: next, replaceArrays: true } as any);
   };
 
@@ -134,7 +134,7 @@ export default function ProfileSettings() {
     if (!label) return;
     const current = ((user as any).primaryPlatforms && Array.isArray((user as any).primaryPlatforms)
       ? (user as any).primaryPlatforms
-      : (user.primaryPlatform ? [user.primaryPlatform] : [])) as string[];
+      : (user!.primaryPlatform ? [user!.primaryPlatform] : [])) as string[];
     const next = uniqueMerge([...current, label]);
     updateProfileMutation.mutate({ primaryPlatforms: next, primaryPlatform: next[0] ?? null, replaceArrays: true } as any);
   };
@@ -142,8 +142,8 @@ export default function ProfileSettings() {
   const removePrimaryPlatform = (index: number) => {
     const current = ((user as any).primaryPlatforms && Array.isArray((user as any).primaryPlatforms)
       ? (user as any).primaryPlatforms
-      : (user.primaryPlatform ? [user.primaryPlatform] : [])) as string[];
-    const next = current.filter((_, i) => i !== index);
+      : (user!.primaryPlatform ? [user!.primaryPlatform] : [])) as string[];
+    const next = current.filter((_: string, i: number) => i !== index);
     updateProfileMutation.mutate({ primaryPlatforms: next, primaryPlatform: next[0] ?? null, replaceArrays: true } as any);
   };
 
@@ -153,7 +153,7 @@ export default function ProfileSettings() {
     if (!value) return;
     const label = normalizeLabel(value);
     if (!label) return;
-    const profileData = user.profileData as any || {};
+  const profileData = user!.profileData as any || {};
     const current = Array.isArray(profileData.brandVoice) ? profileData.brandVoice : [];
     const next = uniqueMerge([...current, label]);
     const newProfileData = { ...profileData, brandVoice: next };
@@ -161,9 +161,9 @@ export default function ProfileSettings() {
   };
 
   const removeBrandVoice = (index: number) => {
-    const profileData = user.profileData as any || {};
+    const profileData = user!.profileData as any || {};
     const current = Array.isArray(profileData.brandVoice) ? profileData.brandVoice : [];
-    const next = current.filter((_, i) => i !== index);
+    const next = current.filter((_: string, i: number) => i !== index);
     const newProfileData = { ...profileData, brandVoice: next };
     updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
   };
@@ -174,7 +174,7 @@ export default function ProfileSettings() {
     if (!value) return;
     const label = normalizeLabel(value);
     if (!label) return;
-    const profileData = user.profileData as any || {};
+  const profileData = user!.profileData as any || {};
     const current = Array.isArray(profileData.contentGoals) ? profileData.contentGoals : [];
     const next = uniqueMerge([...current, label]);
     const newProfileData = { ...profileData, contentGoals: next };
@@ -182,9 +182,9 @@ export default function ProfileSettings() {
   };
 
   const removeContentGoal = (index: number) => {
-    const profileData = user.profileData as any || {};
+    const profileData = user!.profileData as any || {};
     const current = Array.isArray(profileData.contentGoals) ? profileData.contentGoals : [];
-    const next = current.filter((_, i) => i !== index);
+    const next = current.filter((_: string, i: number) => i !== index);
     const newProfileData = { ...profileData, contentGoals: next };
     updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
   };
@@ -195,7 +195,7 @@ export default function ProfileSettings() {
     if (!value) return;
     const label = normalizeLabel(value);
     if (!label) return;
-    const profileData = user.profileData as any || {};
+  const profileData = user!.profileData as any || {};
     const current = Array.isArray(profileData.targetAudience) ? profileData.targetAudience : [];
     const next = uniqueMerge([...current, label]);
     const newProfileData = { ...profileData, targetAudience: next };
@@ -203,9 +203,9 @@ export default function ProfileSettings() {
   };
 
   const removeTargetAudience = (index: number) => {
-    const profileData = user.profileData as any || {};
+    const profileData = user!.profileData as any || {};
     const current = Array.isArray(profileData.targetAudience) ? profileData.targetAudience : [];
-    const next = current.filter((_, i) => i !== index);
+    const next = current.filter((_: string, i: number) => i !== index);
     const newProfileData = { ...profileData, targetAudience: next };
     updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
   };

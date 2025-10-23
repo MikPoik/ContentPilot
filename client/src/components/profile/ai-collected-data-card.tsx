@@ -76,7 +76,7 @@ export default function AiCollectedDataCard({ user }: AiCollectedDataCardProps) 
 
   const removeContentNiche = (index: number) => {
     const current = (user.contentNiche || []) as string[];
-    const next = current.filter((_, i) => i !== index);
+    const next = current.filter((_: string, i: number) => i !== index);
     updateProfileMutation.mutate({ contentNiche: next, replaceArrays: true } as any);
   };
 
@@ -101,7 +101,7 @@ export default function AiCollectedDataCard({ user }: AiCollectedDataCardProps) 
     const current = ((user as any).primaryPlatforms && Array.isArray((user as any).primaryPlatforms)
       ? (user as any).primaryPlatforms
       : (user.primaryPlatform ? [user.primaryPlatform] : [])) as string[];
-    const next = current.filter((_, i) => i !== index);
+    const next = current.filter((_: string, i: number) => i !== index);
     updateProfileMutation.mutate({ primaryPlatforms: next, primaryPlatform: next[0] ?? null, replaceArrays: true } as any);
   };
 
@@ -127,7 +127,7 @@ export default function AiCollectedDataCard({ user }: AiCollectedDataCardProps) 
 
   const removeContentGoal = (index: number) => {
     const current = contentGoals; // Use the already normalized array
-    const next = current.filter((_, i) => i !== index);
+    const next = current.filter((_: string, i: number) => i !== index);
     const newProfileData = { ...profileData, contentGoals: next };
     updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
   };
@@ -139,7 +139,7 @@ export default function AiCollectedDataCard({ user }: AiCollectedDataCardProps) 
 
   const removeTargetAudience = (index: number) => {
     const current = targetAudience; // Use the already normalized array
-    const next = current.filter((_, i) => i !== index);
+    const next = current.filter((_: string, i: number) => i !== index);
     const newProfileData = { ...profileData, targetAudience: next };
     updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
   };

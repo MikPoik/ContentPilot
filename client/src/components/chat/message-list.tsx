@@ -236,7 +236,7 @@ export default function MessageList({
                   <div className="flex items-center gap-1 ml-2">
                     <button
                       onClick={() => copyMessageContent(message.content)}
-                      className="opacity-0 group-hover:opacity-100 hover:opacity-100 p-1 rounded hover:bg-muted/50 transition-all duration-200"
+                      className="opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 p-1 rounded hover:bg-muted/50 transition-all duration-200"
                       title="Copy message"
                       data-testid={`button-copy-${message.id}`}
                     >
@@ -245,7 +245,7 @@ export default function MessageList({
                     {onRegenerateMessage && (
                       <button
                         onClick={() => onRegenerateMessage(message.id.toString())}
-                        className="opacity-0 group-hover:opacity-100 hover:opacity-100 p-1 rounded hover:bg-muted/50 transition-all duration-200"
+                        className="opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 p-1 rounded hover:bg-muted/50 transition-all duration-200"
                         title="Regenerate response"
                         data-testid={`button-regenerate-${message.id}`}
                       >
@@ -255,7 +255,7 @@ export default function MessageList({
                     {onDeleteMessage && (
                       <button
                         onClick={() => onDeleteMessage(message.id.toString())}
-                        className="opacity-0 group-hover:opacity-100 hover:opacity-100 p-1 rounded hover:bg-muted/50 transition-all duration-200"
+                        className="opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 p-1 rounded hover:bg-muted/50 transition-all duration-200"
                         title="Delete message"
                         data-testid={`button-delete-${message.id}`}
                       >

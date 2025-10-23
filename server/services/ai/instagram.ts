@@ -106,6 +106,7 @@ Return ONLY valid JSON:
 export async function performInstagramAnalysis(
   username: string,
   userId: string,
+  isOwnProfile?: boolean, // true = user's profile, false = competitor, undefined = use fallback logic
   progressCallback?: (message: string) => void
 ): Promise<{
   success: boolean;
@@ -113,13 +114,16 @@ export async function performInstagramAnalysis(
   cached?: boolean;
   error?: string;
   partialSuccess?: boolean;
+  shouldExtractProfile?: boolean;
 }> {
   const startTime = Date.now();
   try {
     console.log(`📸 [INSTAGRAM_AI] Performing Instagram analysis for @${username}...`);
     progressCallback?.(`🔍 Analyzing @${username} profile...`);
 
-    // Check if profile was analyzed recently (within 24 hours)
+    // Check if profile was analyzed recently (within 7 days / 168 hours)
+    // Extended from 24h to reduce API calls while keeping data reasonably fresh
+    const CACHE_TTL_HOURS = 168; // 7 days
     const user = await storage.getUser(userId);
     const existingData = user?.profileData as any;
 
@@ -128,13 +132,15 @@ export async function performInstagramAnalysis(
       const cachedAt = new Date(existingData.instagramProfile.cached_at);
       const hoursSinceCache = (Date.now() - cachedAt.getTime()) / (1000 * 60 * 60);
 
-      if (hoursSinceCache < 24) {
-        console.log(`📸 [INSTAGRAM_AI] Using cached user profile for @${username} (${hoursSinceCache.toFixed(1)}h old)`);
+      if (hoursSinceCache < CACHE_TTL_HOURS) {
+        console.log(`📸 [INSTAGRAM_AI] Using cached user profile for @${username} (${hoursSinceCache.toFixed(1)}h old, cache valid for ${CACHE_TTL_HOURS}h)`);
         return {
           success: true,
           analysis: existingData.instagramProfile,
           cached: true
         };
+      } else {
+        console.log(`📸 [INSTAGRAM_AI] Cache expired for @${username} (${hoursSinceCache.toFixed(1)}h > ${CACHE_TTL_HOURS}h), fetching fresh data...`);
       }
     }
 
@@ -143,13 +149,15 @@ export async function performInstagramAnalysis(
       const cachedAt = new Date(existingData.competitorAnalyses[username].cached_at);
       const hoursSinceCache = (Date.now() - cachedAt.getTime()) / (1000 * 60 * 60);
 
-      if (hoursSinceCache < 24) {
-        console.log(`📸 [INSTAGRAM_AI] Using cached competitor analysis for @${username} (${hoursSinceCache.toFixed(1)}h old)`);
+      if (hoursSinceCache < CACHE_TTL_HOURS) {
+        console.log(`📸 [INSTAGRAM_AI] Using cached competitor analysis for @${username} (${hoursSinceCache.toFixed(1)}h old, cache valid for ${CACHE_TTL_HOURS}h)`);
         return {
           success: true,
           analysis: existingData.competitorAnalyses[username],
           cached: true
         };
+      } else {
+        console.log(`📸 [INSTAGRAM_AI] Cache expired for competitor @${username} (${hoursSinceCache.toFixed(1)}h > ${CACHE_TTL_HOURS}h), fetching fresh data...`);
       }
     }
 
@@ -164,21 +172,33 @@ export async function performInstagramAnalysis(
     const profileData = user?.profileData as any;
     const existingProfileData = profileData || {};
 
-    // Check if this username matches any existing profile data to avoid overwriting
+    // Check existing profile data
     const existingInstagramUsername = existingProfileData?.instagramProfile?.username;
     const existingOwnUsername = existingProfileData?.ownInstagramUsername;
 
-    // Only treat as own profile if:
-    // 1. This username matches the existing ownInstagramUsername, OR  
-    // 2. This username matches the existing instagramProfile username, OR
-    // 3. No existing Instagram profile AND no existing own username (first time setup)
-    const isOwnProfile = (existingOwnUsername === username) ||
-                        (existingInstagramUsername === username) ||
-                        (!existingProfileData.instagramProfile && !existingProfileData.ownInstagramUsername);
+    // Determine profile type using explicit flag with intelligent fallback
+    let isUserOwnProfile: boolean;
+
+    if (isOwnProfile !== undefined) {
+      // Use explicit flag from intent analysis (preferred method)
+      isUserOwnProfile = isOwnProfile;
+      console.log(`📸 [INSTAGRAM_AI] Using explicit isOwnProfile flag: ${isOwnProfile} for @${username}`);
+    } else {
+      // Fallback logic: ONLY treat as own profile if username matches existing data
+      isUserOwnProfile = (existingOwnUsername === username) || 
+                         (existingInstagramUsername === username);
+      
+      console.log(`📸 [INSTAGRAM_AI] No explicit flag, using fallback logic: ${isUserOwnProfile} for @${username}`);
+      
+      // Log warning if this is first-time analysis without explicit flag
+      if (!isUserOwnProfile && !existingProfileData.instagramProfile && !existingProfileData.ownInstagramUsername) {
+        console.warn(`⚠️ [INSTAGRAM_AI] First-time Instagram analysis without explicit flag - defaulting to COMPETITOR for @${username}`);
+      }
+    }
 
     // Store the Instagram profile data appropriately
     let updatedProfileData;
-    if (isOwnProfile) {
+    if (isUserOwnProfile) {
       // Store as the user's main Instagram profile, preserving all existing data
       updatedProfileData = {
         ...existingProfileData,
@@ -192,6 +212,8 @@ export async function performInstagramAnalysis(
         updatedProfileData.competitorAnalyses = remainingCompetitors;
         console.log(`📸 [INSTAGRAM_AI] Migrated @${username} from competitor analysis to main profile`);
       }
+      
+      console.log(`✅ [INSTAGRAM_AI] Saved @${username} as USER'S OWN Instagram profile`);
     } else {
       // Store as competitor analysis, preserving all existing profile data
       const competitorAnalyses = existingProfileData?.competitorAnalyses || {};
@@ -201,6 +223,8 @@ export async function performInstagramAnalysis(
         ...existingProfileData,
         competitorAnalyses
       };
+      
+      console.log(`✅ [INSTAGRAM_AI] Saved @${username} as COMPETITOR analysis`);
     }
 
     await storage.updateUserProfile(userId, {
@@ -406,7 +430,9 @@ export async function performInstagramHashtagSearch(
     console.log(`🏷️ [INSTAGRAM_HASHTAG] Performing hashtag search for #${hashtag}...`);
     progressCallback?.(`🔍 Searching #${hashtag} for content ideas...`);
 
-    // Check if hashtag was searched recently (within 6 hours)
+    // Check if hashtag was searched recently (within 24 hours)
+    // Hashtag content changes faster than profile data, so shorter TTL than profile cache
+    const HASHTAG_CACHE_TTL_HOURS = 24; // 1 day (trend data changes more frequently)
     const user = await storage.getUser(userId);
     const existingData = user?.profileData as any;
 
@@ -414,13 +440,15 @@ export async function performInstagramHashtagSearch(
       const cachedAt = new Date(existingData.hashtagSearches[hashtag].cached_at);
       const hoursSinceCache = (Date.now() - cachedAt.getTime()) / (1000 * 60 * 60);
 
-      if (hoursSinceCache < 6) {
-        console.log(`🏷️ [INSTAGRAM_HASHTAG] Using cached hashtag search for #${hashtag} (${hoursSinceCache.toFixed(1)}h old)`);
+      if (hoursSinceCache < HASHTAG_CACHE_TTL_HOURS) {
+        console.log(`🏷️ [INSTAGRAM_HASHTAG] Using cached hashtag search for #${hashtag} (${hoursSinceCache.toFixed(1)}h old, cache valid for ${HASHTAG_CACHE_TTL_HOURS}h)`);
         return {
           success: true,
           hashtagResult: existingData.hashtagSearches[hashtag],
           cached: true
         };
+      } else {
+        console.log(`🏷️ [INSTAGRAM_HASHTAG] Cache expired for #${hashtag} (${hoursSinceCache.toFixed(1)}h > ${HASHTAG_CACHE_TTL_HOURS}h), fetching fresh data...`);
       }
     }
 

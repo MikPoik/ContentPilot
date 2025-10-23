@@ -4,7 +4,7 @@ import { isAuthenticated } from "../replitAuth";
 import { generateChatResponse, generateConversationTitle, type ChatResponseWithMetadata } from "../services/ai/chat";
 import { generateEmbedding } from "../services/openai";
 import { extractProfileInfo } from "../services/ai/profile";
-import { extractMemoriesFromConversation, rephraseQueryForEmbedding } from "../services/ai/memory";
+import { extractMemoriesFromConversation, buildMemorySearchQuery } from "../services/ai/memory";
 import { analyzeUnifiedIntent, extractWebSearchDecision, extractInstagramAnalysisDecision, extractInstagramHashtagDecision, extractBlogAnalysisDecision, extractProfileUpdateDecision } from "../services/ai/intent"; // Unified intent classification
 import { performInstagramAnalysis, performInstagramHashtagSearch, formatInstagramAnalysisForChat, formatInstagramHashtagSearchForChat } from "../services/ai/instagram"; // Added Instagram integration
 import { performBlogAnalysis, formatBlogAnalysisForChat } from "../services/ai/blog"; // Added blog analysis
@@ -88,26 +88,26 @@ export function registerMessageRoutes(app: Express) {
       // Get conversation history and user profile
       const dataFetchStart = Date.now();
       const messages = await storage.getMessages(conversationId);
-      const user = await storage.getUser(userId);
+  const user = await storage.getUser(userId);
       const chatHistory = messages.map(m => ({
         role: m.role as 'user' | 'assistant' | 'system',
         content: m.content
       }));
       console.log(`📚 [CHAT_FLOW] Data fetch (messages + user): ${Date.now() - dataFetchStart}ms`);
 
-      // Search for relevant memories using user message with query rephrasing
+      // Search for relevant memories using user message with smart query building
       const memorySearchStart = Date.now();
       let relevantMemories: any[] = [];
       try {
-        // Rephrase the query for better embedding search using conversation context
-        const queryRephrasingStart = Date.now();
-        const rephrasedQuery = await rephraseQueryForEmbedding(content, chatHistory.slice(-6), user);
-        console.log(`🔄 [CHAT_FLOW] Query rephrasing: ${Date.now() - queryRephrasingStart}ms`);
+        // Build query using smart concatenation with AI fallback
+        const queryBuildingStart = Date.now();
+        const searchQuery = await buildMemorySearchQuery(content, chatHistory.slice(-6), user);
+        console.log(`🔄 [CHAT_FLOW] Query building: ${Date.now() - queryBuildingStart}ms`);
         console.log(`🔍 [CHAT_FLOW] Original query: "${content}"`);
-        console.log(`🔍 [CHAT_FLOW] Rephrased query: "${rephrasedQuery}"`);
+        console.log(`🔍 [CHAT_FLOW] Search query: "${searchQuery}"`);
 
         const embeddingStart = Date.now();
-        const queryEmbedding = await generateEmbedding(rephrasedQuery);
+        const queryEmbedding = await generateEmbedding(searchQuery);
         console.log(`🧠 [CHAT_FLOW] Embedding generation: ${Date.now() - embeddingStart}ms`);
 
         const similaritySearchStart = Date.now();
@@ -178,6 +178,7 @@ export function registerMessageRoutes(app: Express) {
             instagramAnalysisResult = await performInstagramAnalysis(
               instagramDecision.username, 
               userId,
+              instagramDecision.isOwnProfile, // Pass flag from intent analysis
               (message: string) => {
                 // Send progress updates
                 res.write(`[AI_ACTIVITY]{"type":"instagram_analyzing","message":"${message}"}[/AI_ACTIVITY]`);
@@ -314,7 +315,7 @@ export function registerMessageRoutes(app: Express) {
       // Generate AI response stream with user profile and memories
       const aiResponseStart = Date.now();
       console.log(`🤖 [CHAT_FLOW] Starting AI response generation...`);
-      const responseWithMetadata: ChatResponseWithMetadata = await generateChatResponse(chatHistory, user, relevantMemories, searchDecision, instagramAnalysisResult, instagramHashtagResult, blogAnalysisResult, workflowPhaseDecision); // Pass workflow decision from unified intent analysis
+  const responseWithMetadata: ChatResponseWithMetadata = await generateChatResponse(chatHistory, user!, relevantMemories, searchDecision, instagramAnalysisResult, instagramHashtagResult, blogAnalysisResult, workflowPhaseDecision); // Pass workflow decision from unified intent analysis
       let fullResponse = '';
 
       // Send search metadata immediately when search is performed (even with 0 citations)
@@ -379,37 +380,49 @@ export function registerMessageRoutes(app: Express) {
         try {
           let combinedProfileUpdates: any = {};
 
-          // Get workflow profile patches if available
+          // Get workflow profile patches if available (e.g., instagramUsername discovered in conversation)
           if (responseWithMetadata.workflowDecision?.profilePatch &&
               Object.keys(responseWithMetadata.workflowDecision.profilePatch).length > 0) {
             combinedProfileUpdates = { ...responseWithMetadata.workflowDecision.profilePatch };
             console.log(`🔄 [CHAT_FLOW] Workflow profile patches:`, Object.keys(combinedProfileUpdates));
           }
 
-          // Use intent-driven profile extraction instead of always running it
-          // Also trigger after successful blog/Instagram analysis when new data is available
+          // UNIFIED PROFILE EXTRACTION LOGIC
+          // Extract profile in these specific cases:
+          // 1. After successful external analysis (Instagram/Blog) - ALWAYS extract to capture new insights
+          // 2. Intent analysis explicitly recommends extraction with high confidence (>= 0.75)
+          // 3. Explicit profile update request from user
+          
           const hasSuccessfulAnalysis = (instagramAnalysisResult?.success || blogAnalysisResult?.success);
+          const highConfidenceIntent = profileUpdateDecision?.shouldExtract && profileUpdateDecision.confidence >= 0.75;
+          const shouldExtractProfile = hasSuccessfulAnalysis || highConfidenceIntent;
+
           const userMessage = content; // Keep original user message for extraction
           const assistantMessage = fullResponse; // Use the full generated response for extraction
 
           let conversationProfileUpdates: any = {};
-          if ((profileUpdateDecision?.shouldExtract && profileUpdateDecision.confidence >= 0.7) || hasSuccessfulAnalysis) {
+          if (shouldExtractProfile) {
             const profileExtractionStart = Date.now();
-            // Updated to pass analysis context flags
+            const extractionReason = hasSuccessfulAnalysis 
+              ? "post-analysis extraction (always runs after IG/blog analysis)" 
+              : `intent-driven extraction (confidence: ${profileUpdateDecision?.confidence})`;
+            
+            console.log(`👤 [CHAT_FLOW] Running profile extraction - reason: ${extractionReason}`);
+            
+            // Pass analysis context flags to help AI be more conservative
             const extractedProfile = await extractProfileInfo(
               userMessage,
               assistantMessage,
-              user,
+              user!,
               {
                 blogAnalysisPerformed: blogAnalysisResult?.success,
                 instagramAnalysisPerformed: instagramAnalysisResult?.success
               }
             );
-            conversationProfileUpdates = extractedProfile; // Assign the result directly
-            const reason = hasSuccessfulAnalysis ? "post-analysis extraction" : (profileUpdateDecision?.reason || "intent analysis");
-            console.log(`👤 [CHAT_FLOW] Profile extraction (intent-driven): ${Date.now() - profileExtractionStart}ms - reason: ${reason}`);
+            conversationProfileUpdates = extractedProfile;
+            console.log(`👤 [CHAT_FLOW] Profile extraction completed: ${Date.now() - profileExtractionStart}ms - extracted fields: ${Object.keys(extractedProfile || {}).join(', ') || 'none'}`);
           } else {
-            console.log(`👤 [CHAT_FLOW] Skipping profile extraction - not recommended by intent analysis (shouldExtract: ${profileUpdateDecision?.shouldExtract || false}, confidence: ${profileUpdateDecision?.confidence || 0})`);
+            console.log(`👤 [CHAT_FLOW] Skipping profile extraction - conditions not met (shouldExtract: ${profileUpdateDecision?.shouldExtract || false}, confidence: ${profileUpdateDecision?.confidence || 0}, hasAnalysis: ${hasSuccessfulAnalysis})`);
           }
 
           // Merge workflow patches with conversation-extracted updates
@@ -429,33 +442,11 @@ export function registerMessageRoutes(app: Express) {
             }
           }
 
-          // Check for automatic Instagram analysis during discovery
+          // REMOVED: Auto Instagram analysis during streaming (causes race conditions)
+          // Instead, queue it for next conversation turn if username is discovered
           if (combinedProfileUpdates.instagramUsername && !instagramAnalysisResult) {
-            console.log(`📸 [CHAT_FLOW] Auto-triggering Instagram analysis for discovered username: @${combinedProfileUpdates.instagramUsername}`);
-
-            // Mark that we should extract profile from this new Instagram data
-            profileUpdateDecision = { shouldExtract: true, confidence: 0.9 };
-
-            // Mark this as the user's own profile if detected during discovery
-            if (combinedProfileUpdates.ownInstagramUsername) {
-              combinedProfileUpdates.ownInstagramUsername = combinedProfileUpdates.instagramUsername;
-            }
-
-            try {
-              const autoAnalysisStart = Date.now();
-              instagramAnalysisResult = await performInstagramAnalysis(combinedProfileUpdates.instagramUsername, userId);
-              console.log(`📸 [CHAT_FLOW] Auto Instagram analysis completed: ${Date.now() - autoAnalysisStart}ms - success: ${instagramAnalysisResult.success}`);
-
-              // If analysis was successful, add a note to the response stream
-              if (instagramAnalysisResult.success) {
-                res.write(`\n\n📸 **Discovered your Instagram!** I've analyzed @${combinedProfileUpdates.instagramUsername} to better understand your content style and audience. This will help me provide more personalized recommendations.\n\n`);
-                if (typeof (res as any).flush === 'function') {
-                  try { (res as any).flush(); } catch {}
-                }
-              }
-            } catch (autoAnalysisError) {
-              console.log(`❌ [CHAT_FLOW] Auto Instagram analysis failed:`, autoAnalysisError);
-            }
+            console.log(`📸 [CHAT_FLOW] Discovered Instagram username: @${combinedProfileUpdates.instagramUsername} - user can explicitly request analysis in next message`);
+            // Note: Workflow system will suggest Instagram analysis in next turn via suggested prompts
           }
 
           if (Object.keys(combinedProfileUpdates).length > 0) {
@@ -487,19 +478,49 @@ export function registerMessageRoutes(app: Express) {
             );
             console.log(`🧠 [CHAT_FLOW] Parallel embeddings: ${Date.now() - embeddingStart}ms (${embeddings.length} embeddings)`);
 
-            // Save memories in parallel as well
+            // SEMANTIC DEDUPLICATION: Check each new memory against existing ones before insertion
+            const deduplicationStart = Date.now();
+            const memoriesToSave: Array<{ content: string; embedding: number[]; isDuplicate: boolean }> = [];
+            
+            for (let i = 0; i < newMemories.length; i++) {
+              const memoryContent = newMemories[i];
+              const embedding = embeddings[i];
+              
+              // Check similarity with existing memories
+              const similarExisting = await storage.searchSimilarMemories(userId, embedding, 5);
+              const highestSimilarity = similarExisting.length > 0 ? similarExisting[0].similarity : 0;
+              
+              // Use 0.92 threshold for true duplicates (semantic deduplication)
+              // This prevents near-identical memories while allowing semantically different ones
+              if (highestSimilarity >= 0.92) {
+                console.log(`🧠 [DEDUP] Skipping duplicate memory (similarity: ${highestSimilarity.toFixed(3)}): "${memoryContent.substring(0, 60)}..."`);
+                memoriesToSave.push({ content: memoryContent, embedding, isDuplicate: true });
+              } else {
+                console.log(`🧠 [DEDUP] Accepting new memory (highest similarity: ${highestSimilarity.toFixed(3)}): "${memoryContent.substring(0, 60)}..."`);
+                memoriesToSave.push({ content: memoryContent, embedding, isDuplicate: false });
+              }
+            }
+            console.log(`🧠 [CHAT_FLOW] Semantic deduplication check: ${Date.now() - deduplicationStart}ms (${memoriesToSave.filter(m => !m.isDuplicate).length}/${newMemories.length} unique)`);
+
+            // Save only non-duplicate memories
             const saveStart = Date.now();
-            await Promise.all(
-              newMemories.map((memoryContent, index) => 
-                storage.upsertMemory({
-                  userId,
-                  content: memoryContent,
-                  embedding: embeddings[index],
-                  metadata: { source: 'conversation', conversationId }
-                }, 0.85) // Use 0.85 similarity threshold for updates
-              )
-            );
-            console.log(`🧠 [CHAT_FLOW] Parallel memory saves: ${Date.now() - saveStart}ms`);
+            const uniqueMemories = memoriesToSave.filter(m => !m.isDuplicate);
+            
+            if (uniqueMemories.length > 0) {
+              await Promise.all(
+                uniqueMemories.map((memory) => 
+                  storage.createMemory({
+                    userId,
+                    content: memory.content,
+                    embedding: memory.embedding,
+                    metadata: { source: 'conversation', conversationId }
+                  })
+                )
+              );
+              console.log(`🧠 [CHAT_FLOW] Saved ${uniqueMemories.length} unique memories: ${Date.now() - saveStart}ms`);
+            } else {
+              console.log(`🧠 [CHAT_FLOW] No new unique memories to save (all were duplicates)`);
+            }
           }
           console.log(`🧠 [CHAT_FLOW] Total memory processing: ${Date.now() - memorySaveStart}ms`);
         } catch (error) {
@@ -507,15 +528,21 @@ export function registerMessageRoutes(app: Express) {
           console.log(`🧠 [CHAT_FLOW] Memory processing failed: ${Date.now() - memorySaveStart}ms`);
         }
 
-        // Update conversation title if it's the first exchange
+        // Update conversation title if it's the first exchange (ASYNC - don't block response)
         if (messages.length <= 2 && conversation.title === 'New Conversation') {
-          const titleGenerationStart = Date.now();
-          const newTitle = await generateConversationTitle([
+          // Fire and forget - title generation happens in background
+          generateConversationTitle([
             ...chatHistory,
             { role: 'assistant', content: fullResponse }
-          ]);
-          await storage.updateConversation(conversationId, { title: newTitle });
-          console.log(`📝 [CHAT_FLOW] Title generation and save: ${Date.now() - titleGenerationStart}ms`);
+          ]).then(newTitle => {
+            return storage.updateConversation(conversationId, { title: newTitle });
+          }).then(() => {
+            console.log(`📝 [CHAT_FLOW] Title generated and saved asynchronously`);
+          }).catch(error => {
+            console.error(`❌ [CHAT_FLOW] Background title generation failed:`, error);
+            // Non-critical error - title will remain "New Conversation"
+          });
+          console.log(`📝 [CHAT_FLOW] Title generation started in background (non-blocking)`);
         }
 
         const totalDuration = Date.now() - requestStartTime;

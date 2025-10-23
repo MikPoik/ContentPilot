@@ -1,24 +1,96 @@
 import { openai } from "../openai";
 import OpenAI from "openai";
-// Centralized OpenAI client initialization
+// Centralized OpenAI client initialization for query rephrasing (using Gemini for cost efficiency)
 const geminiClient = new OpenAI({
   apiKey: process.env.GEMINI_API_KEY || "default_key",
   baseURL:"https://generativelanguage.googleapis.com/v1beta/openai"
 });
 
 
-export async function rephraseQueryForEmbedding(
+/**
+ * Builds a query for memory search using smart concatenation with AI fallback.
+ * Strategy:
+ * 1. Use just the user message if it's focused (60-200 chars = optimal for embeddings)
+ * 2. If user message is too short or vague, add last assistant response for context
+ * 3. If still not optimal, use AI to create a focused search query (15-40 tokens / 60-160 chars)
+ * 
+ * CRITICAL: Embedding search queries should be SHORT and FOCUSED
+ * - Optimal: 15-40 tokens (60-160 chars)
+ * - Max acceptable: 50 tokens (200 chars)
+ * - Longer queries dilute semantic similarity and reduce search quality
+ */
+export async function buildMemorySearchQuery(
   userMessage: string,
   conversationHistory: Array<{ role: string; content: string }>,
   user?: any,
 ): Promise<string> {
   const startTime = Date.now();
+  const OPTIMAL_MIN = 60;  // Minimum chars for good embedding
+  const OPTIMAL_MAX = 200; // Maximum chars for focused embedding
+  const userMessageLength = userMessage.trim().length;
+
   try {
-    console.log(`🔄 [AI_SERVICE] Rephrasing query for embedding search...`);
+    console.log(`🔍 [AI_SERVICE] Building memory search query...`);
+
+    // If user message is already in optimal range, use it directly
+    if (userMessageLength >= OPTIMAL_MIN && userMessageLength <= OPTIMAL_MAX) {
+      console.log(
+        `✅ [AI_SERVICE] Using user message directly (${userMessageLength} chars, optimal range): ${Date.now() - startTime}ms`
+      );
+      return userMessage.trim();
+    }
+
+    // If user message is too short (< 60 chars), add last assistant response for context
+    if (userMessageLength < OPTIMAL_MIN && conversationHistory.length > 0) {
+      const lastAssistant = conversationHistory
+        .slice()
+        .reverse()
+        .find(m => m.role === 'assistant');
+      
+      if (lastAssistant) {
+        // Combine user message with snippet of last response
+        const contextQuery = `${userMessage.trim()} ${lastAssistant.content.substring(0, 150)}`;
+        
+        if (contextQuery.length <= OPTIMAL_MAX) {
+          console.log(
+            `✅ [AI_SERVICE] Using user message + assistant context (${contextQuery.length} chars): ${Date.now() - startTime}ms`
+          );
+          return contextQuery;
+        }
+      }
+    }
+
+    // If message is too long or context didn't help, use AI to create focused query
+    console.log(
+      `⚠️ [AI_SERVICE] Message length ${userMessageLength} chars not optimal, using AI to create focused search query...`
+    );
+    return await rephraseQueryWithAI(userMessage, conversationHistory, user, startTime);
+  } catch (error) {
+    console.error(
+      `❌ [AI_SERVICE] Query building error after ${Date.now() - startTime}ms:`,
+      error
+    );
+    // Fallback to truncated user message
+    return userMessage.substring(0, OPTIMAL_MAX);
+  }
+}
+
+/**
+ * AI-powered query rephrasing (used as fallback when concatenation is too long)
+ */
+async function rephraseQueryWithAI(
+  userMessage: string,
+  conversationHistory: Array<{ role: string; content: string }>,
+  user?: any,
+  startTime?: number,
+): Promise<string> {
+  const internalStartTime = startTime || Date.now();
+  try {
+    console.log(`🤖 [AI_SERVICE] AI rephrasing query for embedding search...`);
 
     // Build conversation context from recent messages
     const contextMessages = conversationHistory
-      .slice(-2) // Last 6 messages for context
+      .slice(-2) // Last 2 messages for context
       .map((msg) => `${msg.role}: ${msg.content}`)
       .join("\n");
 
@@ -47,22 +119,36 @@ export async function rephraseQueryForEmbedding(
       messages: [
         {
           role: "system",
-          content: `You are a query rephrasing assistant for memory search. Your job is to rephrase the user's latest message into a better search query that will find relevant memories from past conversations.
+          content: `You are a query optimization assistant for semantic memory search. Create a SHORT, FOCUSED search query optimized for vector embeddings.
 
-IMPORTANT RULES:
-1. Expand abbreviations and make implicit concepts explicit
-2. Add relevant context from conversation history when it clarifies the query
-3. Include synonyms and related terms that might be in stored memories
-4. Keep the rephrased query focused and concise (1-2 sentences max)
-5. If the query is already clear and specific, return it unchanged
-6. Focus on the semantic meaning and intent, not just keywords
+CRITICAL CONSTRAINTS:
+- Target length: 15-40 tokens (60-160 characters)
+- Maximum acceptable: 50 tokens (200 characters)
+- Focus on KEY CONCEPTS and SEMANTIC MEANING
+- Remove filler words, keep only meaningful terms
+- Make implicit concepts explicit
+- Use synonyms that might appear in stored memories
 
-Examples:
-- "How do I post more?" → "How to increase posting frequency and maintain consistency on social media platforms"
-- "That didn't work" → "Content strategy or posting approach that was unsuccessful or didn't generate expected results"
-- "What about Instagram?" → "Instagram-specific content strategies, posting tips, and platform best practices"
+OPTIMIZATION TECHNIQUES:
+1. Extract core intent and key concepts
+2. Add relevant context terms that improve semantic matching
+3. Use natural language (not just keywords)
+4. Keep it concise but semantically rich
 
-Return ONLY the rephrased query text, nothing else.`,
+EXAMPLES (showing optimal length):
+Input: "How do I post more frequently on my Instagram without burning out?"
+Output: "increase Instagram posting frequency avoid burnout sustainable content strategy"
+
+Input: "That carousel format you suggested didn't get good engagement"
+Output: "carousel format low engagement unsuccessful content strategy"
+
+Input: "What are some ideas for fitness content?"
+Output: "fitness content ideas workout posts health wellness topics"
+
+Input: "Tell me about my audience demographics"
+Output: "audience demographics target audience characteristics"
+
+Return ONLY the optimized query (60-160 chars), nothing else.`,
         },
         {
           role: "user",
@@ -81,17 +167,29 @@ Rephrase this query for better memory search:`,
     const rephrasedQuery =
       response.choices[0]?.message?.content?.trim() || userMessage;
     console.log(
-      `🔄 [AI_SERVICE] Query rephrasing completed: ${Date.now() - startTime}ms`,
+      `🤖 [AI_SERVICE] AI query rephrasing completed: ${Date.now() - internalStartTime}ms`
     );
     return rephrasedQuery;
   } catch (error) {
     console.error(
-      `❌ [AI_SERVICE] Query rephrasing error after ${Date.now() - startTime}ms:`,
-      error,
+      `❌ [AI_SERVICE] AI query rephrasing error after ${Date.now() - internalStartTime}ms:`,
+      error
     );
     // Fallback to original query on error
     return userMessage;
   }
+}
+
+/**
+ * Legacy function for backward compatibility - now uses buildMemorySearchQuery
+ * @deprecated Use buildMemorySearchQuery instead
+ */
+export async function rephraseQueryForEmbedding(
+  userMessage: string,
+  conversationHistory: Array<{ role: string; content: string }>,
+  user?: any,
+): Promise<string> {
+  return buildMemorySearchQuery(userMessage, conversationHistory, user);
 }
 
 export async function extractMemoriesFromConversation(
@@ -100,8 +198,9 @@ export async function extractMemoriesFromConversation(
   existingMemories?: Array<{ content: string; similarity?: number }>,
 ): Promise<string[]> {
   try {
-    const response = await geminiClient.chat.completions.create({
-      model: "gemini-2.5-flash-lite",
+    // Use GPT-4o-mini for more precise instruction following
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -131,6 +230,8 @@ DO NOT EXTRACT FROM ASSISTANT RESPONSES:
 - Assistant's strategic suggestions that user hasn't agreed to
 - Questions the assistant asks to the user (e.g., "User is asked about...")
 - Assistant prompts or queries for more information
+- Any statement phrased as advice ("You should...", "You could...", "Try...")
+- Content ideas that haven't been explicitly accepted by user
 
 GOOD EXTRACTIONS:
 - "User wants to create relationship-focused content for Instagram"
@@ -138,22 +239,24 @@ GOOD EXTRACTIONS:
 - "User is interested in growing awareness through Instagram content"
 - "Current Instagram engagement rate is 1.66% with 885 followers"
 
+BAD EXTRACTIONS (DO NOT EXTRACT):
+- "Might explore fashion-wellness combination"
+- "Could try community challenges"
+- "You could consider posting daily"
+- "Here are some content ideas"
+- "Assistant suggests content that highlights local community"
+- "Assistant recommends trying carousel format"
+- "User is asked about preferred content formats"
+- "Assistant asks about business type"
+- "User is prompted to share more details"
+
 ${existingMemories && existingMemories.length > 0 ? 
 `EXISTING MEMORIES TO AVOID DUPLICATING:
 ${existingMemories.slice(0, 3).map(m => `- ${m.content}`).join('\n')}` : ''}
 
 Each memory: complete sentence, 20-150 chars, specific and actionable.
 
-Return JSON array or [] if no confirmed user insights found.
-
-GOOD EXAMPLES FROM USER:
-["Confirmed: wants to combine fashion and wellness content", "Agreed to try carousel format for better engagement"]
-
-GOOD EXAMPLES FROM AI DISCOVERIES:
-["The startup offers financial consulting, tax planning, and wealth management services", "Business focuses on small to medium enterprises, risk assessment and strategic planning"]
-
-BAD EXAMPLES (DO NOT EXTRACT):
-["Might explore fashion-wellness combination", "Could try community challenges", "You could consider posting daily", "Here are some content ideas", "Assistant suggests content that highlights local community", "Assistant recommends trying carousel format", "User is asked about preferred content formats", "Assistant asks about business type", "User is prompted to share more details"]`,
+Return JSON array or [] if no confirmed user insights found.`,
         },
         {
           role: "user",
@@ -161,7 +264,7 @@ BAD EXAMPLES (DO NOT EXTRACT):
         },
       ],
       max_tokens: 250,
-      temperature: 0.1,
+      temperature: 0.05, // Very low temperature for consistent, precise extraction
     });
 
     const result = response.choices[0]?.message?.content?.trim();
@@ -213,21 +316,57 @@ BAD EXAMPLES (DO NOT EXTRACT):
         });
 
       const memories = JSON.parse(cleanResult);
-      return Array.isArray(memories)
+      
+      // Post-processing filter to catch problematic extractions
+      const filteredMemories = Array.isArray(memories)
         ? memories.filter((m) => {
             if (typeof m !== "string") return false;
             const trimmed = m.trim();
 
-            // Basic sanity checks - trust the AI for quality
+            // Basic sanity checks
             if (trimmed.length < 10 || trimmed.length > 500) return false;
             
             // Filter out obviously broken content (too much punctuation/symbols)
             const meaningfulChars = trimmed.replace(/[\s\p{P}\p{S}]/gu, '');
             if (meaningfulChars.length < trimmed.length * 0.4) return false;
 
+            // POST-PROCESSING FILTER: Remove common problematic patterns
+            const lowerMemory = trimmed.toLowerCase();
+            
+            // Filter out AI suggestions/recommendations
+            const suggestionPatterns = [
+              'could try', 'might', 'consider', 'recommend', 'suggest',
+              'you should', 'you could', 'try to', 'it would be',
+              'assistant suggests', 'assistant recommends', 'assistant asks',
+              'user is asked', 'user is prompted', 'how about', 'what about'
+            ];
+            if (suggestionPatterns.some(pattern => lowerMemory.includes(pattern))) {
+              console.log(`🧠 [MEMORY_FILTER] Filtered suggestion/question: "${trimmed}"`);
+              return false;
+            }
+
+            // Filter out content that's phrased as questions
+            if (trimmed.match(/\?$/) || lowerMemory.startsWith('what ') || lowerMemory.startsWith('how ')) {
+              console.log(`🧠 [MEMORY_FILTER] Filtered question: "${trimmed}"`);
+              return false;
+            }
+
+            // Filter out generic/vague statements
+            const vaguePatterns = [
+              'content ideas', 'some ideas', 'various options', 'several ways',
+              'different approaches', 'here are', 'these are'
+            ];
+            if (vaguePatterns.some(pattern => lowerMemory.includes(pattern))) {
+              console.log(`🧠 [MEMORY_FILTER] Filtered vague statement: "${trimmed}"`);
+              return false;
+            }
+
             return true;
           })
         : [];
+      
+      console.log(`🧠 [AI_SERVICE] Extracted ${filteredMemories.length} memories after post-processing filter`);
+      return filteredMemories;
     } catch (parseError) {
       console.log("Memory extraction JSON parse error:", parseError);
       console.log("Raw result:", result);

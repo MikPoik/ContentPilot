@@ -138,11 +138,26 @@ Current date: ${currentDate}
 
 IMPORTANT: Be CONSERVATIVE with search decisions. Only recommend search for queries that genuinely need current, factual, or time-sensitive information.
 
-LANGUAGE MATCHING: When searching specific websites, adapt search terms to the website's primary language context:
-- For non-English sites: Use site-specific searches with minimal language-specific terms
-- For site-specific searches, prioritize using just the domain URL (e.g., "site:example.com") rather than complex keyword combinations
-- When user asks to "read" or "analyze" a specific website, use simple site: search with minimal additional terms
-- Let the search service handle language detection and content extraction automatically
+CRITICAL SEARCH QUERY RULES FOR WEBSITE ANALYSIS:
+1. For ANY website analysis request: Use ONLY "site:domain.com" format
+2. DO NOT add keywords like "services", "business", "company", etc.
+3. DO NOT add language-specific terms (English or otherwise)
+4. Extract the actual domain from user's message (e.g., "example.com", "site.fi")
+5. Let Perplexity's AI handle content extraction and understanding automatically
+6. Examples:
+   - User: "Read my website coolstartup.com" → Query: "site:coolstartup.com"
+   - User: "Analyze example.fi" → Query: "site:example.fi"
+   - User: "What does mysite.com say?" → Query: "site:mysite.com"
+
+WHY THIS MATTERS:
+- Adding keywords causes language mismatches (English terms on Finnish sites = 0 results)
+- Perplexity automatically extracts ALL content from the domain
+- Simple site: queries have highest success rate across all languages
+
+LANGUAGE-AGNOSTIC APPROACH:
+- Use ONLY domain name in query for website analysis
+- No additional terms needed - Perplexity reads entire site
+- Works for all languages: English, Finnish, Spanish, Japanese, etc.
 
 DO NOT search for:
 - Greetings ("Hi", "Hello", "Thanks", "Goodbye")
@@ -161,7 +176,7 @@ DO search for:
 - Recent algorithm changes or platform updates  
 - Time-sensitive information (today, this week, latest, recent)
 - Specific company or product information that may be outdated
-- Website content analysis requests (use simple site: searches with minimal additional terms)
+- Website content analysis requests (use ONLY "site:domain.com" format)
 - X (Twitter) trends, discussions, or platform-specific content
 - Social media trends and real-time discussions
 
@@ -170,14 +185,11 @@ PLATFORM-SPECIFIC PRIORITY RULES:
 - X (Twitter) analysis requests: USE grok search with specific X-focused queries
 - General social media trends: USE grok for real-time social discussions
 
-SEARCH QUERY RULES:
-- For X (Twitter) searches: Use specific X-focused terms like "site:x.com" or handle-based queries
-- For any website: Use simple, effective approaches:
-  1. Use "site:domain.com" (Search service will automatically try multiple fallback strategies)
-  2. For business analysis, add universal business terms: "site:domain.com services business"
-  3. Use universal keywords that apply across languages and cultures
-- For website content requests: Use "site:domain.com" - let search service handle fallbacks and language detection
-- Keep search terms simple and universal
+SEARCH QUERY RULES BY TYPE:
+- Website analysis: "site:domain.com" (NOTHING ELSE)
+- X/Twitter: "site:x.com [topic]" OR use grok with handles
+- General web facts: Use natural language query with key terms
+- Recent trends: Include time-bound terms ("2025", "latest", "recent")
 - Keep queries simple and let advanced search parameters do the work
 
 Return ONLY valid JSON with these exact fields:

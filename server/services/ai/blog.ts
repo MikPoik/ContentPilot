@@ -2,6 +2,7 @@ import { type User } from "@shared/schema";
 import { perplexityService } from "../perplexity.js";
 import { storage } from "../../storage.js";
 import { openai, generateEmbedding } from "../openai.js";
+import { analyzeUserWritingStyle } from "./workflow.js";
 import {
   BlogProfile,
   BlogAnalysisResult,
@@ -19,7 +20,9 @@ export async function performBlogAnalysis(
   try {
     console.log(`📝 [BLOG_AI] Performing blog analysis for ${urls.length} URLs...`);
 
-    // Check if blog was analyzed recently (within 24 hours)
+    // Check if blog was analyzed recently (within 7 days / 168 hours)
+    // Extended from 24h to reduce API calls - blog content is relatively stable
+    const CACHE_TTL_HOURS = 168; // 7 days
     const user = await storage.getUser(userId);
     const existingData = user?.profileData as any;
 
@@ -31,13 +34,15 @@ export async function performBlogAnalysis(
       const existingUrls = existingData.blogProfile.analyzedUrls || [];
       const urlOverlap = urls.filter(url => existingUrls.includes(url));
       
-      if (hoursSinceCache < 24 && urlOverlap.length > 0) {
-        console.log(`📝 [BLOG_AI] Using cached blog analysis (${hoursSinceCache.toFixed(1)}h old)`);
+      if (hoursSinceCache < CACHE_TTL_HOURS && urlOverlap.length > 0) {
+        console.log(`📝 [BLOG_AI] Using cached blog analysis (${hoursSinceCache.toFixed(1)}h old, cache valid for ${CACHE_TTL_HOURS}h)`);
         return { 
           success: true,
           analysis: existingData.blogProfile,
           cached: true
         };
+      } else if (hoursSinceCache >= CACHE_TTL_HOURS) {
+        console.log(`📝 [BLOG_AI] Cache expired (${hoursSinceCache.toFixed(1)}h > ${CACHE_TTL_HOURS}h), fetching fresh data...`);
       }
     }
 
@@ -146,10 +151,60 @@ Be thorough and specific in your analysis.`
       cached_at: new Date().toISOString()
     };
 
-    // Store the blog profile data
+    // Perform detailed writing style analysis (language-agnostic)
+    console.log(`📝 [BLOG_AI] Analyzing writing style patterns from blog content...`);
+    const styleAnalysis = await analyzeUserWritingStyle(blogContents);
+    
+    // Merge style analysis into existing user profile data (if exists)
+    let mergedStyleData = styleAnalysis;
+    if (existingData?.styleAnalysis) {
+      console.log(`📝 [BLOG_AI] Merging blog style analysis with existing Instagram style data`);
+      const existing = existingData.styleAnalysis;
+      
+      // Intelligently merge style data from both sources
+      mergedStyleData = {
+        toneKeywords: Array.from(new Set([
+          ...(existing.toneKeywords || []),
+          ...(styleAnalysis?.toneKeywords || [])
+        ])).slice(0, 12), // Keep top 12 combined
+        
+        avgSentenceLength: styleAnalysis?.avgSentenceLength 
+          ? Math.round((existing.avgSentenceLength + styleAnalysis.avgSentenceLength) / 2)
+          : existing.avgSentenceLength,
+        
+        commonPhrases: Array.from(new Set([
+          ...(existing.commonPhrases || []),
+          ...(styleAnalysis?.commonPhrases || [])
+        ])).slice(0, 7), // Keep top 7 combined
+        
+        punctuationStyle: styleAnalysis?.punctuationStyle || existing.punctuationStyle,
+        
+        contentThemes: Array.from(new Set([
+          ...(existing.contentThemes || []),
+          ...(styleAnalysis?.contentThemes || [])
+        ])).slice(0, 8), // Keep top 8 combined
+        
+        voiceCharacteristics: styleAnalysis?.voiceCharacteristics || existing.voiceCharacteristics,
+        
+        // Track data sources
+        sources: Array.from(new Set([
+          ...(existing.sources || []),
+          'blog'
+        ]))
+      };
+    } else if (styleAnalysis) {
+      // First time analyzing, add source tracking
+      mergedStyleData = {
+        ...styleAnalysis,
+        sources: ['blog']
+      };
+    }
+
+    // Store the blog profile data with merged style analysis
     const updatedProfileData = {
       ...existingData,
-      blogProfile
+      blogProfile,
+      ...(mergedStyleData && { styleAnalysis: mergedStyleData })
     };
 
     await storage.updateUserProfile(userId, {

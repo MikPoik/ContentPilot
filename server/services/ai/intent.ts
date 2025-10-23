@@ -31,6 +31,7 @@ export interface InstagramAnalysisDecision {
   username?: string;
   confidence: number;
   reason: string;
+  isOwnProfile?: boolean; // true = user's profile, false = competitor, undefined = fallback logic
 }
 
 export interface InstagramHashtagDecision {
@@ -80,6 +81,7 @@ export interface UserStyleAnalysis {
   punctuationStyle: string;
   contentThemes: string[];
   voiceCharacteristics: string;
+  sources?: string[]; // Track where style data came from: 'instagram', 'blog', etc.
 }
 
 export interface BlogProfile {
@@ -256,6 +258,10 @@ Use GROK for X/Twitter content, PERPLEXITY for general web
 2. INSTAGRAM ANALYSIS - Profile examination:
 • "Analyze @username" or competitor research  
 • Content/engagement pattern requests
+• DISTINGUISH: Own profile vs competitor
+  - Own: "my Instagram", "my profile", "@my_username", matches existing ownInstagramUsername
+  - Competitor: "competitor", "check @brand", "analyze @other"
+  - Default: competitor if unclear (safer)
 
 3. INSTAGRAM HASHTAG SEARCH - Ideas and content inspiration:
 • Requests for hashtag content ideas (like "show me #fitness posts", "get ideas from #marketing", "hashtag inspiration")
@@ -268,24 +274,40 @@ Use GROK for X/Twitter content, PERPLEXITY for general web
 • For general website reading requests, use web search instead
 • Only trigger for URLs that are clearly blog posts or when user explicitly asks for blog content analysis
 
-5. WORKFLOW PHASE - User journey stage:
-• Discovery & Personalization: Getting to know user (name, niche, platform)
-• Brand Voice & Positioning: Understanding brand identity and voice
-• Collaborative Idea Generation: Content concepts and themes
-• Developing Chosen Ideas: Specific content development
-• Content Drafting & Iterative Review: Creating actual content
-• Finalization & Scheduling: Final touches and publishing
+5. WORKFLOW PHASE - User journey stage with explicit requirements:
 
-WORKFLOW PROGRESSION RULES:
-- Discovery complete when: name + contentNiche + primaryPlatform exist (minimum ~30% completeness)
-- Can advance to positioning when: discovery complete + some additional context (~40-50% completeness)
-- CRITICAL: Content generation phases REQUIRE profile score >= 60%
-- If profile score < 60%, MUST block content generation regardless of user requests
-- ALWAYS check both the PROFILE COMPLETENESS SCORE and individual field status
+PHASE 1: Discovery & Personalization (0-35% profile completeness)
+• Required fields to EXIT: firstName + contentNiche (at least 1 item) + (primaryPlatform OR primaryPlatforms)
+• Missing ANY of these = STAY in Discovery
+• Block content generation: YES
+
+PHASE 2: Brand Voice & Positioning (35-55% profile completeness)
+• Required to ENTER: Discovery fields complete
+• Required to EXIT: Discovery fields + 2 of [targetAudience, brandVoice, businessType, contentGoals]
+• Focus: Understanding brand identity, voice, target audience
+• Block content generation: YES
+
+PHASE 3: Collaborative Idea Generation (55-65% profile completeness)
+• Required to ENTER: Positioning fields complete + profile score >= 55%
+• Can generate: Content themes and high-level ideas (not full content yet)
+• Block full content drafts: YES (only allow idea generation)
+
+PHASE 4+: Content Creation Phases (65%+ profile completeness)
+• Required to ENTER: Profile score >= 65% AND has [firstName, contentNiche, primaryPlatform, targetAudience, brandVoice or businessType]
+• Can generate: Full content drafts, captions, scripts
+• Block content generation: NO
+
+CRITICAL PHASE RULES:
+- Check BOTH profile completeness percentage AND individual required fields
+- If required fields missing OR score below threshold, CANNOT advance
+- Phase determination is STRICT - missing ANY required field blocks advancement
+- Content generation blocking:
+  * Phase 1-2: Block ALL content generation
+  * Phase 3: Allow content IDEAS only, block full drafts
+  * Phase 4+: Allow full content creation
 - Missing fields should only include fields that are truly empty/null/undefined
-- Do NOT suggest prompts asking for information that already exists (marked with ✅)
+- Do NOT suggest prompts for information that already exists (marked with ✅)
 - Only suggest prompts for fields marked with ❌ Missing
-- If profile score >= 60% and key fields exist, allow content-related prompts and generation
 
 STRICT VALIDATION RULES:
 - Extract usernames without @ symbol ONLY if explicitly mentioned
@@ -297,28 +319,29 @@ STRICT VALIDATION RULES:
 - Use semantic patterns, not keywords, but don't invent data
 
 LANGUAGE MATCHING AND SEARCH OPTIMIZATION:
-- For website analysis requests: Use ONLY "site:domain.com" without additional keywords to avoid language mismatches
-- The search service will automatically extract all relevant content from the domain
-- Adding keywords like "services business" can fail if they don't match the website's language
-- Let Perplexity's natural language processing handle content extraction and understanding
-- For Finnish sites (.fi domains): Use just "site:domain.fi" 
-- For any non-English domain: Use minimal search terms to avoid language conflicts
+CRITICAL FOR WEBSITE ANALYSIS:
+- For ANY website analysis request: Use ONLY "site:domain.com" format
+- DO NOT add any keywords (services, business, company, etc.)
+- DO NOT add language-specific terms
+- Extract actual domain from user message
+- Let Perplexity handle content extraction automatically
+- Examples:
+  * "Read mysite.com" → "site:mysite.com"
+  * "Analyze company.fi" → "site:company.fi"
+  * "What's on example.co.uk" → "site:example.co.uk"
 
-SEARCH QUERY RULES:
-- For X (Twitter) searches: Use specific X-focused terms like "site:x.com" or handle-based queries
-- For website analysis requests: Use ONLY "site:domain.com" without additional keywords
-  - DO NOT add terms like "services business" which may not match the site's language
-  - Let Perplexity extract and understand all content from the domain automatically
-  - This prevents language mismatches that cause zero results
-- For website content requests: Use simple "site:domain.com" format
-- CRITICAL: Extract actual domain names from user messages, don't use generic keywords like "yritykseni sivut"
-- Avoid adding English keywords to non-English websites - this causes search failures
-- Keep queries minimal and let search service handle content extraction
+WHY: Adding keywords causes language mismatches and zero results
+
+SEARCH QUERY RULES BY REQUEST TYPE:
+- Website analysis: "site:domain.com" (ONLY - nothing else)
+- X/Twitter content: "site:x.com [topic]" OR use grok with handles
+- General facts: Natural language with key terms
+- Trends: Include time indicators ("latest", "2025", "recent")
 
 Return JSON (only include fields when true/relevant):
 {
 "webSearch": {"refinedQuery": "string", "searchService": "perplexity|grok", "recency": "day", "confidence": 0.9} (only if shouldSearch=true),
-"instagramAnalysis": {"username": "string", "confidence": 0.9} (only if shouldAnalyze=true),
+"instagramAnalysis": {"username": "string", "isOwnProfile": true|false, "confidence": 0.9} (only if shouldAnalyze=true),
 "instagramHashtagSearch": {"hashtag": "hashtag_without_#", "confidence": 0.9} (only if shouldSearch=true), 
 "blogAnalysis": {"urls": ["url1"], "confidence": 0.9} (only if shouldAnalyze=true),
 "workflowPhase": {"currentPhase": "phase", "missingFields": ["field1"], "suggestedPrompts": ["prompt1"], "shouldBlockContentGeneration": true, "confidence": 0.9},
@@ -348,14 +371,26 @@ EXAMPLES:
       CRITICAL VALIDATION RULES:
       - For blog analysis: ONLY trigger if you see actual URLs (http/https) or explicit requests like "analyze my blog"
       - For Instagram analysis: ONLY trigger if you see @username mentions or explicit requests like "check my Instagram"
-      - For profile update: Trigger if user explicitly requests profile updates (like "update my profile") OR mentions business information that fills missing ❌ fields or after successful blog/Instagram analysis
-      - ALSO trigger for explicit profile modification requests regardless of current completeness
-      - DO NOT trigger profile update for casual conversation that doesn't involve profile changes
-      - Profile update should include both explicit update requests and discovery of missing fields
+      - For profile update: BE VERY CONSERVATIVE
+        * ONLY trigger for explicit profile update requests ("update my profile", "change my business type")
+        * OR when user shares significant NEW business information that fills ❌ missing fields
+        * DO NOT trigger for:
+          - Casual conversation about their business (just chatting)
+          - Generic questions or acknowledgments
+          - Discussions about content ideas (not profile data)
+          - Vague statements without concrete new information
+        * Examples of when TO extract:
+          - "I'm a fitness coach" (when businessType is missing)
+          - "My target audience is young professionals" (when targetAudience is missing)
+          - "I want to focus on mental health content" (when contentNiche needs update)
+        * Examples of when NOT to extract:
+          - "Week has been good" (casual chat)
+          - "That sounds great" (acknowledgment)
+          - "I like that content idea" (discussing content, not profile)
+          - "How should I post?" (question, no new data)
       - DO NOT use information from previous conversations or stored memories to infer analysis requests
       - DO NOT trigger analysis based on general conversation topics
-      - When in doubt about profile updates specifically requested by user, favor extraction
-      - If the user is just chatting (like "week has gone well"), DO NOT trigger any analysis or profile updates`,
+      - When in doubt about profile updates, DO NOT extract (be conservative)`,
         },
       ],
       max_tokens: 500, // Reduced for performance
@@ -381,6 +416,47 @@ EXAMPLES:
     );
 
     const decision = normalizeCondensedResponse(condensedResponse);
+
+    // POST-PROCESSING VALIDATION: Filter missing fields to ensure they're actually missing
+    if (decision.workflowPhase.missingFields.length > 0 && user) {
+      const actuallyMissingFields = decision.workflowPhase.missingFields.filter(field => {
+        // Map friendly field names to actual user object properties
+        switch (field.toLowerCase()) {
+          case 'name':
+          case 'firstname':
+            return !user.firstName;
+          case 'lastname':
+            return !user.lastName;
+          case 'niche':
+          case 'contentniche':
+            return !user.contentNiche || user.contentNiche.length === 0;
+          case 'platform':
+          case 'primaryplatform':
+            return !user.primaryPlatform && (!(user as any).primaryPlatforms || (user as any).primaryPlatforms.length === 0);
+          case 'primaryplatforms':
+            return !(user as any).primaryPlatforms || (user as any).primaryPlatforms.length === 0;
+          case 'targetaudience':
+            return !(user.profileData as any)?.targetAudience;
+          case 'brandvoice':
+            return !(user.profileData as any)?.brandVoice;
+          case 'businesstype':
+            return !(user.profileData as any)?.businessType;
+          case 'contentgoals':
+            return !(user.profileData as any)?.contentGoals || (user.profileData as any).contentGoals.length === 0;
+          case 'businesslocation':
+            return !(user.profileData as any)?.businessLocation;
+          default:
+            // Unknown field - keep it to be safe
+            return true;
+        }
+      });
+
+      if (actuallyMissingFields.length !== decision.workflowPhase.missingFields.length) {
+        console.log(`🔍 [VALIDATION] Filtered missing fields from ${decision.workflowPhase.missingFields.length} to ${actuallyMissingFields.length}`);
+        console.log(`🔍 [VALIDATION] Removed fields that actually have values: ${decision.workflowPhase.missingFields.filter(f => !actuallyMissingFields.includes(f)).join(', ')}`);
+        decision.workflowPhase.missingFields = actuallyMissingFields;
+      }
+    }
 
     console.log(
       `🧠 [UNIFIED_INTENT] Analysis complete: ${Date.now() - startTime}ms - webSearch: ${decision.webSearch.shouldSearch}, instagram: ${decision.instagramAnalysis.shouldAnalyze}, blog: ${decision.blogAnalysis.shouldAnalyze}, phase: ${decision.workflowPhase.currentPhase}`,

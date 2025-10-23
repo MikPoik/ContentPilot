@@ -2,6 +2,58 @@ import { type Conversation, type InsertConversation, type Message, type InsertMe
 import { db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
 
+// Helper function to calculate profile completeness
+function calculateProfileCompleteness(user: User, updates: Partial<UpdateUserProfile>): string {
+  // Create a merged profile to calculate completeness
+  const mergedProfile = {
+    firstName: updates.firstName || user.firstName,
+    lastName: updates.lastName || user.lastName,
+    contentNiche: updates.contentNiche || user.contentNiche || [],
+    primaryPlatform: updates.primaryPlatform || user.primaryPlatform,
+    primaryPlatforms: (updates as any).primaryPlatforms || (user as any).primaryPlatforms || [],
+    profileData: {
+      ...(user.profileData as Record<string, any> || {}),
+      ...(updates.profileData as Record<string, any> || {})
+    }
+  };
+
+  let completedFields = 0;
+  const totalFields = 10; // Total profile fields we track
+
+  // Basic info (2 fields) - Weight: 20%
+  if (mergedProfile.firstName) completedFields++;
+  if (mergedProfile.lastName) completedFields++;
+
+  // Content niche (1 field) - Weight: 10%
+  if (mergedProfile.contentNiche && mergedProfile.contentNiche.length > 0) completedFields++;
+
+  // Primary platform(s) (1 field) - Weight: 10%
+  if (mergedProfile.primaryPlatform || (mergedProfile as any).primaryPlatforms?.length > 0) completedFields++;
+
+  // Core profile data (3 fields) - Weight: 30%
+  if (mergedProfile.profileData?.targetAudience) completedFields++;
+  if (mergedProfile.profileData?.brandVoice) completedFields++;
+  if (mergedProfile.profileData?.businessType) completedFields++;
+
+  // Enhanced profile data (3 fields) - Weight: 30%
+  if (mergedProfile.profileData?.contentGoals?.length > 0) completedFields++;
+  if (mergedProfile.profileData?.businessLocation) completedFields++;
+  
+  // Rich analysis data - if either Instagram or blog analysis exists, count as complete
+  const hasInstagramAnalysis = !!(mergedProfile.profileData?.instagramProfile?.username);
+  const hasBlogAnalysis = !!(mergedProfile.profileData?.blogProfile?.writingStyle);
+  const hasCompetitorAnalysis = !!(mergedProfile.profileData?.competitorAnalyses && 
+    Object.keys(mergedProfile.profileData.competitorAnalyses).length > 0);
+  
+  if (hasInstagramAnalysis || hasBlogAnalysis || hasCompetitorAnalysis) {
+    completedFields++;
+  }
+
+  const percentage = Math.round((completedFields / totalFields) * 100);
+  return percentage.toString();
+}
+
+
 export interface IStorage {
   // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
@@ -216,6 +268,11 @@ export class DatabaseStorage implements IStorage {
       mergedProfileData.profileData = mergedNestedProfileData;
     }
 
+    // Calculate and cache profile completeness
+    const completenessPercentage = calculateProfileCompleteness(currentUser, profileData);
+    mergedProfileData.profileCompleteness = completenessPercentage;
+    console.log(`📊 [STORAGE] Calculated profile completeness: ${completenessPercentage}%`);
+
     const [user] = await db
       .update(users)
       .set({ ...mergedProfileData, updatedAt: new Date() })
@@ -246,8 +303,10 @@ export class DatabaseStorage implements IStorage {
     return memory;
   }
 
-  async upsertMemory(insertMemory: InsertMemory, similarityThreshold: number = 0.9): Promise<Memory> {
+  async upsertMemory(insertMemory: InsertMemory, similarityThreshold: number = 0.93): Promise<Memory> {
     // First, search for very similar existing memories
+    // Default threshold of 0.93 ensures only near-duplicates are replaced
+    // Lower values (0.85-0.90) were too permissive and replaced semantically distinct memories
     if (!insertMemory.embedding) {
       throw new Error('Embedding is required for upsert operation');
     }

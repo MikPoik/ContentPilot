@@ -200,11 +200,11 @@ export default function MemoryTester() {
                       Created: {new Date(memory.createdAt).toLocaleString()}
                     </div>
                     <div>{memory.content}</div>
-                    {memory.metadata && (
+                    {memory.metadata ? (
                       <div className="text-xs text-gray-500 mt-1">
                         Metadata: {JSON.stringify(memory.metadata as object)}
                       </div>
-                    )}
+                    ) : null}
                   </div>
                   <Button
                     variant="destructive"

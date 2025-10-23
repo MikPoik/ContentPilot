@@ -18,19 +18,20 @@ export default function BlogAnalysisCard({ blogProfile }: BlogAnalysisCardProps)
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="text-center p-2 bg-white rounded-lg border">
             <Badge variant="secondary" className="text-xs">Writing Style</Badge>
-            <div className="text-base font-normal text-blue-600">{blogProfile.writingStyle || 'N/A'}</div>
+            <div className="text-xs font-normal text-blue-600">{blogProfile.writingStyle || 'N/A'}</div>
           </div>
           <div className="text-center p-2 bg-white rounded-lg border">
             <Badge variant="secondary" className="text-xs">Avg Post Length</Badge>
-            <div className="text-base font-normal text-blue-600">{blogProfile.averagePostLength || 'N/A'}</div>
-          </div>
-          <div className="text-center p-2 bg-white rounded-lg border">
+            <div className="text-xs font-normal text-blue-600">{blogProfile.averagePostLength || 'N/A'}</div>
+            <br/>
             <Badge variant="secondary" className="text-xs">Analyzed Posts</Badge>
-            <div className="text-base font-normal text-blue-600">{blogProfile.analyzedUrls?.length || 0}</div>
+
+            <div className="text-xs font-normal text-blue-600">{blogProfile.analyzedUrls?.length || 0}</div>
           </div>
+
         </div>
         
         {blogProfile.brandVoice && (
