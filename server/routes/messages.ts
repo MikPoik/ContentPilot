@@ -39,13 +39,30 @@ export function registerMessageRoutes(app: Express) {
 
     try {
       const { content } = req.body;
+      
+      // Enhanced input validation
       if (!content || typeof content !== 'string') {
+        console.log(`❌ [CHAT_FLOW] Invalid input: content missing or not a string`);
         return res.status(400).json({ message: "Message content is required" });
+      }
+      
+      // Validate content is not empty/whitespace only
+      const trimmedContent = content.trim();
+      if (trimmedContent.length === 0) {
+        console.log(`❌ [CHAT_FLOW] Invalid input: empty or whitespace-only message`);
+        return res.status(400).json({ message: "Message cannot be empty" });
+      }
+      
+      // Check message length limits (prevent abuse)
+      if (trimmedContent.length > 10000) {
+        console.log(`❌ [CHAT_FLOW] Invalid input: message too long (${trimmedContent.length} chars)`);
+        return res.status(400).json({ message: "Message is too long (max 10,000 characters)" });
       }
 
       const conversationId = req.params.id;
       const userId = req.user.claims.sub;
       console.log(`📝 [CHAT_FLOW] Processing message for user: ${userId}, conversation: ${conversationId}`);
+      console.log(`📏 [CHAT_FLOW] Message length: ${trimmedContent.length} characters`);
 
       // Check message usage limits
       const currentUser = await storage.getUser(userId);
