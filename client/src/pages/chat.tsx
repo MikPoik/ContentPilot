@@ -179,15 +179,17 @@ export default function Chat() {
                 console.log('🔍 [CLIENT] Received search metadata:', searchMeta);
                 setStreamingResponse(searchMeta);
                 const sq = (searchMeta.searchQuery && searchMeta.searchQuery.trim()) ? searchMeta.searchQuery : undefined;
+                const searchPerformed = searchMeta.searchPerformed || false;
                 setIsSearching(!!sq);
                 setSearchQuery(sq);
                 setSearchCitations(searchMeta.citations || []);
-                // Update the optimistic assistant message metadata
-                setMessages(current => current.map(m => m.id === streamingId ? {
+                // Update the optimistic assistant message metadata using clientKey
+                setMessages(current => current.map(m => (m.metadata as any)?.clientKey === streamingId ? {
                   ...m,
                   metadata: {
                     ...(m.metadata || {}),
                     searchQuery: sq,
+                    searchPerformed: searchPerformed,
                     citations: searchMeta.citations || [],
                     aiActivity: sq ? 'searching' : (m.metadata?.aiActivity || null),
                   }
@@ -211,7 +213,7 @@ export default function Chat() {
                 const activityData = JSON.parse(activityContent[1]);
                 setAiActivity(activityData.type);
                 setAiActivityMessage(activityData.message || '');
-                setMessages(current => current.map(m => m.id === streamingId ? {
+                setMessages(current => current.map(m => (m.metadata as any)?.clientKey === streamingId ? {
                   ...m,
                   metadata: { ...(m.metadata || {}), aiActivity: activityData.type, aiActivityMessage: activityData.message || '' }
                 } : m));
@@ -233,8 +235,8 @@ export default function Chat() {
               if (messageIdContent) {
                 const messageIdData = JSON.parse(messageIdContent[1]);
                 console.log(`🆔 [CLIENT] Message ID update: ${streamingId} -> ${messageIdData.messageId}`);
-                // Update the message with the real database ID
-                setMessages(current => current.map(m => m.id === streamingId ? {
+                // Update the message with the real database ID using clientKey
+                setMessages(current => current.map(m => (m.metadata as any)?.clientKey === streamingId ? {
                   ...m,
                   id: messageIdData.messageId,
                   metadata: {
@@ -261,7 +263,7 @@ export default function Chat() {
           actualContentStarted = true;
           setAiActivity('generating');
           setAiActivityMessage('');
-          setMessages(current => current.map(m => m.id === streamingId ? {
+          setMessages(current => current.map(m => (m.metadata as any)?.clientKey === streamingId ? {
             ...m,
             metadata: { ...(m.metadata || {}), aiActivity: 'generating', aiActivityMessage: '' }
           } : m));
@@ -272,10 +274,9 @@ export default function Chat() {
 
         // Update streaming message state for real-time display
         setStreamingMessage(accumulated);
-        // Update assistant message content in place - use the current streaming ID reference
-        const currentStreamingId = streamingMessageIdRef.current || streamingId;
+        // Update assistant message content using clientKey for consistency
         setMessages(current => current.map(m => 
-          (m.id === streamingId || m.id === currentStreamingId || (m.metadata as any)?.clientKey === streamingId) ? 
+          (m.metadata as any)?.clientKey === streamingId ? 
           { ...m, content: accumulated } : m
         ));
       }
@@ -292,10 +293,9 @@ export default function Chat() {
       setAiActivity(null);
       setAiActivityMessage('');
       setStreamingResponse(null);
-      // Mark the optimistic assistant message as finalized in-place
-      const currentStreamingId = streamingMessageIdRef.current || streamingId;
+      // Mark the optimistic assistant message as finalized using clientKey
       setMessages(current => current.map(m => 
-        (m.id === streamingId || m.id === currentStreamingId || (m.metadata as any)?.clientKey === streamingId) ? {
+        (m.metadata as any)?.clientKey === streamingId ? {
           ...m,
           metadata: { ...(m.metadata || {}), streaming: false, aiActivity: null, aiActivityMessage: '' }
         } : m

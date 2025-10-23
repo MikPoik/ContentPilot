@@ -426,6 +426,12 @@ export function registerMessageRoutes(app: Express) {
             
             console.log(`👤 [CHAT_FLOW] Running profile extraction - reason: ${extractionReason}`);
             
+            // Send profile extraction activity indicator
+            res.write(`[AI_ACTIVITY]{"type":"profile_extracting","message":"Updating your profile..."}[/AI_ACTIVITY]`);
+            if (typeof (res as any).flush === 'function') {
+              try { (res as any).flush(); } catch {}
+            }
+            
             // Pass analysis context flags to help AI be more conservative
             const extractedProfile = await extractProfileInfo(
               userMessage,
@@ -437,6 +443,13 @@ export function registerMessageRoutes(app: Express) {
               }
             );
             conversationProfileUpdates = extractedProfile;
+            
+            // Clear profile extraction indicator
+            res.write(`[AI_ACTIVITY]{"type":null,"message":""}[/AI_ACTIVITY]`);
+            if (typeof (res as any).flush === 'function') {
+              try { (res as any).flush(); } catch {}
+            }
+            
             console.log(`👤 [CHAT_FLOW] Profile extraction completed: ${Date.now() - profileExtractionStart}ms - extracted fields: ${Object.keys(extractedProfile || {}).join(', ') || 'none'}`);
           } else {
             console.log(`👤 [CHAT_FLOW] Skipping profile extraction - conditions not met (shouldExtract: ${profileUpdateDecision?.shouldExtract || false}, confidence: ${profileUpdateDecision?.confidence || 0}, hasAnalysis: ${hasSuccessfulAnalysis})`);
@@ -519,22 +532,55 @@ export function registerMessageRoutes(app: Express) {
             }
             console.log(`🧠 [CHAT_FLOW] Semantic deduplication check: ${Date.now() - deduplicationStart}ms (${memoriesToSave.filter(m => !m.isDuplicate).length}/${newMemories.length} unique)`);
 
-            // Save only non-duplicate memories
+            // Save only non-duplicate memories with importance scoring
             const saveStart = Date.now();
             const uniqueMemories = memoriesToSave.filter(m => !m.isDuplicate);
             
             if (uniqueMemories.length > 0) {
               await Promise.all(
-                uniqueMemories.map((memory) => 
-                  storage.createMemory({
+                uniqueMemories.map((memory) => {
+                  // Calculate importance score based on:
+                  // 1. Profile-related content (higher importance)
+                  // 2. Explicit user statements vs inferred facts
+                  // 3. Business-critical information
+                  const content = memory.content.toLowerCase();
+                  let importanceScore = 0.5; // Base score
+                  
+                  // Boost for profile-related content
+                  if (content.includes('my name') || content.includes('my business') || 
+                      content.includes('i am') || content.includes("i'm")) {
+                    importanceScore += 0.2;
+                  }
+                  
+                  // Boost for business information
+                  if (content.includes('target audience') || content.includes('brand voice') ||
+                      content.includes('content goal') || content.includes('niche')) {
+                    importanceScore += 0.15;
+                  }
+                  
+                  // Boost for analysis results
+                  if ((memory.content as any)?.metadata?.source === 'instagram_analysis' ||
+                      (memory.content as any)?.metadata?.source === 'blog_analysis') {
+                    importanceScore += 0.1;
+                  }
+                  
+                  // Cap at 1.0
+                  importanceScore = Math.min(1.0, importanceScore);
+                  
+                  return storage.createMemory({
                     userId,
                     content: memory.content,
                     embedding: memory.embedding,
-                    metadata: { source: 'conversation', conversationId }
-                  })
-                )
+                    metadata: { 
+                      source: 'conversation', 
+                      conversationId,
+                      importance: importanceScore,
+                      createdAt: new Date().toISOString()
+                    }
+                  });
+                })
               );
-              console.log(`🧠 [CHAT_FLOW] Saved ${uniqueMemories.length} unique memories: ${Date.now() - saveStart}ms`);
+              console.log(`🧠 [CHAT_FLOW] Saved ${uniqueMemories.length} unique memories with importance scoring: ${Date.now() - saveStart}ms`);
             } else {
               console.log(`🧠 [CHAT_FLOW] No new unique memories to save (all were duplicates)`);
             }
@@ -563,12 +609,44 @@ export function registerMessageRoutes(app: Express) {
         }
 
         const totalDuration = Date.now() - requestStartTime;
-        console.log(`🏁 [CHAT_FLOW] Total request processing: ${totalDuration}ms`);
+        
+        // Comprehensive performance summary
+        console.log(`\n📊 [PERFORMANCE] Request Summary:`);
+        console.log(`  Total Duration: ${totalDuration}ms`);
+        console.log(`  Breakdown:`);
+        console.log(`    • Verification & Setup: ${Date.now() - requestStartTime - totalDuration}ms`);
+        console.log(`    • Memory Search: ${memorySearchStart ? (Date.now() - memorySearchStart) : 0}ms`);
+        console.log(`    • Intent Analysis: ${unifiedIntentStart ? (Date.now() - unifiedIntentStart) : 0}ms`);
+        if (instagramAnalysisResult) {
+          console.log(`    • Instagram Analysis: included in intent time`);
+        }
+        if (blogAnalysisResult) {
+          console.log(`    • Blog Analysis: included in intent time`);
+        }
+        console.log(`    • AI Response Generation: ${aiResponseStart ? (Date.now() - aiResponseStart) : 0}ms`);
+        console.log(`    • Profile Update: ${profileUpdateStart ? (Date.now() - profileUpdateStart) : 0}ms`);
+        console.log(`  Response Size: ${fullResponse.length} chars`);
+        console.log(`  Memories Used: ${relevantMemories.length}`);
         console.log(`🏁 [CHAT_FLOW] Request completed at ${new Date().toISOString()}\n`);
 
         res.end();
       } catch (error) {
         console.error('❌ [CHAT_FLOW] Streaming error:', error);
+        
+        // Try to send error indicator to client if possible
+        if (!res.headersSent) {
+          res.status(500).json({ 
+            message: "An error occurred while generating the response. Please try again.",
+            error: error instanceof Error ? error.message : "Unknown error"
+          });
+        } else {
+          // If streaming was started, send error marker
+          try {
+            res.write(`\n\n⚠️ An error occurred while processing your request. Please try again.`);
+          } catch (writeError) {
+            console.error('❌ [CHAT_FLOW] Failed to write error message:', writeError);
+          }
+        }
         res.end();
       }
     } catch (error) {
@@ -576,9 +654,41 @@ export function registerMessageRoutes(app: Express) {
       console.error('❌ [CHAT_FLOW] Message error:', error);
       console.log(`🏁 [CHAT_FLOW] Request failed after: ${totalDuration}ms\n`);
 
+      // Provide user-friendly error messages based on error type
+      let errorMessage = "Failed to process message. Please try again.";
+      let statusCode = 500;
+      
+      if (error instanceof Error) {
+        // Network/timeout errors
+        if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
+          errorMessage = "Request timed out. Please try again or simplify your message.";
+          statusCode = 504;
+        }
+        // API rate limiting errors
+        else if (error.message.includes('rate limit') || error.message.includes('429')) {
+          errorMessage = "Service is currently busy. Please wait a moment and try again.";
+          statusCode = 429;
+        }
+        // Authentication errors
+        else if (error.message.includes('authentication') || error.message.includes('unauthorized')) {
+          errorMessage = "Authentication failed. Please refresh the page and try again.";
+          statusCode = 401;
+        }
+        // Database errors
+        else if (error.message.includes('database') || error.message.includes('connection')) {
+          errorMessage = "Database connection issue. Please try again in a moment.";
+          statusCode = 503;
+        }
+        
+        console.log(`🔍 [CHAT_FLOW] Error classification: ${statusCode} - ${errorMessage}`);
+      }
+
       // Only send error response if headers haven't been sent yet
       if (!res.headersSent) {
-        res.status(500).json({ message: "Failed to process message" });
+        res.status(statusCode).json({ 
+          message: errorMessage,
+          retryable: statusCode !== 401 // Don't retry auth errors
+        });
       } else {
         // If streaming was started, just end the response
         res.end();

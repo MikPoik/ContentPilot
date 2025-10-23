@@ -205,10 +205,11 @@ export default function MessageList({
             </div>
             
             {/* Show citations for assistant messages if available */}
-            {message.role === 'assistant' && message.metadata?.citations && (
+            {message.role === 'assistant' && (message.metadata?.citations || message.metadata?.searchPerformed) && (
               <SearchCitations 
                 citations={message.metadata.citations as string[]} 
                 searchQuery={message.metadata.searchQuery as string}
+                searchPerformed={message.metadata.searchPerformed as boolean}
               />
             )}
             

@@ -1,7 +1,7 @@
-import { Search, Globe, Brain, Eye, BarChart3, PenTool, Lightbulb, Instagram, Hash } from "lucide-react";
+import { Search, Globe, Brain, Eye, BarChart3, PenTool, Lightbulb, Instagram, Hash, User, FileText } from "lucide-react";
 
 interface AIActivityIndicatorProps {
-  activity: 'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | 'instagram_analyzing' | 'blog_analyzing' | 'hashtag_searching' | null;
+  activity: 'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | 'instagram_analyzing' | 'blog_analyzing' | 'hashtag_searching' | 'profile_extracting' | null;
   message?: string;
   searchQuery?: string;
   details?: string;
@@ -63,18 +63,25 @@ export default function AIActivityIndicator({ activity, message, searchQuery, de
         };
       case 'blog_analyzing':
         return {
-          icon: Search,
+          icon: FileText,
           color: 'text-blue-600',
           text: message || 'Analyzing blog content...',
           animation: 'animate-pulse'
         };
       case 'hashtag_searching':
         return {
-          icon: Instagram,
+          icon: Hash,
           color: 'text-purple-600',
           text: message?.startsWith('#')
             ? `Searching ${message} for content ideas...`
             : message || 'Searching hashtag for content ideas...',
+          animation: 'animate-pulse'
+        };
+      case 'profile_extracting':
+        return {
+          icon: User,
+          color: 'text-teal-600',
+          text: message || 'Updating your profile...',
           animation: 'animate-pulse'
         };
       default:
@@ -98,9 +105,10 @@ export default function AIActivityIndicator({ activity, message, searchQuery, de
       <div className="flex items-center space-x-1">
         <IconComponent className={`h-4 w-4 ${config.color} ${config.animation}`} />
         {activity === 'searching' && <Globe className="h-3 w-3 animate-spin text-emerald-600" />}
-        {activity === 'instagram_analyzing' && <Search className="h-3 w-3 animate-spin text-pink-600" />}
-        {activity === 'blog_analyzing' && <Brain className="h-3 w-3 animate-spin text-blue-600" />}
+        {activity === 'instagram_analyzing' && <Instagram className="h-3 w-3 animate-spin text-pink-600" />}
+        {activity === 'blog_analyzing' && <FileText className="h-3 w-3 animate-spin text-blue-600" />}
         {activity === 'hashtag_searching' && <Hash className="h-3 w-3 animate-spin text-purple-600" />}
+        {activity === 'profile_extracting' && <User className="h-3 w-3 animate-spin text-teal-600" />}
       </div>
       <span className="text-gray-700">
         {config.text}

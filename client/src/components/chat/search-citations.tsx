@@ -1,11 +1,39 @@
-import { ExternalLink, Globe } from "lucide-react";
+import { ExternalLink, Globe, AlertCircle } from "lucide-react";
 
 interface SearchCitationsProps {
   citations: string[];
   searchQuery?: string;
+  searchPerformed?: boolean;
 }
 
-export default function SearchCitations({ citations, searchQuery }: SearchCitationsProps) {
+export default function SearchCitations({ citations, searchQuery, searchPerformed }: SearchCitationsProps) {
+  // Show feedback if search was performed even with 0 citations
+  if (searchPerformed && (!citations || citations.length === 0)) {
+    return (
+      <div 
+        className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800"
+        data-testid="search-no-results"
+      >
+        <div className="flex items-start space-x-2">
+          <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+              Web search performed
+            </p>
+            {searchQuery && (
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                Searched for: "{searchQuery}"
+              </p>
+            )}
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+              No additional sources found, but I've provided an answer based on my knowledge.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   if (!citations || citations.length === 0) return null;
 
   return (
@@ -18,6 +46,11 @@ export default function SearchCitations({ citations, searchQuery }: SearchCitati
         <span className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
           Sources from web search
         </span>
+        {searchQuery && (
+          <span className="text-xs text-emerald-600 dark:text-emerald-400">
+            ({citations.length} source{citations.length !== 1 ? 's' : ''})
+          </span>
+        )}
       </div>
       <div className="space-y-1">
         {citations.map((citation, index) => {

@@ -80,6 +80,8 @@ export interface IStorage {
   upsertMemory(memory: InsertMemory, similarityThreshold?: number): Promise<Memory>;
   deleteMemory(id: string): Promise<boolean>;
   searchSimilarMemories(userId: string, embedding: number[], limit?: number): Promise<(Memory & { similarity: number })[]>;
+  cleanupStaleMemories(userId: string, daysOld?: number): Promise<number>;
+  getMemoryStats(userId: string): Promise<{ total: number; oldestDate: Date | null; newestDate: Date | null }>;
   
   // Subscription operations
   updateUserSubscription(id: string, subscriptionData: Partial<UpdateUserSubscription>): Promise<User | undefined>;
@@ -377,6 +379,43 @@ export class DatabaseStorage implements IStorage {
       createdAt: row.created_at,
       similarity: parseFloat(row.similarity)
     }));
+  }
+
+  // Memory cleanup: Remove old memories (older than 90 days) with low access frequency
+  async cleanupStaleMemories(userId: string, daysOld: number = 90): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+    
+    console.log(`🧹 [MEMORY_CLEANUP] Cleaning memories older than ${daysOld} days (before ${cutoffDate.toISOString()})`);
+    
+    const result = await db
+      .delete(memories)
+      .where(
+        sql`${memories.userId} = ${userId} AND ${memories.createdAt} < ${cutoffDate}`
+      );
+    
+    const deletedCount = result.rowCount || 0;
+    console.log(`🧹 [MEMORY_CLEANUP] Removed ${deletedCount} stale memories for user ${userId}`);
+    return deletedCount;
+  }
+
+  // Get memory statistics for a user
+  async getMemoryStats(userId: string): Promise<{ total: number; oldestDate: Date | null; newestDate: Date | null }> {
+    const result = await db.execute(sql`
+      SELECT 
+        COUNT(*) as total,
+        MIN(created_at) as oldest_date,
+        MAX(created_at) as newest_date
+      FROM memories 
+      WHERE user_id = ${userId}
+    `);
+    
+    const row = result.rows[0] as any;
+    return {
+      total: parseInt(row.total || '0'),
+      oldestDate: row.oldest_date ? new Date(row.oldest_date) : null,
+      newestDate: row.newest_date ? new Date(row.newest_date) : null
+    };
   }
 
   // Subscription operations
