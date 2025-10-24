@@ -29,6 +29,15 @@ export default function Chat() {
   const { id: conversationId } = useParams();
   const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [streamingMessage, setStreamingMessage] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [isSearching, setIsSearching] = useState(false); // This state is used for the indicator
+  const [searchQuery, setSearchQuery] = useState<string | undefined>();
+  const [searchCitations, setSearchCitations] = useState<string[]>([]);
+  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
+  const [showMemoryTester, setShowMemoryTester] = useState(false);
+  const [aiActivity, setAiActivity] = useState<'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | 'extracting_memories' | 'saving_memories' | null>(null);
+  const [aiActivityMessage, setAiActivityMessage] = useState<string>('');
 
   // Memoize handlers to prevent dropdown re-renders
   const handleSidebarToggle = useCallback(() => {
@@ -38,15 +47,6 @@ export default function Chat() {
   const handleSidebarClose = useCallback(() => {
     setSidebarOpen(false);
   }, []);
-  const [streamingMessage, setStreamingMessage] = useState("");
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [isSearching, setIsSearching] = useState(false); // This state is used for the indicator
-  const [searchQuery, setSearchQuery] = useState<string | undefined>();
-  const [searchCitations, setSearchCitations] = useState<string[]>([]);
-  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
-  const [showMemoryTester, setShowMemoryTester] = useState(false);
-  const [aiActivity, setAiActivity] = useState<'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | null>(null);
-  const [aiActivityMessage, setAiActivityMessage] = useState<string>('');
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const { user } = useAuth() as { user: User | undefined };
@@ -61,6 +61,8 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false); // General loading state for sending messages
   const [messages, setMessages] = useState<Message[]>([]); // Local state for messages to enable real-time updates
   const streamingMessageIdRef = useRef<string | null>(null);
+  const previousConversationIdRef = useRef<string | undefined>(conversationId);
+  const hasStreamedMessagesRef = useRef<boolean>(false);
 
   // Get conversations list
   const { data: conversations = [] } = useQuery<Conversation[]>({
@@ -68,32 +70,48 @@ export default function Chat() {
   });
 
   // Get messages for current conversation
-  const { data: messagesFromApi, refetch: refetchMessages } = useQuery<Message[]>({
+  const { data: messagesFromApi, refetch: refetchMessages, isLoading: isLoadingMessages, isFetching: isFetchingMessages } = useQuery<Message[]>({
     queryKey: ["/api/conversations", conversationId, "messages"],
     enabled: !!conversationId,
-    staleTime: 0, // Always consider messages stale to ensure fresh data when switching conversations
+    staleTime: Infinity, // Never consider stale - we manage refetching manually
+    gcTime: Infinity, // Keep in cache
+    refetchOnMount: false, // Don't refetch on mount
+    refetchOnWindowFocus: false, // Don't refetch on focus
+    refetchOnReconnect: false, // Don't refetch on reconnect
+    retry: 1,
   });
 
-  // Effect to sync API messages with local state when conversation changes
+  // Effect to sync API messages with local state when API data changes
+  // This runs whenever messagesFromApi updates (not tied to conversationId changes)
   useEffect(() => {
-    // Only sync when we have a conversation ID and fetched data
-    if (!conversationId || !messagesFromApi) return;
-
-    // Avoid loop on initial undefined->[] case
-    if (messages.length === 0 && messagesFromApi.length === 0) return;
-
-    // If an optimistic client message is present, prefer local state and skip replacing with server data.
-    // This prevents any re-keying or animation at completion.
-    const hasClientMessage = messages.some(m => (m as any).metadata?.clientKey);
-    if (hasClientMessage) return;
-
-    // Only sync if IDs differ
-    const currentIds = messages.map(m => m.id).sort().join(',');
-    const apiIds = messagesFromApi.map(m => m.id).sort().join(',');
-    if (currentIds !== apiIds) {
-      setMessages(messagesFromApi);
+    if (!conversationId) {
+      setMessages([]);
+      hasStreamedMessagesRef.current = false;
+      return;
     }
-  }, [conversationId, messagesFromApi]);
+    
+    // Don't sync from API if we're streaming
+    // This prevents the flash when queries refetch during message sending
+    if (isStreaming) {
+      return;
+    }
+    
+    // If we have streamed messages in this conversation, don't overwrite with API data
+    // The local state is the source of truth after streaming
+    if (hasStreamedMessagesRef.current) {
+      return;
+    }
+    
+    // Only update messages when we have data OR when we're done loading/fetching
+    // This prevents showing stale messages from a previous conversation
+    if (messagesFromApi !== undefined) {
+      setMessages(messagesFromApi as Message[]);
+    } else if (!isLoadingMessages && !isFetchingMessages) {
+      // If we're not loading and have no data, clear messages
+      setMessages([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messagesFromApi, conversationId, isStreaming, isLoadingMessages, isFetchingMessages]);
 
   // Create new conversation mutation
   const createConversationMutation = useMutation({
@@ -102,7 +120,10 @@ export default function Chat() {
       return response.json();
     },
     onSuccess: (newConversation) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/conversations"],
+        exact: true 
+      });
       setLocation(`/chat/${newConversation.id}`);
     },
   });
@@ -117,6 +138,9 @@ export default function Chat() {
     setSearchQuery(undefined);
     setAiActivity('thinking');
     setAiActivityMessage('');
+    
+    // Mark that we're adding streamed messages - don't sync from API after this
+    hasStreamedMessagesRef.current = true;
 
     // Create a single optimistic assistant message that we update in place
     const streamingId = `temp-stream-${Date.now()}`;
@@ -167,6 +191,7 @@ export default function Chat() {
         const searchMetaRegex = /\[SEARCH_META\][\s\S]*?\[\/SEARCH_META\]/g;
         const activityRegex = /\[AI_ACTIVITY\](.*?)\[\/AI_ACTIVITY\]/g;
         const messageIdRegex = /\[MESSAGE_ID\][\s\S]*?\[\/MESSAGE_ID\]/g;
+  const profileUpdatedRegex = /\[PROFILE_UPDATED\]([\s\S]*?)\[\/PROFILE_UPDATED\]/g;
 
         // Handle search metadata
         const searchMatches = chunkContent.match(searchMetaRegex);
@@ -226,6 +251,36 @@ export default function Chat() {
           chunkContent = chunkContent.replace(activityRegex, '');
         }
 
+  // Handle profile-updated metadata (internal only - should not leak to UI)
+  const profileMatches = chunkContent.match(profileUpdatedRegex);
+        if (profileMatches) {
+          profileMatches.forEach(match => {
+            try {
+              const profileContent = match.match(/\[PROFILE_UPDATED\]([\s\S]*?)\[\/PROFILE_UPDATED\]/);
+              if (profileContent) {
+                const profileData = JSON.parse(profileContent[1]);
+                console.log('🔔 [CLIENT] PROFILE_UPDATED metadata received:', profileData);
+                // Attach profile update metadata to the optimistic assistant message so the
+                // UI can display a non-intrusive indicator based on message.metadata.profileUpdated
+                setMessages(current => current.map(m => (m.metadata as any)?.clientKey === streamingId ? {
+                  ...m,
+                  metadata: {
+                    ...(m.metadata || {}),
+                    profileUpdated: profileData,
+                  }
+                } : m));
+                // Optionally, you could also update any local profile-related state here,
+                // but per request we avoid toasts or visible popups.
+              }
+            } catch (e) {
+              console.error('Failed to parse PROFILE_UPDATED metadata:', e);
+            }
+          });
+          // Remove profile metadata tokens from visible chunk content so it never appears
+          // in the assistant message text.
+          chunkContent = chunkContent.replace(profileUpdatedRegex, '');
+        }
+
         // Handle message ID updates
         const messageIdMatches = chunkContent.match(messageIdRegex);
         if (messageIdMatches) {
@@ -254,6 +309,8 @@ export default function Chat() {
           });
           chunkContent = chunkContent.replace(messageIdRegex, '');
         }
+
+        
 
         // Add clean content to accumulated display
         accumulated += chunkContent;
@@ -288,11 +345,13 @@ export default function Chat() {
       throw error;
     } finally {
       console.log(`✅ [STREAM] Stream processing complete`);
-      // Finalize in minimal updates without forcing sync flush
+      // Finalize streaming state
       setIsStreaming(false);
       setAiActivity(null);
       setAiActivityMessage('');
       setStreamingResponse(null);
+      setOptimisticMessages([]);
+      
       // Mark the optimistic assistant message as finalized using clientKey
       setMessages(current => current.map(m => 
         (m.metadata as any)?.clientKey === streamingId ? {
@@ -300,10 +359,14 @@ export default function Chat() {
           metadata: { ...(m.metadata || {}), streaming: false, aiActivity: null, aiActivityMessage: '' }
         } : m
       ));
-      // Do not clear streamingMessage here to avoid extra re-render; it's ignored by UI now
-      setOptimisticMessages([]);
-      // Invalidate conversations list for updated timestamps
-      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      
+      // Only invalidate conversations list for updated timestamps (sidebar)
+      // Do NOT refetch messages - they're already saved and in local state
+      // Use exact: true to only invalidate the conversations list, not child queries like messages
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/conversations"],
+        exact: true 
+      });
     }
   };
 
@@ -518,22 +581,41 @@ export default function Chat() {
 
   // Close sidebar when route changes and clear states
   useEffect(() => {
-    setSidebarOpen(false); // Always close sidebar when conversation changes
-    // Clear states related to ongoing streams or searches when conversation changes
-    setOptimisticMessages([]);
-    setStreamingMessage("");
-    setIsStreaming(false);
-    setIsSearching(false); // Crucially, reset search indicator state
-    setAiActivity(null);
-    setAiActivityMessage('');
-    setSearchCitations([]);
-    setSearchQuery(undefined);
-    setStreamingResponse(null); // Clear search metadata
+    // Check if conversation actually changed
+    const conversationChanged = previousConversationIdRef.current !== conversationId;
+    
+    if (conversationChanged) {
+      previousConversationIdRef.current = conversationId;
+      hasStreamedMessagesRef.current = false; // Reset flag for new conversation
+      
+      setSidebarOpen(false); // Close sidebar when conversation changes
+      // Clear states related to ongoing streams or searches when conversation changes
+      setOptimisticMessages([]);
+      setStreamingMessage("");
+      setIsStreaming(false);
+      setIsSearching(false);
+      setAiActivity(null);
+      setAiActivityMessage('');
+      setSearchCitations([]);
+      setSearchQuery(undefined);
+      setStreamingResponse(null);
+      
+      // Only refetch messages when conversation actually changes
+      if (conversationId) {
+        refetchMessages?.();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId]); // Only depend on conversationId, not refetchMessages
 
-    // Reset local messages to empty when changing conversations
-    // The useEffect above will populate with API data
-    if (!conversationId) {
-      setMessages([]);
+  // Persist last active conversation across navigations
+  useEffect(() => {
+    try {
+      if (conversationId) {
+        localStorage.setItem('lastConversationId', conversationId);
+      }
+    } catch {
+      // Ignore storage errors (e.g., private mode)
     }
   }, [conversationId]);
 
@@ -660,6 +742,7 @@ export default function Chat() {
                 messages={allMessages}
                 streamingMessage={streamingMessage}
                 isStreaming={isStreaming}
+                isLoadingMessages={Boolean(conversationId) && (isLoadingMessages || isFetchingMessages)}
                 isSearching={isSearching}
                 searchQuery={searchQuery}
                 searchCitations={searchCitations}

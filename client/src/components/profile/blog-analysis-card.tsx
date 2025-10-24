@@ -7,6 +7,33 @@ interface BlogAnalysisCardProps {
 }
 
 export default function BlogAnalysisCard({ blogProfile }: BlogAnalysisCardProps) {
+  // Safely extract string values, handling cases where data might be malformed
+  const safeString = (value: any, fallback: string = 'N/A'): string => {
+    if (typeof value === 'string' && value.trim()) return value;
+    if (Array.isArray(value)) return value.join(', ') || fallback;
+    if (value && typeof value === 'object') {
+      // If it's an object (possibly error structure), return fallback
+      return fallback;
+    }
+    return fallback;
+  };
+
+  const safeArray = (value: any): string[] => {
+    if (Array.isArray(value)) return value.filter(v => typeof v === 'string' && v.trim());
+    if (typeof value === 'string' && value.trim()) return [value];
+    return [];
+  };
+
+  const writingStyle = safeString(blogProfile?.writingStyle);
+  const brandVoice = safeString(blogProfile?.brandVoice);
+  const averagePostLength = safeString(blogProfile?.averagePostLength);
+  const targetAudience = safeString(blogProfile?.targetAudience);
+  const postingPattern = safeString(blogProfile?.postingPattern);
+  const toneKeywords = safeArray(blogProfile?.toneKeywords);
+  const contentThemes = safeArray(blogProfile?.contentThemes);
+  const commonTopics = safeArray(blogProfile?.commonTopics);
+  const analyzedUrls = safeArray(blogProfile?.analyzedUrls);
+
   return (
     <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
       <CardHeader className="pb-3">
@@ -21,74 +48,72 @@ export default function BlogAnalysisCard({ blogProfile }: BlogAnalysisCardProps)
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="text-center p-2 bg-white rounded-lg border">
             <Badge variant="secondary" className="text-xs">Writing Style</Badge>
-            <div className="text-xs font-normal text-blue-600">{blogProfile.writingStyle || 'N/A'}</div>
+            <div className="text-xs font-normal text-blue-600">{writingStyle}</div>
           </div>
           <div className="text-center p-2 bg-white rounded-lg border">
             <Badge variant="secondary" className="text-xs">Avg Post Length</Badge>
-            <div className="text-xs font-normal text-blue-600">{blogProfile.averagePostLength || 'N/A'}</div>
+            <div className="text-xs font-normal text-blue-600">{averagePostLength}</div>
             <br/>
             <Badge variant="secondary" className="text-xs">Analyzed Posts</Badge>
-
-            <div className="text-xs font-normal text-blue-600">{blogProfile.analyzedUrls?.length || 0}</div>
+            <div className="text-xs font-normal text-blue-600">{analyzedUrls.length || 0}</div>
           </div>
-
         </div>
         
-        {blogProfile.brandVoice && (
+        {brandVoice !== 'N/A' && (
           <div>
             <label className="text-xs font-medium text-gray-700 mb-1 block">Brand Voice</label>
-            <p className="text-xs font-normal text-gray-600 bg-white p-2 rounded-lg border">{blogProfile.brandVoice}</p>
+            <p className="text-xs font-normal text-gray-600 bg-white p-2 rounded-lg border">{brandVoice}</p>
           </div>
         )}
         
-        {blogProfile.toneKeywords?.length > 0 && (
+        {toneKeywords.length > 0 && (
           <div>
             <label className="text-xs font-medium text-gray-700 mb-1 block">Tone Keywords</label>
             <div className="flex flex-wrap gap-1">
-              {blogProfile.toneKeywords.slice(0, 8).map((keyword: string, index: number) => (
+              {toneKeywords.slice(0, 8).map((keyword: string, index: number) => (
                 <Badge key={index} variant="outline" className="text-xs">{keyword}</Badge>
               ))}
             </div>
           </div>
         )}
         
-        {blogProfile.contentThemes?.length > 0 && (
+        {contentThemes.length > 0 && (
           <div>
             <label className="text-xs font-medium text-gray-700 mb-1 block">Content Themes</label>
             <div className="flex flex-wrap gap-1">
-              {blogProfile.contentThemes.map((theme: string, index: number) => (
+              {contentThemes.map((theme: string, index: number) => (
                 <Badge key={index} variant="secondary" className="text-xs">{theme}</Badge>
               ))}
             </div>
           </div>
         )}
         
-        {blogProfile.commonTopics?.length > 0 && (
+        {commonTopics.length > 0 && (
           <div>
             <label className="text-xs font-medium text-gray-700 mb-1 block">Common Topics</label>
             <div className="flex flex-wrap gap-1">
-              {blogProfile.commonTopics.map((topic: string, index: number) => (
+              {commonTopics.map((topic: string, index: number) => (
                 <Badge key={index} variant="outline" className="text-xs bg-blue-50">{topic}</Badge>
               ))}
             </div>
           </div>
         )}
         
-        {blogProfile.targetAudience && (
+        {targetAudience !== 'N/A' && (
           <div>
             <label className="text-xs font-medium text-gray-700 mb-1 block">Target Audience</label>
-            <p className="text-xs text-gray-600 bg-white p-2 rounded-lg border">{blogProfile.targetAudience}</p>
+            <p className="text-xs text-gray-600 bg-white p-2 rounded-lg border">{targetAudience}</p>
           </div>
         )}
 
-        {blogProfile.postingPattern && (
+        {postingPattern !== 'N/A' && (
           <div>
             <label className="text-xs font-medium text-gray-700 mb-1 block">Content Pattern</label>
-            <p className="text-xs text-gray-600 bg-white p-2 rounded-lg border">{blogProfile.postingPattern}</p>
+            <p className="text-xs text-gray-600 bg-white p-2 rounded-lg border">{postingPattern}</p>
           </div>
         )}
         
-        {blogProfile.cached_at && (
+        {blogProfile?.cached_at && (
           <div className="text-xs text-gray-500 border-t pt-2">
             Last analyzed: {new Date(blogProfile.cached_at).toLocaleDateString()}
           </div>

@@ -14,7 +14,8 @@ import {
  */
 export async function performBlogAnalysis(
   urls: string[], 
-  userId: string
+  userId: string,
+  progressCallback?: (message: string) => void
 ): Promise<BlogAnalysisResult> {
   const startTime = Date.now();
   try {
@@ -53,6 +54,12 @@ export async function performBlogAnalysis(
       try {
         console.log(`📝 [BLOG_AI] Fetching content from: ${url}`);
         
+        // Send progress update
+        if (progressCallback) {
+          const urlShort = url.length > 40 ? url.substring(0, 40) + '...' : url;
+          progressCallback(`Fetching content from ${urlShort}`);
+        }
+        
         // Ensure URL has protocol for proper parsing
         let fullUrl = url;
         if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -60,7 +67,7 @@ export async function performBlogAnalysis(
         }
         
         const searchResult = await perplexityService.searchForChatContext(
-          `site:${new URL(fullUrl).hostname} blog content text`,
+          `site:${new URL(fullUrl).hostname}`,
           "Extract and provide the full text content of blog posts, including headlines, main content, and any key information about writing style and topics.",
           'month'
         );
@@ -82,6 +89,11 @@ export async function performBlogAnalysis(
         success: false,
         error: "Could not extract content from the provided blog URLs"
       };
+    }
+
+    // Send progress update
+    if (progressCallback) {
+      progressCallback(`Analyzing writing style and content patterns...`);
     }
 
     // Analyze the collected blog content
@@ -138,16 +150,35 @@ Be thorough and specific in your analysis.`
       throw new Error('Failed to parse blog analysis result');
     }
 
+    // Safely extract string values (handle cases where AI returns objects/arrays instead of strings)
+    const safeExtractString = (value: any, fallback: string = ''): string => {
+      if (typeof value === 'string') return value;
+      if (Array.isArray(value)) return value.join(', ');
+      if (value && typeof value === 'object') {
+        // If it's an object with a field property, it might be an error structure
+        if ('field' in value) return fallback;
+        // Try to extract meaningful text from object
+        return JSON.stringify(value);
+      }
+      return fallback;
+    };
+
+    const safeExtractArray = (value: any): string[] => {
+      if (Array.isArray(value)) return value.filter(v => typeof v === 'string');
+      if (typeof value === 'string') return [value];
+      return [];
+    };
+
     const blogProfile: BlogProfile = {
       analyzedUrls: urls,
-      writingStyle: blogAnalysis.writingStyle || 'conversational',
-      averagePostLength: blogAnalysis.averagePostLength || 'medium',
-      commonTopics: blogAnalysis.commonTopics || [],
-      toneKeywords: blogAnalysis.toneKeywords || [],
-      contentThemes: blogAnalysis.contentThemes || [],
-      brandVoice: blogAnalysis.brandVoice || 'authentic and personal',
-      targetAudience: blogAnalysis.targetAudience,
-      postingPattern: blogAnalysis.postingPattern,
+      writingStyle: safeExtractString(blogAnalysis.writingStyle, 'conversational'),
+      averagePostLength: safeExtractString(blogAnalysis.averagePostLength, 'medium'),
+      commonTopics: safeExtractArray(blogAnalysis.commonTopics),
+      toneKeywords: safeExtractArray(blogAnalysis.toneKeywords),
+      contentThemes: safeExtractArray(blogAnalysis.contentThemes),
+      brandVoice: safeExtractString(blogAnalysis.brandVoice, 'authentic and personal'),
+      targetAudience: blogAnalysis.targetAudience ? safeExtractString(blogAnalysis.targetAudience, '') || undefined : undefined,
+      postingPattern: blogAnalysis.postingPattern ? safeExtractString(blogAnalysis.postingPattern, '') || undefined : undefined,
       cached_at: new Date().toISOString()
     };
 
@@ -290,4 +321,42 @@ ${analysis.postingPattern ? `• Content pattern: ${analysis.postingPattern}` : 
 
 📊 **Analysis Summary:**
 Analyzed ${analysis.analyzedUrls.length} blog post(s) to understand your unique writing style and content approach.`;
+}
+
+/**
+ * Cleans up malformed blog profile data from a user's profile
+ * Fixes cases where AI returned objects/JSON instead of plain strings
+ */
+export function cleanupBlogProfile(blogProfile: any): BlogProfile | null {
+  if (!blogProfile || typeof blogProfile !== 'object') return null;
+
+  // Helper functions for safe extraction
+  const safeString = (value: any, fallback: string): string => {
+    if (typeof value === 'string' && value.trim()) return value;
+    if (Array.isArray(value)) return value.filter(v => typeof v === 'string').join(', ') || fallback;
+    if (value && typeof value === 'object') {
+      // If it's an object with a field property, it's likely an error structure
+      if ('field' in value) return fallback;
+    }
+    return fallback;
+  };
+
+  const safeArray = (value: any): string[] => {
+    if (Array.isArray(value)) return value.filter(v => typeof v === 'string' && v.trim());
+    if (typeof value === 'string' && value.trim()) return [value];
+    return [];
+  };
+
+  return {
+    analyzedUrls: safeArray(blogProfile.analyzedUrls),
+    writingStyle: safeString(blogProfile.writingStyle, 'conversational'),
+    averagePostLength: safeString(blogProfile.averagePostLength, 'medium'),
+    commonTopics: safeArray(blogProfile.commonTopics),
+    toneKeywords: safeArray(blogProfile.toneKeywords),
+    contentThemes: safeArray(blogProfile.contentThemes),
+    brandVoice: safeString(blogProfile.brandVoice, 'authentic and personal'),
+    targetAudience: blogProfile.targetAudience ? safeString(blogProfile.targetAudience, '') || undefined : undefined,
+    postingPattern: blogProfile.postingPattern ? safeString(blogProfile.postingPattern, '') || undefined : undefined,
+    cached_at: blogProfile.cached_at || new Date().toISOString()
+  };
 }

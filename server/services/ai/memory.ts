@@ -8,11 +8,13 @@ const geminiClient = new OpenAI({
 
 
 /**
- * Builds a query for memory search using smart concatenation with AI fallback.
+ * Builds a query for memory search using smart concatenation.
+ * SIMPLIFIED VERSION - No AI rephrasing for better performance.
+ * 
  * Strategy:
- * 1. Use just the user message if it's focused (60-200 chars = optimal for embeddings)
- * 2. If user message is too short or vague, add last assistant response for context
- * 3. If still not optimal, use AI to create a focused search query (15-40 tokens / 60-160 chars)
+ * 1. User message is already good for most cases
+ * 2. If too short, add context from last assistant response
+ * 3. Truncate to optimal embedding length (60-200 chars)
  * 
  * CRITICAL: Embedding search queries should be SHORT and FOCUSED
  * - Optimal: 15-40 tokens (60-160 chars)
@@ -30,7 +32,7 @@ export async function buildMemorySearchQuery(
   const userMessageLength = userMessage.trim().length;
 
   try {
-    console.log(`🔍 [AI_SERVICE] Building memory search query...`);
+    console.log(`🔍 [AI_SERVICE] Building memory search query (simplified)...`);
 
     // If user message is already in optimal range, use it directly
     if (userMessageLength >= OPTIMAL_MIN && userMessageLength <= OPTIMAL_MAX) {
@@ -40,31 +42,57 @@ export async function buildMemorySearchQuery(
       return userMessage.trim();
     }
 
-    // If user message is too short (< 60 chars), add last assistant response for context
+    // If user message is too long, truncate intelligently
+    if (userMessageLength > OPTIMAL_MAX) {
+      // Try to truncate at sentence boundary
+      const truncated = userMessage.substring(0, OPTIMAL_MAX);
+      const lastPeriod = truncated.lastIndexOf('.');
+      const lastQuestion = truncated.lastIndexOf('?');
+      const lastExclamation = truncated.lastIndexOf('!');
+      const lastSentence = Math.max(lastPeriod, lastQuestion, lastExclamation);
+      
+      const result = lastSentence > OPTIMAL_MIN 
+        ? truncated.substring(0, lastSentence + 1).trim()
+        : truncated.trim();
+      
+      console.log(
+        `✅ [AI_SERVICE] Truncated long message (${userMessageLength} → ${result.length} chars): ${Date.now() - startTime}ms`
+      );
+      return result;
+    }
+
+    // If user message is too short, add context from last assistant response
     if (userMessageLength < OPTIMAL_MIN && conversationHistory.length > 0) {
       const lastAssistant = conversationHistory
         .slice()
         .reverse()
         .find(m => m.role === 'assistant');
-
+      
       if (lastAssistant) {
-        // Combine user message with snippet of last response
-        const contextQuery = `${userMessage.trim()} ${lastAssistant.content.substring(0, 150)}`;
-
-        if (contextQuery.length <= OPTIMAL_MAX) {
-          console.log(
-            `✅ [AI_SERVICE] Using user message + assistant context (${contextQuery.length} chars): ${Date.now() - startTime}ms`
+        // Extract key phrases from assistant response (nouns, verbs, important words)
+        const assistantWords = lastAssistant.content
+          .toLowerCase()
+          .split(/\s+/)
+          .filter(word => 
+            word.length > 4 && // Skip short words
+            !['that', 'this', 'with', 'have', 'been', 'they', 'your', 'from', 'about'].includes(word)
           );
-          return contextQuery;
-        }
+        
+        const contextSnippet = assistantWords.slice(0, 15).join(' ');
+        const contextQuery = `${userMessage.trim()} ${contextSnippet}`.substring(0, OPTIMAL_MAX);
+        
+        console.log(
+          `✅ [AI_SERVICE] Added assistant context (${userMessageLength} → ${contextQuery.length} chars): ${Date.now() - startTime}ms`
+        );
+        return contextQuery;
       }
     }
 
-    // If message is too long or context didn't help, use AI to create focused query
+    // Fallback: just use the user message as-is
     console.log(
-      `⚠️ [AI_SERVICE] Message length ${userMessageLength} chars not optimal, using AI to create focused search query...`
+      `✅ [AI_SERVICE] Using user message as-is (${userMessageLength} chars): ${Date.now() - startTime}ms`
     );
-    return await rephraseQueryWithAI(userMessage, conversationHistory, user, startTime);
+    return userMessage.trim();
   } catch (error) {
     console.error(
       `❌ [AI_SERVICE] Query building error after ${Date.now() - startTime}ms:`,
@@ -76,9 +104,13 @@ export async function buildMemorySearchQuery(
 }
 
 /**
- * AI-powered query rephrasing (used as fallback when concatenation is too long)
+ * AI-powered query rephrasing (ADVANCED USE ONLY - adds 70-100ms latency)
+ * Only use this for explicit "search my memories" commands or when
+ * the user query is extremely vague and needs clarification.
+ * 
+ * For normal conversation, use buildMemorySearchQuery() instead.
  */
-async function rephraseQueryWithAI(
+export async function rephraseQueryWithAI(
   userMessage: string,
   conversationHistory: Array<{ role: string; content: string }>,
   user?: any,

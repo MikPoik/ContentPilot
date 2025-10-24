@@ -149,7 +149,7 @@ export default function OtherProfileDataCard({ user, updateProfileMutation }: Ot
     updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
   };
 
-  // Filter out the special analysis data
+  // Filter out the special analysis data and internal fields
   const otherData = { ...profileData };
   delete otherData.instagramProfile;
   delete otherData.competitorAnalyses;
@@ -160,6 +160,10 @@ export default function OtherProfileDataCard({ user, updateProfileMutation }: Ot
   delete otherData.brandVoice;
   delete otherData.contentGoals;
   delete otherData.targetAudience;
+  delete otherData.styleAnalysis; // Internal AI data, not user-facing
+  delete otherData._capped_fields; // Internal API limit tracking
+  delete otherData.cached_at; // Internal cache timestamp
+  delete otherData.analyzedUrls; // Already shown in blog analysis card
 
   const brandVoice = Array.isArray(profileData.brandVoice) ? profileData.brandVoice : [];
   const contentGoals = Array.isArray(profileData.contentGoals) ? profileData.contentGoals : [];
@@ -183,6 +187,7 @@ export default function OtherProfileDataCard({ user, updateProfileMutation }: Ot
             onSave={handleSaveBusinessType}
             onClear={handleClearBusinessType}
             isUpdating={updateProfileMutation.isPending}
+            showEditToggle={true}
           />
 
           {/* Editable Business Location */}
@@ -193,6 +198,7 @@ export default function OtherProfileDataCard({ user, updateProfileMutation }: Ot
             onSave={handleSaveBusinessLocation}
             onClear={handleClearBusinessLocation}
             isUpdating={updateProfileMutation.isPending}
+            showEditToggle={true}
           />
 
           {/* Editable Brand Voice */}
@@ -238,7 +244,33 @@ export default function OtherProfileDataCard({ user, updateProfileMutation }: Ot
 
           {/* Read-only Other Data */}
           {Object.entries(otherData).map(([key, value]) => {
+            // Skip null, undefined, empty arrays, empty objects, and internal fields
             if (value === null || value === undefined) return null;
+            if (Array.isArray(value) && value.length === 0) return null;
+            if (typeof value === 'object' && Object.keys(value).length === 0) return null;
+            
+            // Skip internal/technical fields (starting with _, containing "cache", etc.)
+            if (key.startsWith('_') || key.toLowerCase().includes('cache') || key.toLowerCase().includes('metadata')) {
+              return null;
+            }
+            
+            // Helper to safely render values
+            const renderValue = (val: any): string => {
+              if (typeof val === 'string') return val;
+              if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+              if (Array.isArray(val)) {
+                return val.filter(item => typeof item === 'string').join(', ') || JSON.stringify(val);
+              }
+              // For objects, check if they look like error structures and skip them
+              if (typeof val === 'object' && val !== null) {
+                if ('field' in val && 'limit' in val) return ''; // Skip capped field errors
+                return JSON.stringify(val, null, 2);
+              }
+              return String(val);
+            };
+            
+            const renderedValue = renderValue(value);
+            if (!renderedValue) return null; // Don't render empty values
             
             return (
               <div key={key} className="bg-card p-3 rounded-lg border">
@@ -247,18 +279,18 @@ export default function OtherProfileDataCard({ user, updateProfileMutation }: Ot
                 </label>
                 {Array.isArray(value) ? (
                   <div className="flex flex-wrap gap-1">
-                    {value.map((item: any, index: number) => (
+                    {value.filter(item => typeof item === 'string' && item.trim()).map((item: string, index: number) => (
                       <Badge key={index} variant="secondary" className="text-xs">
-                        {typeof item === 'string' ? item : JSON.stringify(item)}
+                        {item}
                       </Badge>
                     ))}
                   </div>
                 ) : typeof value === 'object' ? (
-                  <pre className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted p-2 rounded">
-                    {JSON.stringify(value, null, 2)}
+                  <pre className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted p-2 rounded max-h-40 overflow-auto">
+                    {renderedValue}
                   </pre>
                 ) : (
-                  <p className="text-sm text-foreground">{String(value)}</p>
+                  <p className="text-sm text-foreground">{renderedValue}</p>
                 )}
               </div>
             );

@@ -127,16 +127,31 @@ export async function performInstagramAnalysis(
     const user = await storage.getUser(userId);
     const existingData = user?.profileData as any;
 
-    // Check user's own profile first
-    if (existingData?.instagramProfile?.username === username) {
-      const cachedAt = new Date(existingData.instagramProfile.cached_at);
+  // Determine existing usernames and decide ownership EARLY so explicit flags
+  // from the caller can override cached competitor data.
+  const existingProfileData = existingData || {};
+  const existingInstagramUsername = existingProfileData?.instagramProfile?.username;
+  const existingOwnUsername = existingProfileData?.ownInstagramUsername;
+
+    // Decide ownership early: prefer explicit flag when provided
+    let isUserOwnProfile: boolean | undefined;
+    if (isOwnProfile !== undefined) {
+      isUserOwnProfile = isOwnProfile;
+      console.log(`📸 [INSTAGRAM_AI] Received explicit isOwnProfile flag (early): ${isOwnProfile} for @${username}`);
+    } else {
+      isUserOwnProfile = (existingOwnUsername === username) || (existingInstagramUsername === username);
+    }
+
+    // If it's the user's own profile and we have a cached main profile, use it
+    if (isUserOwnProfile && existingProfileData?.instagramProfile?.username === username) {
+      const cachedAt = new Date(existingProfileData.instagramProfile.cached_at);
       const hoursSinceCache = (Date.now() - cachedAt.getTime()) / (1000 * 60 * 60);
 
       if (hoursSinceCache < CACHE_TTL_HOURS) {
         console.log(`📸 [INSTAGRAM_AI] Using cached user profile for @${username} (${hoursSinceCache.toFixed(1)}h old, cache valid for ${CACHE_TTL_HOURS}h)`);
         return {
           success: true,
-          analysis: existingData.instagramProfile,
+          analysis: existingProfileData.instagramProfile,
           cached: true
         };
       } else {
@@ -144,16 +159,16 @@ export async function performInstagramAnalysis(
       }
     }
 
-    // Check competitor analyses
-    if (existingData?.competitorAnalyses?.[username]) {
-      const cachedAt = new Date(existingData.competitorAnalyses[username].cached_at);
+    // If caller did NOT indicate this is the user's own profile, and we have a cached competitor, use it
+    if (!isUserOwnProfile && existingProfileData?.competitorAnalyses?.[username]) {
+      const cachedAt = new Date(existingProfileData.competitorAnalyses[username].cached_at);
       const hoursSinceCache = (Date.now() - cachedAt.getTime()) / (1000 * 60 * 60);
 
       if (hoursSinceCache < CACHE_TTL_HOURS) {
         console.log(`📸 [INSTAGRAM_AI] Using cached competitor analysis for @${username} (${hoursSinceCache.toFixed(1)}h old, cache valid for ${CACHE_TTL_HOURS}h)`);
         return {
           success: true,
-          analysis: existingData.competitorAnalyses[username],
+          analysis: existingProfileData.competitorAnalyses[username],
           cached: true
         };
       } else {
@@ -168,29 +183,15 @@ export async function performInstagramAnalysis(
     // Check if we got partial results (main profile succeeded but some similar accounts failed)
     const partialSuccess = instagramProfile.similar_accounts.length === 0 && instagramProfile.followers > 0;
 
-    // Determine if this is the user's own profile or a competitor analysis
-    const profileData = user?.profileData as any;
-    const existingProfileData = profileData || {};
-
-    // Check existing profile data
-    const existingInstagramUsername = existingProfileData?.instagramProfile?.username;
-    const existingOwnUsername = existingProfileData?.ownInstagramUsername;
-
-    // Determine profile type using explicit flag with intelligent fallback
-    let isUserOwnProfile: boolean;
-
-    if (isOwnProfile !== undefined) {
-      // Use explicit flag from intent analysis (preferred method)
-      isUserOwnProfile = isOwnProfile;
-      console.log(`📸 [INSTAGRAM_AI] Using explicit isOwnProfile flag: ${isOwnProfile} for @${username}`);
+    // Finalize ownership decision: if explicit flag was provided earlier, honor it;
+    // otherwise derive from existing profile data we inspected above.
+    if (isUserOwnProfile !== undefined) {
+      console.log(`📸 [INSTAGRAM_AI] Using explicit isOwnProfile flag: ${isUserOwnProfile} for @${username}`);
     } else {
-      // Fallback logic: ONLY treat as own profile if username matches existing data
-      isUserOwnProfile = (existingOwnUsername === username) || 
-                         (existingInstagramUsername === username);
-      
+      isUserOwnProfile = (existingProfileData?.ownInstagramUsername === username) ||
+                        (existingProfileData?.instagramProfile?.username === username);
       console.log(`📸 [INSTAGRAM_AI] No explicit flag, using fallback logic: ${isUserOwnProfile} for @${username}`);
-      
-      // Log warning if this is first-time analysis without explicit flag
+
       if (!isUserOwnProfile && !existingProfileData.instagramProfile && !existingProfileData.ownInstagramUsername) {
         console.warn(`⚠️ [INSTAGRAM_AI] First-time Instagram analysis without explicit flag - defaulting to COMPETITOR for @${username}`);
       }

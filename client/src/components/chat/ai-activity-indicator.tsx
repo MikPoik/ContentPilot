@@ -1,7 +1,7 @@
-import { Search, Globe, Brain, Eye, BarChart3, PenTool, Lightbulb, Instagram, Hash, User, FileText } from "lucide-react";
+import { Search, Globe, Brain, Eye, BarChart3, PenTool, Lightbulb, Instagram, Hash, User, FileText, Database, Archive } from "lucide-react";
 
 interface AIActivityIndicatorProps {
-  activity: 'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | 'instagram_analyzing' | 'blog_analyzing' | 'hashtag_searching' | 'profile_extracting' | null;
+  activity: 'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | 'instagram_analyzing' | 'blog_analyzing' | 'hashtag_searching' | 'profile_extracting' | 'extracting_memories' | 'saving_memories' | null;
   message?: string;
   searchQuery?: string;
   details?: string;
@@ -84,6 +84,20 @@ export default function AIActivityIndicator({ activity, message, searchQuery, de
           text: message || 'Updating your profile...',
           animation: 'animate-pulse'
         };
+      case 'extracting_memories':
+        return {
+          icon: Brain,
+          color: 'text-purple-600',
+          text: message || 'Extracting insights from conversation...',
+          animation: 'animate-pulse'
+        };
+      case 'saving_memories':
+        return {
+          icon: Database,
+          color: 'text-green-600',
+          text: message || 'Saving memories for future reference...',
+          animation: 'animate-pulse'
+        };
       default:
         return {
           icon: Brain,
@@ -109,6 +123,8 @@ export default function AIActivityIndicator({ activity, message, searchQuery, de
         {activity === 'blog_analyzing' && <FileText className="h-3 w-3 animate-spin text-blue-600" />}
         {activity === 'hashtag_searching' && <Hash className="h-3 w-3 animate-spin text-purple-600" />}
         {activity === 'profile_extracting' && <User className="h-3 w-3 animate-spin text-teal-600" />}
+        {activity === 'extracting_memories' && <Brain className="h-3 w-3 animate-spin text-purple-600" />}
+        {activity === 'saving_memories' && <Database className="h-3 w-3 animate-spin text-green-600" />}
       </div>
       <span className="text-gray-700">
         {config.text}

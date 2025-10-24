@@ -11,10 +11,11 @@ interface MessageListProps {
   messages: Message[];
   streamingMessage: string;
   isStreaming: boolean;
+  isLoadingMessages?: boolean;
   isSearching?: boolean;
   searchQuery?: string;
   searchCitations?: string[];
-  aiActivity?: 'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | null;
+  aiActivity?: 'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | 'extracting_memories' | 'saving_memories' | null;
   aiActivityMessage?: string;
   user?: User;
   conversationId?: string;
@@ -26,6 +27,7 @@ export default function MessageList({
   messages, 
   streamingMessage, 
   isStreaming, 
+  isLoadingMessages = false,
   isSearching = false,
   searchQuery,
   searchCitations = [],
@@ -92,6 +94,22 @@ export default function MessageList({
     }
   }, [isStreaming, streamingMessage, scrollToBottom]);
 
+  // Show loading spinner while messages are loading for a selected conversation
+  if (conversationId && isLoadingMessages) {
+    return (
+      <div 
+        ref={containerRef}
+        className="h-full overflow-y-auto px-4 py-6 flex items-center justify-center"
+        data-testid="message-list-loading"
+      >
+        <div className="flex flex-col items-center text-center gap-3 animate-fade-in">
+          <div className="w-8 h-8 rounded-full border-2 border-muted-foreground/40 border-t-foreground animate-spin" />
+          <div className="text-sm text-muted-foreground">Loading messages…</div>
+        </div>
+      </div>
+    );
+  }
+
   // Show welcome message only for completely empty state
   if (!conversationId && messages.length === 0 && !streamingMessage && !isStreaming) {
     return (
@@ -119,6 +137,40 @@ export default function MessageList({
               <p className="font-medium text-muted-foreground">• Research websites or blogs for inspiration</p>
               <p className="font-medium text-muted-foreground">• Check out competitor content strategies</p>
               <p className="font-medium text-muted-foreground">• Generate content ideas for your niche</p>
+            </div>
+          </div>
+        </div>
+
+        <div ref={messagesEndRef} />
+      </div>
+    );
+  }
+
+  // Show an empty-conversation helper when a conversation exists but has no messages yet
+  if (conversationId && messages.length === 0 && !streamingMessage && !isStreaming) {
+    return (
+      <div 
+        ref={containerRef}
+        className="h-full overflow-y-auto px-4 py-6 space-y-6"
+        data-testid="message-list-empty-conversation"
+      >
+        <div className="flex justify-center">
+          <div className="max-w-md text-center animate-fade-in">
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-4 mx-auto">
+              <span className="text-white text-xl">💬</span>
+            </div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">
+              This conversation is empty
+            </h3>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Start the conversation by typing a message below. Here are some ideas to get you started.
+            </p>
+            <div className="mt-4 text-xs text-muted-foreground/80 space-y-1">
+              <p className="font-medium text-muted-foreground">💡 Try asking me to:</p>
+              <p className="font-medium text-muted-foreground">• Generate content ideas for your brand</p>
+              <p className="font-medium text-muted-foreground">• Analyze an Instagram profile (@username)</p>
+              <p className="font-medium text-muted-foreground">• Research competitors or topic inspiration</p>
+              <p className="font-medium text-muted-foreground">• Rewrite or improve an existing caption</p>
             </div>
           </div>
         </div>
@@ -266,8 +318,8 @@ export default function MessageList({
                   </div>
                 )}
 
-                {/* Show activity indicators for streaming assistant messages */}
-                {(message as any).metadata?.streaming && (
+                {/* Show activity indicators for streaming assistant messages or messages with active AI activities */}
+                {((message as any).metadata?.streaming || (message as any).metadata?.aiActivity) && (
                   <>
                     <AIActivityIndicator 
                       activity={(message as any).metadata?.aiActivity || null}

@@ -213,7 +213,7 @@ export class PerplexityService {
   async search(
     query: string,
     options?: {
-      model?: 'sonar' | 'llama-3.1-sonar-large-128k-online' | 'llama-3.1-sonar-huge-128k-online';
+      model?: 'sonar';
       temperature?: number;
       maxTokens?: number;
       searchRecencyFilter?: 'hour' | 'day' | 'week' | 'month' | 'year';
@@ -319,100 +319,112 @@ export class PerplexityService {
     }
 
     // Cache miss - perform actual search
+    // Derive a simple, language-agnostic hint: prefer keywords that match the
+    // user's locale/script if the query contains non-ASCII/local characters.
+    // Note: do NOT use hardcoded language keyword lists — keep the logic general.
+    const containsNonAscii = /[^\x00-\x7F]/.test(query || '');
+    const languageInstruction = containsNonAscii
+      ? 'When composing search keywords, prefer terms that match the user\'s local script or language when the query appears to use non-ASCII/local characters. or site domain'
+      : 'When composing search keywords, prefer terms that match the user\'s language/locale or site domain';
+
+    const augmentedContextPrompt = `${contextPrompt}\n\nSearch guidance: ${languageInstruction} If the initial site-scoped search returns no results, normalize the query to the site domain only and retry.`;
+
     let result = await this.search(query, {
-      systemPrompt: contextPrompt,
+      systemPrompt: augmentedContextPrompt,
       temperature: 0.1,
       searchRecencyFilter: effectiveRecency,
       searchDomainFilter: domains?.length ? domains : undefined
     });
 
-    // If no citations found and query is a site search, try multiple fallback strategies
+    // If no citations found and query is a site search, try an immediate domain-only normalization first
     if (result.citations.length === 0 && query.includes('site:')) {
-      console.log(`🔍 [PERPLEXITY] No results for site search, trying enhanced fallback strategies...`);
+      console.log(`🔍 [PERPLEXITY] No results for site search, attempting domain-only normalization as first fallback...`);
 
       // Extract domain from site: query
       const siteMatch = query.match(/site:([^\s]+)/);
       if (siteMatch) {
         const domain = siteMatch[1];
 
-        // Strategy 1: Try with longer recency
-        if (effectiveRecency === 'week') {
-          console.log(`🔍 [PERPLEXITY] Strategy 1: Trying with month recency...`);
-          try {
-            const monthResult = await this.search(query, {
-              systemPrompt: contextPrompt,
-              temperature: 0.1,
-              searchRecencyFilter: 'month',
-              searchDomainFilter: domains?.length ? domains : undefined
-            });
+        // Immediate fallback: search using only the domain (normalize the query to the domain)
+        try {
+          const domainOnlyResult = await this.search(domain, {
+            systemPrompt: augmentedContextPrompt,
+            temperature: 0.1,
+            // Use the domain as the domain filter to keep results scoped
+            searchRecencyFilter: 'year',
+            searchDomainFilter: [domain]
+          });
 
-            if (monthResult.citations.length > 0) {
-              result = monthResult;
-              console.log(`✅ [PERPLEXITY] Strategy 1 successful: ${monthResult.citations.length} citations found`);
-            }
-          } catch (error) {
-            console.error(`❌ [PERPLEXITY] Strategy 1 failed:`, error);
+          if (domainOnlyResult.citations.length > 0) {
+            result = domainOnlyResult;
+            console.log(`✅ [PERPLEXITY] Domain-only fallback successful: ${domainOnlyResult.citations.length} citations found`);
           }
+        } catch (error) {
+          console.error(`❌ [PERPLEXITY] Domain-only fallback failed:`, error);
         }
 
-        // Strategy 2: Try with year recency if still no results
+        // If still no results, continue with enhanced fallback strategies (recency adjustments, no-recency)
         if (result.citations.length === 0) {
-          console.log(`🔍 [PERPLEXITY] Strategy 2: Trying with year recency...`);
-          try {
-            const yearResult = await this.search(query, {
-              systemPrompt: contextPrompt,
-              temperature: 0.1,
-              searchRecencyFilter: 'year',
-              searchDomainFilter: domains?.length ? domains : undefined
-            });
+          console.log(`🔍 [PERPLEXITY] Domain-only normalization did not return results, trying enhanced fallback strategies...`);
 
-            if (yearResult.citations.length > 0) {
-              result = yearResult;
-              console.log(`✅ [PERPLEXITY] Strategy 2 successful: ${yearResult.citations.length} citations found`);
+          // Strategy 1: Try with longer recency
+          if (effectiveRecency === 'week') {
+            console.log(`🔍 [PERPLEXITY] Strategy 1: Trying with month recency...`);
+            try {
+              const monthResult = await this.search(query, {
+                systemPrompt: augmentedContextPrompt,
+                temperature: 0.1,
+                searchRecencyFilter: 'month',
+                searchDomainFilter: domains?.length ? domains : undefined
+              });
+
+              if (monthResult.citations.length > 0) {
+                result = monthResult;
+                console.log(`✅ [PERPLEXITY] Strategy 1 successful: ${monthResult.citations.length} citations found`);
+              }
+            } catch (error) {
+              console.error(`❌ [PERPLEXITY] Strategy 1 failed:`, error);
             }
-          } catch (error) {
-            console.error(`❌ [PERPLEXITY] Strategy 2 failed:`, error);
           }
-        }
 
-        // Strategy 3: Try domain name search without site: operator
-        if (result.citations.length === 0) {
-          console.log(`🔍 [PERPLEXITY] Strategy 3: Trying domain name search without site: operator...`);
-          try {
-            const domainOnlyQuery = domain.replace(/\.(fi|com|org|net|se|de)$/, '');
-            const fallbackResult = await this.search(domainOnlyQuery, {
-              systemPrompt: contextPrompt,
-              temperature: 0.1,
-              searchRecencyFilter: 'year',
-              searchDomainFilter: [domain] // Use the domain as filter instead
-            });
+          // Strategy 2: Try with year recency if still no results
+          if (result.citations.length === 0) {
+            console.log(`🔍 [PERPLEXITY] Strategy 2: Trying with year recency...`);
+            try {
+              const yearResult = await this.search(query, {
+                systemPrompt: augmentedContextPrompt,
+                temperature: 0.1,
+                searchRecencyFilter: 'year',
+                searchDomainFilter: domains?.length ? domains : undefined
+              });
 
-            if (fallbackResult.citations.length > 0) {
-              result = fallbackResult;
-              console.log(`✅ [PERPLEXITY] Strategy 3 successful: ${fallbackResult.citations.length} citations found`);
+              if (yearResult.citations.length > 0) {
+                result = yearResult;
+                console.log(`✅ [PERPLEXITY] Strategy 2 successful: ${yearResult.citations.length} citations found`);
+              }
+            } catch (error) {
+              console.error(`❌ [PERPLEXITY] Strategy 2 failed:`, error);
             }
-          } catch (error) {
-            console.error(`❌ [PERPLEXITY] Strategy 3 failed:`, error);
           }
-        }
 
-        // Strategy 4: Try without recency filter for maximum coverage
-        if (result.citations.length === 0) {
-          console.log(`🔍 [PERPLEXITY] Strategy 4: Trying without recency filter...`);
-          try {
-            const noRecencyResult = await this.search(query, {
-              systemPrompt: contextPrompt,
-              temperature: 0.1,
-              // No recency filter
-              searchDomainFilter: domains?.length ? domains : undefined
-            });
+          // Strategy 3: Try without recency filter for maximum coverage
+          if (result.citations.length === 0) {
+            console.log(`🔍 [PERPLEXITY] Strategy 3: Trying without recency filter...`);
+            try {
+              const noRecencyResult = await this.search(query, {
+                systemPrompt: augmentedContextPrompt,
+                temperature: 0.1,
+                // No recency filter
+                searchDomainFilter: domains?.length ? domains : undefined
+              });
 
-            if (noRecencyResult.citations.length > 0) {
-              result = noRecencyResult;
-              console.log(`✅ [PERPLEXITY] Strategy 4 successful: ${noRecencyResult.citations.length} citations found`);
+              if (noRecencyResult.citations.length > 0) {
+                result = noRecencyResult;
+                console.log(`✅ [PERPLEXITY] Strategy 3 successful: ${noRecencyResult.citations.length} citations found`);
+              }
+            } catch (error) {
+              console.error(`❌ [PERPLEXITY] Strategy 3 failed:`, error);
             }
-          } catch (error) {
-            console.error(`❌ [PERPLEXITY] Strategy 4 failed:`, error);
           }
         }
       }

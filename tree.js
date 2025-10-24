@@ -353,7 +353,7 @@ class SourceCodeTreeGenerator {
         const exportPrefix = func.isExported ? "export " : "";
         const kindIcon = this.getFunctionIcon(func.kind);
         result += `${indent}│  ${kindIcon} ${exportPrefix}${asyncPrefix}${func.name}(${func.parameters
-          .map((p) => `${p.name}${p.optional ? "?" : ""}: ${p.type}`)
+          .map((p) => `${p.type}${p.optional ? "?" : ""}`)
           .join(", ")}): ${func.returnType}\n`;
       }
 
@@ -414,7 +414,7 @@ class SourceCodeTreeGenerator {
               const exportPrefix = func.isExported ? "export " : "";
               const kindIcon = this.getFunctionIcon(func.kind);
               result += `${nextIndent}${kindIcon} ${exportPrefix}${asyncPrefix}${func.name}(${func.parameters
-                .map((p) => `${p.name}${p.optional ? "?" : ""}: ${p.type}`)
+                .map((p) => `${p.type}${p.optional ? "?" : ""}`)
                 .join(", ")}): ${func.returnType}\n`;
             }
 
@@ -467,7 +467,7 @@ class SourceCodeTreeGenerator {
 // Function to recursively find TypeScript and JavaScript files
 function findSourceFiles(
   dir,
-  extensions = [".ts", ".tsx", ".js", ".jsx"],
+  extensions = [".ts", ".tsx", ".js", ".jsx", ".css", ".json"],
   ignoreFolders = [],
 ) {
   const files = [];
@@ -488,7 +488,10 @@ function findSourceFiles(
           ".next",
           "coverage",
           ".nyc_output",
-          ".config"
+          ".config",
+          ".cache",
+          ".local",
+          ".upm"
         ];
 
         // Check if this directory should be ignored based on relative path
@@ -593,7 +596,7 @@ ${treeOutput}
 // Function to build directory tree structure with source files
 function buildDirectoryTree(
   dir,
-  extensions = [".ts", ".tsx", ".js", ".jsx"],
+  extensions = [".ts", ".tsx", ".js", ".jsx", ".css", ".json"],
   rootDir = dir,
   ignoreFolders = [],
 ) {
@@ -621,6 +624,10 @@ function buildDirectoryTree(
           ".next",
           "coverage",
           ".nyc_output",
+          ".config",
+          ".cache",
+          ".local",
+          ".upm"
         ];
 
         // Check if this directory should be ignored based on relative path
@@ -722,7 +729,7 @@ if (isMainModule) {
     const currentDir = process.cwd();
     const directoryTree = buildDirectoryTree(
       currentDir,
-      [".ts", ".tsx", ".js", ".jsx"],
+      [".ts", ".tsx", ".js", ".jsx", ".css", ".json"],
       currentDir,
       ignoreFolders,
     );
@@ -760,7 +767,7 @@ if (isMainModule) {
         // If directory, build tree and find all source files in it
         const argTree = buildDirectoryTree(
           arg,
-          [".ts", ".tsx", ".js", ".jsx"],
+          [".ts", ".tsx", ".js", ".jsx", ".css", ".json"],
           arg,
           ignoreFolders,
         );
@@ -792,3 +799,4 @@ if (isMainModule) {
 }
 
 export { SourceCodeTreeGenerator, generateSourceCodeTree };
+

@@ -31,6 +31,61 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   }
 }
 
+/**
+ * Batch embedding generation - much faster than sequential calls
+ * Use this when you need embeddings for multiple texts at once
+ * 
+ * @param texts - Array of texts to embed (max 100 recommended)
+ * @returns Array of embeddings in same order as input texts
+ */
+export async function generateBatchEmbeddings(texts: string[]): Promise<number[][]> {
+  if (texts.length === 0) {
+    return [];
+  }
+
+  if (texts.length === 1) {
+    // Single text - use regular function
+    const embedding = await generateEmbedding(texts[0]);
+    return [embedding];
+  }
+
+  try {
+    const startTime = Date.now();
+    
+    // Batch API call - much more efficient than sequential calls
+    const response = await geminiClient.embeddings.create({
+      model: "gemini-embedding-001",
+      input: texts, // Send all texts at once
+      dimensions: 1536,
+    });
+    
+    const embeddings = response.data.map(item => item.embedding);
+    const duration = Date.now() - startTime;
+    
+    console.log(
+      `🧠 [AI_SERVICE] Batch embeddings generated: ${embeddings.length} embeddings in ${duration}ms (${(duration / embeddings.length).toFixed(1)}ms per embedding)`
+    );
+    
+    return embeddings;
+  } catch (error) {
+    console.error("Error generating batch embeddings:", error);
+    
+    // Fallback: generate embeddings one by one if batch fails
+    console.log("🔄 [AI_SERVICE] Falling back to sequential embedding generation...");
+    const embeddings: number[][] = [];
+    for (const text of texts) {
+      try {
+        const embedding = await generateEmbedding(text);
+        embeddings.push(embedding);
+      } catch (err) {
+        console.error(`Failed to generate embedding for text: ${text.substring(0, 50)}...`, err);
+        throw err;
+      }
+    }
+    return embeddings;
+  }
+}
+
 // Legacy compatibility exports - all functionality has been moved to modular services
 export { generateChatResponse, generateConversationTitle, extractProfileInfo, extractMemoriesFromConversation, type ChatResponseWithMetadata } from "./ai/chat";
 export type { WorkflowPhaseDecision, WebSearchDecision } from "./ai/intent";

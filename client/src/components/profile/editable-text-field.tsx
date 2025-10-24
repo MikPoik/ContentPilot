@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, Edit } from "lucide-react";
 
 interface EditableTextFieldProps {
   label: string;
@@ -9,6 +9,11 @@ interface EditableTextFieldProps {
   onSave: (value: string) => void;
   onClear?: () => void;
   isUpdating?: boolean;
+  /**
+   * When true, the field starts in read-only mode and shows an edit icon.
+   * When false (default), the input is shown immediately (preserves existing behavior).
+   */
+  showEditToggle?: boolean;
 }
 
 export default function EditableTextField({
@@ -17,9 +22,12 @@ export default function EditableTextField({
   placeholder,
   onSave,
   onClear,
-  isUpdating = false
+  isUpdating = false,
+  showEditToggle = false,
 }: EditableTextFieldProps) {
   const [localValue, setLocalValue] = useState(value);
+  // If showEditToggle is true, start in non-editing (read-only) mode; otherwise editable by default
+  const [editing, setEditing] = useState(!showEditToggle);
 
   useEffect(() => {
     setLocalValue(value);
@@ -38,6 +46,21 @@ export default function EditableTextField({
 
   const hasChanged = localValue !== value;
 
+  // Read-only display when toggled off
+  if (!editing) {
+    return (
+      <div className="bg-card p-4 rounded-lg border">
+        <label className="text-sm font-medium text-muted-foreground mb-2 block">{label}</label>
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-foreground">{value || <span className="text-muted-foreground">Not provided</span>}</div>
+          <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
+            <Edit className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-card p-4 rounded-lg border">
       <label className="text-sm font-medium text-muted-foreground mb-2 block">
@@ -55,22 +78,42 @@ export default function EditableTextField({
         <Button
           variant="outline"
           size="sm"
-          onClick={handleSave}
+          onClick={() => {
+            handleSave();
+            // close edit mode for toggle-enabled fields
+            if (showEditToggle) setEditing(false);
+          }}
           disabled={isUpdating || !hasChanged}
           className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
         >
           ✓
         </Button>
-        {localValue && (
+        {/* When in toggle mode, X should cancel edits; otherwise act as clear if provided */}
+        {showEditToggle ? (
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleClear}
+            onClick={() => {
+              setLocalValue(value);
+              setEditing(false);
+            }}
             className="text-red-600 hover:text-red-700 hover:bg-red-50"
             disabled={isUpdating}
           >
             <X className="h-4 w-4" />
           </Button>
+        ) : (
+          localValue && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClear}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              disabled={isUpdating}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )
         )}
       </div>
     </div>

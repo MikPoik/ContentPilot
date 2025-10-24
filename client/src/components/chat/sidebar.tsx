@@ -203,7 +203,18 @@ export default function Sidebar({
             asChild
             data-testid="button-profile-settings"
           >
-            <Link href={`/profile-settings?from=${encodeURIComponent(window.location.pathname)}`}>
+            <Link href={`/profile-settings?from=${(() => {
+              let lastId: string | null = null;
+              try {
+                lastId = localStorage.getItem('lastConversationId');
+              } catch {
+                // ignore
+              }
+              const validLast = lastId && conversations.some(c => c.id === lastId);
+              const candidateId = validLast ? lastId : currentConversationId || null;
+              const fromPath = candidateId ? `/chat/${candidateId}` : '/';
+              return encodeURIComponent(fromPath);
+            })()}`}>
               <Settings className="h-4 w-4" />
             </Link>
           </Button>

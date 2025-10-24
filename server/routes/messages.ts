@@ -2,10 +2,11 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { isAuthenticated } from "../replitAuth";
 import { generateChatResponse, generateConversationTitle, type ChatResponseWithMetadata } from "../services/ai/chat";
-import { generateEmbedding } from "../services/openai";
+import { ErrorTypes, parseError, formatErrorResponse, logError } from "../services/errors";
+import { generateEmbedding, generateBatchEmbeddings } from "../services/openai";
 import { extractProfileInfo } from "../services/ai/profile";
 import { extractMemoriesFromConversation, buildMemorySearchQuery } from "../services/ai/memory";
-import { analyzeUnifiedIntent, extractWebSearchDecision, extractInstagramAnalysisDecision, extractInstagramHashtagDecision, extractBlogAnalysisDecision, extractProfileUpdateDecision } from "../services/ai/intent"; // Unified intent classification
+import { analyzeUnifiedIntent, extractWebSearchDecision, extractInstagramAnalysisDecision, extractInstagramHashtagDecision, extractBlogAnalysisDecision, extractProfileUpdateDecision, shouldExtractProfile } from "../services/ai/intent"; // Unified intent classification
 import { performInstagramAnalysis, performInstagramHashtagSearch, formatInstagramAnalysisForChat, formatInstagramHashtagSearchForChat } from "../services/ai/instagram"; // Added Instagram integration
 import { performBlogAnalysis, formatBlogAnalysisForChat } from "../services/ai/blog"; // Added blog analysis
 
@@ -40,23 +41,26 @@ export function registerMessageRoutes(app: Express) {
     try {
       const { content } = req.body;
       
-      // Enhanced input validation
+      // Enhanced input validation with standardized errors
       if (!content || typeof content !== 'string') {
-        console.log(`❌ [CHAT_FLOW] Invalid input: content missing or not a string`);
-        return res.status(400).json({ message: "Message content is required" });
+        const error = ErrorTypes.INVALID_INPUT('message', 'content missing or invalid type');
+        logError(error, 'CHAT_FLOW');
+        return res.status(error.statusCode).json(formatErrorResponse(error));
       }
       
       // Validate content is not empty/whitespace only
       const trimmedContent = content.trim();
       if (trimmedContent.length === 0) {
-        console.log(`❌ [CHAT_FLOW] Invalid input: empty or whitespace-only message`);
-        return res.status(400).json({ message: "Message cannot be empty" });
+        const error = ErrorTypes.EMPTY_MESSAGE();
+        logError(error, 'CHAT_FLOW');
+        return res.status(error.statusCode).json(formatErrorResponse(error));
       }
       
       // Check message length limits (prevent abuse)
       if (trimmedContent.length > 10000) {
-        console.log(`❌ [CHAT_FLOW] Invalid input: message too long (${trimmedContent.length} chars)`);
-        return res.status(400).json({ message: "Message is too long (max 10,000 characters)" });
+        const error = ErrorTypes.MESSAGE_TOO_LONG(10000);
+        logError(error, 'CHAT_FLOW', { actualLength: trimmedContent.length });
+        return res.status(error.statusCode).json(formatErrorResponse(error));
       }
 
       const conversationId = req.params.id;
@@ -67,7 +71,8 @@ export function registerMessageRoutes(app: Express) {
       // Check message usage limits
       const currentUser = await storage.getUser(userId);
       if (!currentUser) {
-        return res.status(404).json({ message: "User not found" });
+        const error = ErrorTypes.RESOURCE_NOT_FOUND('User');
+        return res.status(error.statusCode).json(formatErrorResponse(error));
       }
 
       const messagesUsed = currentUser.messagesUsed || 0;
@@ -75,8 +80,9 @@ export function registerMessageRoutes(app: Express) {
 
       // Check message limits (skip check for unlimited plans where messagesLimit is -1)
       if (messagesLimit !== -1 && messagesUsed >= messagesLimit) {
-        return res.status(429).json({
-          message: "Message limit reached. Please upgrade your subscription.",
+        const error = ErrorTypes.MESSAGE_LIMIT_REACHED(messagesLimit);
+        return res.status(error.statusCode).json({
+          ...formatErrorResponse(error),
           messagesUsed,
           messagesLimit
         });
@@ -93,7 +99,7 @@ export function registerMessageRoutes(app: Express) {
       }
       console.log(`✅ [CHAT_FLOW] Conversation verification: ${Date.now() - verificationStartTime}ms`);
 
-      // Save user message
+      // Save user message (async, but wait for it)
       const saveUserMessageStart = Date.now();
       await storage.createMessage({
         conversationId,
@@ -102,50 +108,59 @@ export function registerMessageRoutes(app: Express) {
       });
       console.log(`💾 [CHAT_FLOW] User message saved: ${Date.now() - saveUserMessageStart}ms`);
 
-      // Get conversation history and user profile
+      // PARALLEL DATA FETCH: Get conversation history, user profile, and start memory search simultaneously
       const dataFetchStart = Date.now();
-      const messages = await storage.getMessages(conversationId);
-  const user = await storage.getUser(userId);
-      const chatHistory = messages.map(m => ({
-        role: m.role as 'user' | 'assistant' | 'system',
-        content: m.content
-      }));
-      console.log(`📚 [CHAT_FLOW] Data fetch (messages + user): ${Date.now() - dataFetchStart}ms`);
+      
+      // Build memory search query early (can start before other fetches complete)
+      const memorySearchPromise = (async () => {
+        const memorySearchStart = Date.now();
+        try {
+          const [messages, user] = await Promise.all([
+            storage.getMessages(conversationId),
+            storage.getUser(userId)
+          ]);
+          
+          const chatHistory = messages.map(m => ({
+            role: m.role as 'user' | 'assistant' | 'system',
+            content: m.content
+          }));
+          
+          // Build query using smart concatenation
+          const queryBuildingStart = Date.now();
+          const searchQuery = await buildMemorySearchQuery(content, chatHistory.slice(-6), user);
+          console.log(`🔄 [CHAT_FLOW] Query building: ${Date.now() - queryBuildingStart}ms`);
+          console.log(`🔍 [CHAT_FLOW] Search query: "${searchQuery}"`);
 
-      // Search for relevant memories using user message with smart query building
-      const memorySearchStart = Date.now();
-      let relevantMemories: any[] = [];
-      try {
-        // Build query using smart concatenation with AI fallback
-        const queryBuildingStart = Date.now();
-        const searchQuery = await buildMemorySearchQuery(content, chatHistory.slice(-6), user);
-        console.log(`🔄 [CHAT_FLOW] Query building: ${Date.now() - queryBuildingStart}ms`);
-        console.log(`🔍 [CHAT_FLOW] Original query: "${content}"`);
-        console.log(`🔍 [CHAT_FLOW] Search query: "${searchQuery}"`);
+          const embeddingStart = Date.now();
+          const queryEmbedding = await generateEmbedding(searchQuery);
+          console.log(`🧠 [CHAT_FLOW] Embedding generation: ${Date.now() - embeddingStart}ms`);
 
-        const embeddingStart = Date.now();
-        const queryEmbedding = await generateEmbedding(searchQuery);
-        console.log(`🧠 [CHAT_FLOW] Embedding generation: ${Date.now() - embeddingStart}ms`);
+          const similaritySearchStart = Date.now();
+          const relevantMemories = await storage.searchSimilarMemories(userId, queryEmbedding, 5);
+          console.log(`🔍 [CHAT_FLOW] Vector similarity search: ${Date.now() - similaritySearchStart}ms`);
+          console.log(`🎯 [CHAT_FLOW] Total memory search: ${Date.now() - memorySearchStart}ms (found ${relevantMemories.length} memories)`);
 
-        const similaritySearchStart = Date.now();
-        relevantMemories = await storage.searchSimilarMemories(userId, queryEmbedding, 5);
-        const memorySearchEnd = Date.now(); // Capture end time here
-        console.log(`🔍 [CHAT_FLOW] Vector similarity search: ${memorySearchEnd - similaritySearchStart}ms`);
-        console.log(`🎯 [CHAT_FLOW] Total memory search: ${memorySearchEnd - memorySearchStart}ms (found ${relevantMemories.length} memories)`);
+          if (relevantMemories.length > 0) {
+            console.log(`🧠 [CHAT_FLOW] Retrieved memories:`);
+            relevantMemories.forEach((memory, index) => {
+              console.log(`  ${index + 1}. [Similarity: ${memory.similarity?.toFixed(3) || 'N/A'}] ${memory.content}`);
+            });
+          } else {
+            console.log(`🧠 [CHAT_FLOW] No relevant memories found for this query`);
+          }
 
-        // Log actual memory contents
-        if (relevantMemories.length > 0) {
-          console.log(`🧠 [CHAT_FLOW] Retrieved memories:`);
-          relevantMemories.forEach((memory, index) => {
-            console.log(`  ${index + 1}. [Similarity: ${memory.similarity?.toFixed(3) || 'N/A'}] ${memory.content}`);
-          });
-        } else {
-          console.log(`🧠 [CHAT_FLOW] No relevant memories found for this query`);
-        }
-
+          return { relevantMemories, user, messages: chatHistory };
         } catch (error) {
-        console.log(`❌ [CHAT_FLOW] Memory search failed: ${error}`);
-      }
+          console.log(`❌ [CHAT_FLOW] Memory search failed: ${error}`);
+          // Get user separately if memory search failed
+          const fallbackUser = await storage.getUser(userId);
+          return { relevantMemories: [], user: fallbackUser, messages: [] };
+        }
+      })();
+
+      // Wait for memory search to complete
+      const { relevantMemories, user, messages: chatHistory } = await memorySearchPromise;
+      console.log(`📚 [CHAT_FLOW] Parallel data fetch complete: ${Date.now() - dataFetchStart}ms`);
 
       // Use unified intent analysis to make all decisions in a single AI call
       const unifiedIntentStart = Date.now();
@@ -155,10 +170,11 @@ export function registerMessageRoutes(app: Express) {
       let searchDecision: any = null;
       let workflowPhaseDecision: any = null;
       let profileUpdateDecision: any = null;
+      let unifiedDecision: any = null;
 
       try {
         console.log(`🧠 [CHAT_FLOW] Starting unified intent analysis...`);
-        const unifiedDecision = await analyzeUnifiedIntent(chatHistory, user);
+        unifiedDecision = await analyzeUnifiedIntent(chatHistory, user || undefined, relevantMemories);
         console.log(`🧠 [CHAT_FLOW] Unified intent analysis: ${Date.now() - unifiedIntentStart}ms - webSearch: ${unifiedDecision.webSearch.shouldSearch}, instagram: ${unifiedDecision.instagramAnalysis.shouldAnalyze}, hashtag: ${unifiedDecision.instagramHashtagSearch.shouldSearch}, blog: ${unifiedDecision.blogAnalysis.shouldAnalyze}, profileUpdate: ${unifiedDecision.profileUpdate?.shouldExtract || false}, phase: ${unifiedDecision.workflowPhase.currentPhase}`);
 
         // Extract individual decisions for backward compatibility
@@ -186,6 +202,8 @@ export function registerMessageRoutes(app: Express) {
         if (instagramDecision.shouldAnalyze && instagramDecision.username) {
           const instagramAnalysisStart = Date.now();
           try {
+            // Log the explicit ownership flag for debugging and send Instagram analysis activity indicator
+            console.log(`📸 [CHAT_FLOW] Instagram decision isOwnProfile: ${instagramDecision.isOwnProfile}`);
             // Send Instagram analysis activity indicator
             res.write(`[AI_ACTIVITY]{"type":"instagram_analyzing","message":"@${instagramDecision.username}"}[/AI_ACTIVITY]`);
             if (typeof (res as any).flush === 'function') {
@@ -275,10 +293,52 @@ export function registerMessageRoutes(app: Express) {
 
         // Handle blog analysis if needed
         if (blogDecision.shouldAnalyze && blogDecision.urls.length > 0 && blogDecision.confidence >= 0.7) {
-          console.log(`📝 [CHAT_FLOW] Performing blog analysis for ${blogDecision.urls.length} URLs...`);
           const analysisStart = Date.now();
-          blogAnalysisResult = await performBlogAnalysis(blogDecision.urls, userId);
-          console.log(`📝 [CHAT_FLOW] Blog analysis completed: ${Date.now() - analysisStart}ms - success: ${blogAnalysisResult.success}`);
+          try {
+            console.log(`📝 [CHAT_FLOW] Performing blog analysis for ${blogDecision.urls.length} URLs...`);
+            
+            // Send blog analysis activity indicator
+            const blogUrlsText = blogDecision.urls.length === 1 
+              ? `Analyzing blog: ${blogDecision.urls[0]}` 
+              : `Analyzing ${blogDecision.urls.length} blog posts`;
+            res.write(`[AI_ACTIVITY]{"type":"blog_analyzing","message":"${blogUrlsText}"}[/AI_ACTIVITY]`);
+            if (typeof (res as any).flush === 'function') {
+              try { (res as any).flush(); } catch {}
+            }
+
+            blogAnalysisResult = await performBlogAnalysis(
+              blogDecision.urls, 
+              userId,
+              (message: string) => {
+                // Send progress updates
+                res.write(`[AI_ACTIVITY]{"type":"blog_analyzing","message":"${message}"}[/AI_ACTIVITY]`);
+                if (typeof (res as any).flush === 'function') {
+                  try { (res as any).flush(); } catch {}
+                }
+              }
+            );
+
+            // Clear activity indicator
+            res.write(`[AI_ACTIVITY]{"type":null,"message":""}[/AI_ACTIVITY]`);
+            if (typeof (res as any).flush === 'function') {
+              try { (res as any).flush(); } catch {}
+            }
+
+            console.log(`📝 [CHAT_FLOW] Blog analysis completed: ${Date.now() - analysisStart}ms - success: ${blogAnalysisResult.success}`);
+          } catch (error) {
+            console.error(`❌ [CHAT_FLOW] Blog analysis failed: ${Date.now() - analysisStart}ms`, error);
+
+            // Clear activity indicator on error
+            res.write(`[AI_ACTIVITY]{"type":null,"message":""}[/AI_ACTIVITY]`);
+            if (typeof (res as any).flush === 'function') {
+              try { (res as any).flush(); } catch {}
+            }
+
+            blogAnalysisResult = {
+              success: false,
+              error: 'Failed to analyze blog content'
+            };
+          }
         }
 
       } catch (error) {
@@ -404,27 +464,32 @@ export function registerMessageRoutes(app: Express) {
             console.log(`🔄 [CHAT_FLOW] Workflow profile patches:`, Object.keys(combinedProfileUpdates));
           }
 
-          // UNIFIED PROFILE EXTRACTION LOGIC
-          // Extract profile in these specific cases:
-          // 1. After successful external analysis (Instagram/Blog) - ALWAYS extract to capture new insights
-          // 2. Intent analysis explicitly recommends extraction with high confidence (>= 0.75)
-          // 3. Explicit profile update request from user
-          
-          const hasSuccessfulAnalysis = (instagramAnalysisResult?.success || blogAnalysisResult?.success);
-          const highConfidenceIntent = profileUpdateDecision?.shouldExtract && profileUpdateDecision.confidence >= 0.75;
-          const shouldExtractProfile = hasSuccessfulAnalysis || highConfidenceIntent;
+          // CENTRALIZED PROFILE EXTRACTION DECISION
+          // Use the shouldExtractProfile() function as single source of truth
+          const extractionDecision = shouldExtractProfile(
+            { 
+              webSearch: searchDecision,
+              instagramAnalysis: extractInstagramAnalysisDecision(unifiedDecision),
+              instagramHashtagSearch: extractInstagramHashtagDecision(unifiedDecision),
+              blogAnalysis: extractBlogAnalysisDecision(unifiedDecision),
+              workflowPhase: workflowPhaseDecision,
+              profileUpdate: profileUpdateDecision
+            },
+            {
+              instagramSuccess: instagramAnalysisResult?.success,
+              blogSuccess: blogAnalysisResult?.success,
+              hashtagSuccess: instagramHashtagResult?.success
+            }
+          );
 
           const userMessage = content; // Keep original user message for extraction
           const assistantMessage = fullResponse; // Use the full generated response for extraction
 
           let conversationProfileUpdates: any = {};
-          if (shouldExtractProfile) {
+          if (extractionDecision.shouldExtract) {
             const profileExtractionStart = Date.now();
-            const extractionReason = hasSuccessfulAnalysis 
-              ? "post-analysis extraction (always runs after IG/blog analysis)" 
-              : `intent-driven extraction (confidence: ${profileUpdateDecision?.confidence})`;
             
-            console.log(`👤 [CHAT_FLOW] Running profile extraction - reason: ${extractionReason}`);
+            console.log(`👤 [CHAT_FLOW] Running profile extraction - reason: ${extractionDecision.reason}, source: ${extractionDecision.source}, confidence: ${extractionDecision.confidence}`);
             
             // Send profile extraction activity indicator
             res.write(`[AI_ACTIVITY]{"type":"profile_extracting","message":"Updating your profile..."}[/AI_ACTIVITY]`);
@@ -452,7 +517,7 @@ export function registerMessageRoutes(app: Express) {
             
             console.log(`👤 [CHAT_FLOW] Profile extraction completed: ${Date.now() - profileExtractionStart}ms - extracted fields: ${Object.keys(extractedProfile || {}).join(', ') || 'none'}`);
           } else {
-            console.log(`👤 [CHAT_FLOW] Skipping profile extraction - conditions not met (shouldExtract: ${profileUpdateDecision?.shouldExtract || false}, confidence: ${profileUpdateDecision?.confidence || 0}, hasAnalysis: ${hasSuccessfulAnalysis})`);
+            console.log(`👤 [CHAT_FLOW] Skipping profile extraction - ${extractionDecision.reason}`);
           }
 
           // Merge workflow patches with conversation-extracted updates
@@ -481,9 +546,34 @@ export function registerMessageRoutes(app: Express) {
 
           if (Object.keys(combinedProfileUpdates).length > 0) {
             const profileSaveStart = Date.now();
-            await storage.updateUserProfile(userId, combinedProfileUpdates);
+            
+            // Extract capped fields for notification before cleaning up
+            const cappedFields = combinedProfileUpdates.profileData?._cappedFields || [];
+            
+            // Clean up internal metadata BEFORE saving to database
+            if (combinedProfileUpdates.profileData?._cappedFields) {
+              delete combinedProfileUpdates.profileData._cappedFields;
+            }
+            
+            const updatedUser = await storage.updateUserProfile(userId, combinedProfileUpdates);
             console.log(`👤 [CHAT_FLOW] Profile update saved: ${Date.now() - profileSaveStart}ms`);
             console.log(`👤 [CHAT_FLOW] Combined profile updates:`, Object.keys(combinedProfileUpdates));
+            
+            // Send profile update notification to frontend
+            const profileUpdateMetadata = {
+              fieldsUpdated: Object.keys(combinedProfileUpdates).filter(key => 
+                key !== 'profileData' || (combinedProfileUpdates.profileData && Object.keys(combinedProfileUpdates.profileData).length > 0)
+              ),
+              newCompleteness: updatedUser?.profileCompleteness || user?.profileCompleteness,
+              extractionSource: extractionDecision.source,
+              extractionReason: extractionDecision.reason,
+              cappedFields: cappedFields.length > 0 ? cappedFields : undefined
+            };
+            
+            res.write(`[PROFILE_UPDATED]${JSON.stringify(profileUpdateMetadata)}[/PROFILE_UPDATED]\n`);
+            if (typeof (res as any).flush === 'function') {
+              try { (res as any).flush(); } catch {}
+            }
           } else {
             console.log(`👤 [CHAT_FLOW] No profile updates found`);
           }
@@ -496,17 +586,21 @@ export function registerMessageRoutes(app: Express) {
         // Extract and save new memories from conversation
         const memorySaveStart = Date.now();
         try {
+          // Send extracting memories activity
+          res.write(`[AI_ACTIVITY]{"type":"extracting_memories","message":"Extracting insights from conversation..."}[/AI_ACTIVITY]\n`);
+          if (typeof (res as any).flush === 'function') {
+            try { (res as any).flush(); } catch {}
+          }
+
           const memoryExtractionStart = Date.now();
           const newMemories = await extractMemoriesFromConversation(content, fullResponse, relevantMemories);
           console.log(`🧠 [CHAT_FLOW] Memory extraction: ${Date.now() - memoryExtractionStart}ms (found ${newMemories.length} memories)`);
 
           if (newMemories.length > 0) {
-            // Generate embeddings in parallel for much faster processing
+            // Generate embeddings in BATCH for much faster processing
             const embeddingStart = Date.now();
-            const embeddings = await Promise.all(
-              newMemories.map(memoryContent => generateEmbedding(memoryContent))
-            );
-            console.log(`🧠 [CHAT_FLOW] Parallel embeddings: ${Date.now() - embeddingStart}ms (${embeddings.length} embeddings)`);
+            const embeddings = await generateBatchEmbeddings(newMemories);
+            console.log(`🧠 [CHAT_FLOW] Batch embeddings: ${Date.now() - embeddingStart}ms (${embeddings.length} embeddings)`);
 
             // SEMANTIC DEDUPLICATION: Check each new memory against existing ones before insertion
             const deduplicationStart = Date.now();
@@ -537,6 +631,12 @@ export function registerMessageRoutes(app: Express) {
             const uniqueMemories = memoriesToSave.filter(m => !m.isDuplicate);
             
             if (uniqueMemories.length > 0) {
+              // Send saving memories activity
+              res.write(`[AI_ACTIVITY]{"type":"saving_memories","message":"Saving memories for future reference..."}[/AI_ACTIVITY]\n`);
+              if (typeof (res as any).flush === 'function') {
+                try { (res as any).flush(); } catch {}
+              }
+
               await Promise.all(
                 uniqueMemories.map((memory) => {
                   // Calculate importance score based on:
@@ -592,7 +692,7 @@ export function registerMessageRoutes(app: Express) {
         }
 
         // Update conversation title if it's the first exchange (ASYNC - don't block response)
-        if (messages.length <= 2 && conversation.title === 'New Conversation') {
+        if (chatHistory.length <= 2 && conversation.title === 'New Conversation') {
           // Fire and forget - title generation happens in background
           generateConversationTitle([
             ...chatHistory,
@@ -614,8 +714,8 @@ export function registerMessageRoutes(app: Express) {
         console.log(`\n📊 [PERFORMANCE] Request Summary:`);
         console.log(`  Total Duration: ${totalDuration}ms`);
         console.log(`  Breakdown:`);
-        console.log(`    • Verification & Setup: ${Date.now() - requestStartTime - totalDuration}ms`);
-        console.log(`    • Memory Search: ${memorySearchStart ? (Date.now() - memorySearchStart) : 0}ms`);
+        console.log(`    • Verification & Setup: ${verificationStartTime ? (Date.now() - requestStartTime - totalDuration) : 0}ms`);
+        console.log(`    • Data Fetch & Memory Search: ${dataFetchStart ? (Date.now() - dataFetchStart) : 0}ms`);
         console.log(`    • Intent Analysis: ${unifiedIntentStart ? (Date.now() - unifiedIntentStart) : 0}ms`);
         if (instagramAnalysisResult) {
           console.log(`    • Instagram Analysis: included in intent time`);
@@ -628,6 +728,12 @@ export function registerMessageRoutes(app: Express) {
         console.log(`  Response Size: ${fullResponse.length} chars`);
         console.log(`  Memories Used: ${relevantMemories.length}`);
         console.log(`🏁 [CHAT_FLOW] Request completed at ${new Date().toISOString()}\n`);
+
+        // Clear any remaining AI activities
+        res.write(`[AI_ACTIVITY]{"type":null,"message":""}[/AI_ACTIVITY]\n`);
+        if (typeof (res as any).flush === 'function') {
+          try { (res as any).flush(); } catch {}
+        }
 
         res.end();
       } catch (error) {

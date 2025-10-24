@@ -1,6 +1,6 @@
 # Directory Tree
 
-Generated on: 2025-10-23T13:34:41.669Z
+Generated on: 2025-10-24T11:36:20.270Z
 
 *Simple mode: Directory structure only*
 
@@ -87,6 +87,7 @@ Generated on: 2025-10-23T13:34:41.669Z
 │       │   ├── 📄 use-mobile.tsx
 │       │   ├── 📄 use-toast.ts
 │       │   └── 📄 useAuth.ts
+│       ├── 📄 index.css
 │       ├── 📁 lib/
 │       │   ├── 📄 authUtils.ts
 │       │   ├── 📄 exportUtils.ts
@@ -98,7 +99,10 @@ Generated on: 2025-10-23T13:34:41.669Z
 │           ├── 📄 landing.tsx
 │           ├── 📄 not-found.tsx
 │           └── 📄 profile-settings.tsx
+├── 📄 components.json
 ├── 📄 drizzle.config.ts
+├── 📄 package-lock.json
+├── 📄 package.json
 ├── 📄 postcss.config.js
 ├── 📁 server/
 │   ├── 📄 db.ts
@@ -118,10 +122,13 @@ Generated on: 2025-10-23T13:34:41.669Z
 │   │   │   ├── 📄 chat.ts
 │   │   │   ├── 📄 instagram.ts
 │   │   │   ├── 📄 intent.ts
+│   │   │   ├── 📄 memory-utils.ts
 │   │   │   ├── 📄 memory.ts
 │   │   │   ├── 📄 profile.ts
 │   │   │   ├── 📄 search.ts
+│   │   │   ├── 📄 workflow-constants.ts
 │   │   │   └── 📄 workflow.ts
+│   │   ├── 📄 errors.ts
 │   │   ├── 📄 grok.ts
 │   │   ├── 📄 hikerapi.ts
 │   │   ├── 📄 instagrapi.ts
@@ -132,6 +139,7 @@ Generated on: 2025-10-23T13:34:41.669Z
 ├── 📁 shared/
 │   └── 📄 schema.ts
 ├── 📄 tailwind.config.ts
+├── 📄 tsconfig.json
 └── 📄 vite.config.ts
 
 ```

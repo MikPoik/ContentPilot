@@ -201,8 +201,46 @@ Extract new/changed BUSINESS info from both sources, focusing on factual discove
         }
       }
 
-      const profileUpdates = JSON.parse(cleanResult);
+      let profileUpdates = JSON.parse(cleanResult);
       console.log(`👤 [PROFILE_EXTRACT] Parsed updates:`, profileUpdates);
+
+      // Normalize AI output formats: some models return fields wrapped like { added: [...] }
+      // or single-value fields. Convert them to the expected shapes used elsewhere.
+      try {
+        // Normalize top-level contentNiche
+        if (profileUpdates.contentNiche && typeof profileUpdates.contentNiche === 'object' && !Array.isArray(profileUpdates.contentNiche)) {
+          if (Array.isArray(profileUpdates.contentNiche.added)) {
+            profileUpdates.contentNiche = profileUpdates.contentNiche.added;
+          } else {
+            // If it's an object with other keys, attempt to extract arrays
+            const vals = Object.values(profileUpdates.contentNiche).flat().filter(Boolean);
+            profileUpdates.contentNiche = vals.length > 0 ? vals : profileUpdates.contentNiche;
+          }
+        }
+
+        // Normalize profileData nested fields
+        if (profileUpdates.profileData && typeof profileUpdates.profileData === 'object') {
+          const pd = profileUpdates.profileData;
+          for (const key of Object.keys(pd)) {
+            const val = pd[key];
+            // If field is wrapped like { added: [...] }, unwrap
+            if (val && typeof val === 'object' && !Array.isArray(val) && Array.isArray(val.added)) {
+              pd[key] = val.added;
+            }
+
+            // If field is a single string, convert to array for consistent handling of array-limited fields
+            if (typeof pd[key] === 'string') {
+              pd[key] = [pd[key]];
+            }
+          }
+          profileUpdates.profileData = pd;
+        }
+      } catch (normErr) {
+        console.log('👤 [PROFILE_EXTRACT] Normalization error (continuing):', normErr);
+      }
+
+      // Track capped fields for user feedback
+      const cappedFields: { field: string; limit: number; attempted: number }[] = [];
 
       // Enforce contentNiche limit of 10 items
       if (profileUpdates.contentNiche && Array.isArray(profileUpdates.contentNiche)) {
@@ -211,11 +249,19 @@ Extract new/changed BUSINESS info from both sources, focusing on factual discove
         
         if (combinedNiches.length > 10) {
           const remainingSlots = 10 - currentNiches.length;
+          const attemptedToAdd = profileUpdates.contentNiche.length;
+          
           if (remainingSlots > 0) {
             profileUpdates.contentNiche = profileUpdates.contentNiche.slice(0, remainingSlots);
           } else {
             delete profileUpdates.contentNiche;
           }
+          
+          cappedFields.push({ 
+            field: 'Content Niche', 
+            limit: 10, 
+            attempted: currentNiches.length + attemptedToAdd 
+          });
           console.log(`👤 [PROFILE_EXTRACT] ContentNiche at limit (10), restricting new additions`);
         }
       }
@@ -230,9 +276,17 @@ Extract new/changed BUSINESS info from both sources, focusing on factual discove
           const combined = [...new Set([...current, ...profileUpdates.profileData.targetAudience])];
           if (combined.length > 5) {
             const remainingSlots = 5 - current.length;
+            const attemptedToAdd = profileUpdates.profileData.targetAudience.length;
+            
             profileUpdates.profileData.targetAudience = remainingSlots > 0 
               ? profileUpdates.profileData.targetAudience.slice(0, remainingSlots)
               : [];
+            
+            cappedFields.push({ 
+              field: 'Target Audience', 
+              limit: 5, 
+              attempted: current.length + attemptedToAdd 
+            });
             console.log(`👤 [PROFILE_EXTRACT] TargetAudience at limit (5), restricting additions`);
           }
         }
@@ -243,9 +297,17 @@ Extract new/changed BUSINESS info from both sources, focusing on factual discove
           const combined = [...new Set([...current, ...profileUpdates.profileData.contentGoals])];
           if (combined.length > 5) {
             const remainingSlots = 5 - current.length;
+            const attemptedToAdd = profileUpdates.profileData.contentGoals.length;
+            
             profileUpdates.profileData.contentGoals = remainingSlots > 0
               ? profileUpdates.profileData.contentGoals.slice(0, remainingSlots)
               : [];
+            
+            cappedFields.push({ 
+              field: 'Content Goals', 
+              limit: 5, 
+              attempted: current.length + attemptedToAdd 
+            });
             console.log(`👤 [PROFILE_EXTRACT] ContentGoals at limit (5), restricting additions`);
           }
         }
@@ -261,12 +323,28 @@ Extract new/changed BUSINESS info from both sources, focusing on factual discove
           const combined = [...new Set([...current, ...voices])];
           if (combined.length > 5) {
             const remainingSlots = 5 - current.length;
+            const attemptedToAdd = voices.length;
+            
             profileUpdates.profileData.brandVoice = remainingSlots > 0
               ? voices.slice(0, remainingSlots)
               : [];
+            
+            cappedFields.push({ 
+              field: 'Brand Voice', 
+              limit: 5, 
+              attempted: current.length + attemptedToAdd 
+            });
             console.log(`👤 [PROFILE_EXTRACT] BrandVoice at limit (5), restricting additions`);
           }
         }
+      }
+
+      // Add capped fields metadata to profileData for user feedback
+      if (cappedFields.length > 0) {
+        if (!profileUpdates.profileData) {
+          profileUpdates.profileData = {};
+        }
+        profileUpdates.profileData._cappedFields = cappedFields;
       }
 
       // Only return non-empty updates

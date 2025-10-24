@@ -3,8 +3,20 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+// Disable ETag to avoid 304 responses on API JSON routes and ensure fresh payloads
+app.set("etag", false);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Force no-cache on API routes to prevent intermediary/browser caching
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api")) {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+  }
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

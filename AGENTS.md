@@ -1,5 +1,9 @@
 # ContentCraft AI
 
+
+## Important Development guideline
+- NEVER use any language-specific hardcoded keyword patterns, only dynamic language agnostic patterns prefer to avoid any keyword triggers, filters, patterns.
+
 ## Overview
 ContentCraft AI is an AI-powered social media content strategist delivered as a full-stack web application. It offers a chat interface for AI-driven content brainstorming, platform-specific advice, and strategic planning. The project aims to enhance social media presence and content creation efficiency for marketers and content creators by integrating sophisticated chat functionalities.
 
@@ -34,7 +38,7 @@ ContentCraft AI is an AI-powered social media content strategist delivered as a 
 
 # Directory Tree
 
-Generated on: 2025-10-23T13:34:41.669Z
+Generated on: 2025-10-24T11:36:20.270Z
 
 *Simple mode: Directory structure only*
 
@@ -67,60 +71,14 @@ Generated on: 2025-10-23T13:34:41.669Z
 │       │   │   └── 📄 other-profile-data-card.tsx
 │       │   ├── 📄 subscription-management.tsx
 │       │   └── 📁 ui/
-│       │       ├── 📄 accordion.tsx
-│       │       ├── 📄 alert-dialog.tsx
-│       │       ├── 📄 alert.tsx
-│       │       ├── 📄 aspect-ratio.tsx
-│       │       ├── 📄 avatar.tsx
-│       │       ├── 📄 badge.tsx
-│       │       ├── 📄 breadcrumb.tsx
-│       │       ├── 📄 button.tsx
-│       │       ├── 📄 calendar.tsx
-│       │       ├── 📄 card.tsx
-│       │       ├── 📄 carousel.tsx
-│       │       ├── 📄 chart.tsx
-│       │       ├── 📄 checkbox.tsx
-│       │       ├── 📄 collapsible.tsx
-│       │       ├── 📄 command.tsx
-│       │       ├── 📄 context-menu.tsx
-│       │       ├── 📄 dialog.tsx
-│       │       ├── 📄 drawer.tsx
-│       │       ├── 📄 dropdown-menu.tsx
-│       │       ├── 📄 form.tsx
-│       │       ├── 📄 hover-card.tsx
-│       │       ├── 📄 input-otp.tsx
-│       │       ├── 📄 input.tsx
-│       │       ├── 📄 label.tsx
-│       │       ├── 📄 menubar.tsx
-│       │       ├── 📄 navigation-menu.tsx
-│       │       ├── 📄 pagination.tsx
-│       │       ├── 📄 popover.tsx
-│       │       ├── 📄 progress.tsx
-│       │       ├── 📄 radio-group.tsx
-│       │       ├── 📄 resizable.tsx
-│       │       ├── 📄 scroll-area.tsx
-│       │       ├── 📄 select.tsx
-│       │       ├── 📄 separator.tsx
-│       │       ├── 📄 sheet.tsx
-│       │       ├── 📄 sidebar.tsx
-│       │       ├── 📄 skeleton.tsx
-│       │       ├── 📄 slider.tsx
-│       │       ├── 📄 switch.tsx
-│       │       ├── 📄 table.tsx
-│       │       ├── 📄 tabs.tsx
-│       │       ├── 📄 textarea.tsx
-│       │       ├── 📄 theme-toggle.tsx
-│       │       ├── 📄 toast.tsx
-│       │       ├── 📄 toaster.tsx
-│       │       ├── 📄 toggle-group.tsx
-│       │       ├── 📄 toggle.tsx
-│       │       └── 📄 tooltip.tsx
+│       │       ├── (ui components omitted from list)
 │       ├── 📁 contexts/
 │       │   └── 📄 theme-context.tsx
 │       ├── 📁 hooks/
 │       │   ├── 📄 use-mobile.tsx
 │       │   ├── 📄 use-toast.ts
 │       │   └── 📄 useAuth.ts
+│       ├── 📄 index.css
 │       ├── 📁 lib/
 │       │   ├── 📄 authUtils.ts
 │       │   ├── 📄 exportUtils.ts
@@ -132,7 +90,10 @@ Generated on: 2025-10-23T13:34:41.669Z
 │           ├── 📄 landing.tsx
 │           ├── 📄 not-found.tsx
 │           └── 📄 profile-settings.tsx
+├── 📄 components.json
 ├── 📄 drizzle.config.ts
+├── 📄 package-lock.json
+├── 📄 package.json
 ├── 📄 postcss.config.js
 ├── 📁 server/
 │   ├── 📄 db.ts
@@ -152,10 +113,13 @@ Generated on: 2025-10-23T13:34:41.669Z
 │   │   │   ├── 📄 chat.ts
 │   │   │   ├── 📄 instagram.ts
 │   │   │   ├── 📄 intent.ts
+│   │   │   ├── 📄 memory-utils.ts
 │   │   │   ├── 📄 memory.ts
 │   │   │   ├── 📄 profile.ts
 │   │   │   ├── 📄 search.ts
+│   │   │   ├── 📄 workflow-constants.ts
 │   │   │   └── 📄 workflow.ts
+│   │   ├── 📄 errors.ts
 │   │   ├── 📄 grok.ts
 │   │   ├── 📄 hikerapi.ts
 │   │   ├── 📄 instagrapi.ts
@@ -166,6 +130,7 @@ Generated on: 2025-10-23T13:34:41.669Z
 ├── 📁 shared/
 │   └── 📄 schema.ts
 ├── 📄 tailwind.config.ts
+├── 📄 tsconfig.json
 └── 📄 vite.config.ts
 
 ```

@@ -82,7 +82,15 @@ export async function buildWorkflowAwareSystemPrompt(
   webSearchContext?: { context: string; citations: string[] },
   instagramAnalysisResult?: any
 ): Promise<string> {
+  const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  const currentYear = new Date().getFullYear();
+  
   let prompt = `You are ContentCraft AI, a world-class social media content strategist and creative partner with web search capabilities to provide current information.
+
+CURRENT DATE: ${currentDate}
+CURRENT YEAR: ${currentYear}
+
+IMPORTANT: When discussing trends, statistics, or time-sensitive information, always consider that today is ${currentDate}. If your training data is outdated, inform the user that you may need to search for current information.
 
 CRITICAL WORKFLOW RULES:
 - Always follow the natural conversation flow while guiding users through the 6 phases
@@ -93,6 +101,20 @@ CRITICAL WORKFLOW RULES:
 - Present options and get feedback before advancing to next phases
 
 CURRENT WORKFLOW PHASE: ${workflowDecision.currentPhase}
+
+⚠️ CONTENT GENERATION ENFORCEMENT:
+${workflowDecision.shouldBlockContentGeneration 
+  ? `🚫 CONTENT GENERATION IS BLOCKED - User profile incomplete (missing: ${workflowDecision.missingFields.join(', ')})
+- DO NOT create full content drafts, captions, or post text
+- DO NOT write complete social media posts
+- You MAY discuss content strategies and themes in general terms
+- You MAY ask questions to gather the missing profile information
+- Politely explain that you need more information before creating content
+- Example: "I'd love to help create that content! First, could you tell me [missing info]?"` 
+  : `✅ CONTENT GENERATION ALLOWED - Profile is sufficiently complete
+- You can create full content drafts, captions, and post copy
+- Match the user's authentic voice and style
+- Use their profile data to personalize content`}
 
 ${getPhaseGuidance(workflowDecision.currentPhase)}
 

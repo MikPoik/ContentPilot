@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SubscriptionManagement from "@/components/subscription-management";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { User } from "@shared/schema";
+import type { User, Conversation } from "@shared/schema";
 import { Link, useLocation } from "wouter";
 import BasicProfileCard from "@/components/profile/basic-profile-card";
 import AiCollectedDataCard from "@/components/profile/ai-collected-data-card";
@@ -34,21 +34,47 @@ export default function ProfileSettings() {
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
   const fromPath = urlParams.get('from') || '/';
 
-  // Refetch user data when the page mounts to ensure fresh data
-  useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-  }, [queryClient]);
+  // Fetch conversations to validate the 'from' path
+  const { data: conversations = [], isLoading: convLoading, isFetching: convFetching } = useQuery<Conversation[]>({
+    queryKey: ["/api/conversations"],
+  });
 
-  // Initialize local state when user data loads
-  useEffect(() => {
-    if (user?.profileData) {
-      const profileData = user.profileData as any;
-      setLocalBusinessType(profileData.businessType || "");
-      setLocalBusinessLocation(profileData.businessLocation || "");
+  // Validate that the fromPath conversation exists, otherwise default to home
+  const backHref = (() => {
+    // While conversations are loading, trust the provided fromPath to avoid premature fallback
+    if (convLoading || convFetching) {
+      return fromPath;
     }
-  }, [user?.profileData]);
 
-  // Cleanup debounce timeout on unmount
+    // Validate provided fromPath points to an existing conversation
+    const m = fromPath.match(/\/chat\/([^/?]+)/);
+    if (m && m[1]) {
+      const exists = conversations.some(c => c.id === m[1]);
+      if (exists) return fromPath;
+    }
+
+    // If fromPath wasn't a chat path or the chat no longer exists, try localStorage last conversation
+    try {
+      const lastId = localStorage.getItem('lastConversationId');
+      if (lastId && conversations.some(c => c.id === lastId)) {
+        return `/chat/${lastId}`;
+      }
+    } catch {
+      // ignore storage errors
+    }
+
+  // Fallback to home
+  return '/';
+})();
+
+// Initialize local state when user data loads
+useEffect(() => {
+  if (user?.profileData) {
+    const profileData = user.profileData as any;
+    setLocalBusinessType(profileData.businessType || "");
+    setLocalBusinessLocation(profileData.businessLocation || "");
+  }
+}, [user?.profileData]);  // Cleanup debounce timeout on unmount
   useEffect(() => {
     return () => {
       if (debounceTimeoutRef.current) {
@@ -277,7 +303,7 @@ export default function ProfileSettings() {
               className="text-gray-600 hover:text-gray-800"
               data-testid="button-back-to-chat"
             >
-              <Link href={fromPath}>
+              <Link href={backHref}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Link>
