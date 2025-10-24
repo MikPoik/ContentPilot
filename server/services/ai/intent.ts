@@ -248,7 +248,7 @@ ${JSON.stringify({
     });
 
     const aiPromise = geminiClient.chat.completions.create({
-      model: "grok-code-fast-1", // Faster model for simple decisions
+      model: "grok-4-fast-non-reasoning", // Faster model for simple decisions
       messages: [
         {
           role: "system",
@@ -439,8 +439,8 @@ ${memoriesContext}
       - When in doubt about profile updates, DO NOT extract (be conservative)`,
         },
       ],
-      max_tokens: 500, // Reduced for performance
-      temperature: 0.05, // Lower for more consistent results
+     // max_tokens: 500, // Reduced for performance
+      //temperature: 0.05, // Lower for more consistent results
     });
 
     const response = (await Promise.race([aiPromise, timeoutPromise])) as any;
