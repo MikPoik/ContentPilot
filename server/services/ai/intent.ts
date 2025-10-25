@@ -466,6 +466,32 @@ ${memoriesContext}
     // No heuristic fallback: rely on the AI's unified decision for instagramAnalysis.
     // Previous handle-detection heuristic removed to avoid unintended behavior.
 
+    // POST-PROCESSING VALIDATION: Validate workflow phase against constants
+    if (user) {
+      const { determineWorkflowPhase } = await import('./workflow-constants');
+      const profileCompleteness = parseInt(user.profileCompleteness || '0');
+      const profileData = user.profileData as any || {};
+      
+      const validatedPhase = determineWorkflowPhase(profileCompleteness, {
+        firstName: user.firstName,
+        contentNiche: user.contentNiche,
+        primaryPlatform: user.primaryPlatform,
+        primaryPlatforms: (user as any).primaryPlatforms,
+        targetAudience: profileData.targetAudience,
+        brandVoice: profileData.brandVoice,
+        businessType: profileData.businessType,
+        contentGoals: profileData.contentGoals,
+      });
+
+      // If AI chose a phase that doesn't match profile completeness, override with validated phase
+      if (decision.workflowPhase.currentPhase !== validatedPhase.name) {
+        console.log(`🔄 [VALIDATION] Correcting workflow phase from "${decision.workflowPhase.currentPhase}" to "${validatedPhase.name}" based on ${profileCompleteness}% completeness`);
+        decision.workflowPhase.currentPhase = validatedPhase.name;
+        decision.workflowPhase.shouldBlockContentGeneration = !validatedPhase.canGenerateContent;
+        decision.workflowPhase.confidence = 0.95; // High confidence in rule-based decision
+      }
+    }
+
     // POST-PROCESSING VALIDATION: Filter missing fields to ensure they're actually missing
     if (decision.workflowPhase.missingFields.length > 0 && user) {
       const actuallyMissingFields = decision.workflowPhase.missingFields.filter(field => {

@@ -502,6 +502,26 @@ export async function decideWorkflowPhase(messages: ChatMessage[], user?: User):
   try {
     console.log(`🔄 [AI_SERVICE] Analyzing workflow phase with GPT-4o-mini...`);
 
+    // First, check profile completeness against constants
+    if (user) {
+      const { determineWorkflowPhase: getValidatedPhase } = await import('./workflow-constants');
+      const profileCompleteness = parseInt(user.profileCompleteness || '0');
+      const profileData = user.profileData as any || {};
+      
+      const validatedPhase = getValidatedPhase(profileCompleteness, {
+        firstName: user.firstName,
+        contentNiche: user.contentNiche,
+        primaryPlatform: user.primaryPlatform,
+        primaryPlatforms: (user as any).primaryPlatforms,
+        targetAudience: profileData.targetAudience,
+        brandVoice: profileData.brandVoice,
+        businessType: profileData.businessType,
+        contentGoals: profileData.contentGoals,
+      });
+      
+      console.log(`🔄 [AI_SERVICE] Profile at ${profileCompleteness}% → Validated phase: ${validatedPhase.name}`);
+    }
+
     // Get last 8 messages for context
     const contextMessages = messages.slice(-4);
 
