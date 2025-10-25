@@ -236,13 +236,14 @@ export async function extractMemoriesFromConversation(
       messages: [
         {
           role: "system",
-          content: `Extract only the MOST valuable insights from this conversation. Quality over quantity - aim for 2-4 memories max.
+          content: `Extract valuable insights from this conversation. Be thorough but selective - capture 2-6 memories depending on information density.
 
 MEMORY EXTRACTION RULES:
 - Extract valuable insights from BOTH user messages AND assistant responses
 - Focus on confirmed preferences, decisions, and discovered business information
 - Include specific content requests and strategy discussions
 - Capture user's stated goals and content direction
+- Be inclusive of important details but avoid speculation
 
 EXTRACT FROM USER MESSAGES:
 - Content preferences and directions ("I want to create...", "I'm interested in...")
@@ -250,37 +251,29 @@ EXTRACT FROM USER MESSAGES:
 - Platform preferences and strategies they want to pursue
 - Feedback on past content or strategies
 - Personal/business details they share
+- Explicit decisions or confirmations
 
 EXTRACT FROM ASSISTANT RESPONSES:
 - Discovered business information from website/Instagram analysis (confirmed facts only)
 - Data-driven observations about their current performance
 - User-confirmed strategic decisions or preferences
+- Concrete facts about their content or audience
 
 DO NOT EXTRACT FROM ASSISTANT RESPONSES:
 - Suggestions, recommendations, or "could try" statements
 - Generic advice or ideas not yet confirmed by user
-- Assistant's strategic suggestions that user hasn't agreed to
-- Questions the assistant asks to the user (e.g., "User is asked about...")
-- Assistant prompts or queries for more information
+- Questions the assistant asks to the user
 - Any statement phrased as advice ("You should...", "You could...", "Try...")
-- Content ideas that haven't been explicitly accepted by user
+- Speculative content ideas that haven't been explicitly accepted
 
-GOOD EXTRACTIONS:
-- "User wants to create relationship-focused content for Instagram"
-- "Business focuses on couples therapy and neuropsychiatric coaching"
-- "User is interested in growing awareness through Instagram content"
-- "Current Instagram engagement rate is 1.66% with 885 followers"
-
-BAD EXTRACTIONS (DO NOT EXTRACT):
-- "Might explore fashion-wellness combination"
-- "Could try community challenges"
-- "You could consider posting daily"
-- "Here are some content ideas"
-- "Assistant suggests content that highlights local community"
-- "Assistant recommends trying carousel format"
-- "User is asked about preferred content formats"
-- "Assistant asks about business type"
-- "User is prompted to share more details"
+EXAMPLES:
+✅ GOOD: "User wants to create relationship-focused content for Instagram"
+✅ GOOD: "Business focuses on couples therapy and neuropsychiatric coaching"
+✅ GOOD: "Current Instagram engagement rate is 1.66% with 885 followers"
+✅ GOOD: "User confirmed interest in weekly posting schedule"
+❌ BAD: "Assistant suggests trying carousel format"
+❌ BAD: "User is asked about preferred content formats"
+❌ BAD: "Could explore fashion-wellness combination"
 
 ${existingMemories && existingMemories.length > 0 ? 
 `EXISTING MEMORIES TO AVOID DUPLICATING:
@@ -295,8 +288,8 @@ Return JSON array or [] if no confirmed user insights found.`,
           content: `User: ${userMessage}\n\nAssistant: ${assistantResponse}`,
         },
       ],
-      max_tokens: 250,
-      temperature: 0.05, // Very low temperature for consistent, precise extraction
+      max_tokens: 300,
+      temperature: 0.15, // Low temperature for consistent extraction with some flexibility
     });
 
     const result = response.choices[0]?.message?.content?.trim();
@@ -388,25 +381,25 @@ Return JSON array or [] if no confirmed user insights found.`,
 
             // 4. Detect quoted text patterns - often indicates suggestions or examples
             const quoteCount = (trimmed.match(/["'«»"'"]/g) || []).length;
-            if (quoteCount >= 4) { // At least 2 quoted phrases
+            if (quoteCount >= 6) { // At least 3 quoted phrases (more lenient)
               console.log(`🧠 [MEMORY_FILTER] Filtered multiple quoted phrases: "${trimmed}"`);
               return false;
             }
 
             // 5. Statistical: Very short or very long memories are often malformed
-            if (wordCount < 3) {
+            if (wordCount < 4) {
               console.log(`🧠 [MEMORY_FILTER] Filtered too short (${wordCount} words): "${trimmed}"`);
               return false;
             }
 
-            if (wordCount > 50) {
+            if (wordCount > 60) { // Allow slightly longer memories for detailed info
               console.log(`🧠 [MEMORY_FILTER] Filtered too long (${wordCount} words): "${trimmed}"`);
               return false;
             }
 
             // 6. Detect parenthetical/explanatory text patterns - often meta-commentary
             const parenCount = (trimmed.match(/[()[\]]/g) || []).length;
-            if (parenCount >= 4) { // Multiple parenthetical phrases
+            if (parenCount >= 6) { // More lenient - allow some parenthetical detail
               console.log(`🧠 [MEMORY_FILTER] Filtered excessive parentheticals: "${trimmed}"`);
               return false;
             }
