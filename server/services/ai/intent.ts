@@ -5,8 +5,8 @@ import OpenAI from "openai";
 
 // Centralized OpenAI client initialization
 const geminiClient = new OpenAI({
-  apiKey: process.env.XAI_API_KEY || "default_key",
-  baseURL: "https://api.x.ai/"
+  apiKey: process.env.GEMINI_API_KEY || "default_key",
+  baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/"
 });
 
 // Shared types for AI services (centralized in intent.ts)
@@ -248,7 +248,7 @@ ${JSON.stringify({
     });
 
     const aiPromise = geminiClient.chat.completions.create({
-      model: "grok-4-fast-non-reasoning", // Faster model for simple decisions
+      model: "gemini-2.5-flash-lite", // Faster model for simple decisions
       messages: [
         {
           role: "system",
@@ -439,8 +439,8 @@ ${memoriesContext}
       - When in doubt about profile updates, DO NOT extract (be conservative)`,
         },
       ],
-     // max_tokens: 500, // Reduced for performance
-      //temperature: 0.05, // Lower for more consistent results
+     max_tokens: 500, // Reduced for performance
+      temperature: 0.1, // Lower for more consistent results
     });
 
     const response = (await Promise.race([aiPromise, timeoutPromise])) as any;
@@ -448,7 +448,7 @@ ${memoriesContext}
     const result = response.choices[0]?.message?.content?.trim();
     if (!result) {
       console.log(
-        `❌ [UNIFIED_INTENT] No response from GPT-4o-mini after ${Date.now() - startTime}ms`,
+        `❌ [UNIFIED_INTENT] No response from Gemini flash after ${Date.now() - startTime}ms`,
       );
       return getDefaultUnifiedDecision();
     }
