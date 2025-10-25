@@ -293,11 +293,14 @@ INTENT DETECTION:
 • If user asks to search, check, analyze, research a competitor's Instagram account → isOwnProfile=false
 • Be proactive - if you detect an Instagram username or handle mentioned, trigger analysis
 
-3. INSTAGRAM HASHTAG SEARCH - Ideas and content inspiration:
-• Requests for hashtag content ideas (like "show me #fitness posts", "get ideas from #marketing", "hashtag inspiration")
-• Looking for trending content by hashtag
-• Content research by hashtag for inspiration
-• Trigger on any hashtag mention if it seems relevant to content discovery
+3. INSTAGRAM HASHTAG SEARCH - Content inspiration and trend discovery:
+• Requests for hashtag content ideas and trending posts
+• Looking for popular content and engagement patterns by hashtag
+• Content research and inspiration from successful posts
+• Examples: "show me #fitness posts", "get ideas from #marketing", "what's trending in #wellness"
+• Trigger proactively when user asks about content ideas in their niche
+• Use hashtags from user's Instagram profile if available and relevant
+• Helps discover what's working in their content category
 
 4. BLOG ANALYSIS - Content strategy examination:
 • Blog analysis requests with phrases like "analyze my blog", "check my blog posts", "review my writing style"
@@ -381,6 +384,13 @@ SEARCH QUERY RULES BY REQUEST TYPE:
 - User: "what's hot on X right now for marketing" → searchService: "grok", query: "viral marketing trends and popular content"
 - User: "show me latest Twitter trends in my niche" → searchService: "grok", query: "trending [user's niche] content and discussions"
 - User: "what are people talking about on X" → searchService: "grok", query: "current trending topics and discussions"
+
+**EXAMPLES FOR INSTAGRAM HASHTAG SEARCHES:**
+- User: "show me #fitness posts" → hashtag: "fitness"
+- User: "what's trending in #wellness" → hashtag: "wellness"
+- User: "get content ideas from #marketing" → hashtag: "marketing"
+- User: "what are successful #yoga posts doing" → hashtag: "yoga"
+- User: "find inspiration in my niche" → Use user's top hashtag from profile if available
 
 Return JSON (only include fields when true/relevant):
 {
