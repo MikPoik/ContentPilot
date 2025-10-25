@@ -291,19 +291,21 @@ INTENT DETECTION:
 • Check STORED MEMORIES for hint's about user's Instagram username, if available
 • If user asks to search, check, analyze, research his/her's own Instagram account → isOwnProfile=true
 • If user asks to search, check, analyze, research a competitor's Instagram account → isOwnProfile=false
+• Be proactive - if you detect an Instagram username or handle mentioned, trigger analysis
 
 3. INSTAGRAM HASHTAG SEARCH - Ideas and content inspiration:
 • Requests for hashtag content ideas (like "show me #fitness posts", "get ideas from #marketing", "hashtag inspiration")
 • Looking for trending content by hashtag
 • Content research by hashtag for inspiration
+• Trigger on any hashtag mention if it seems relevant to content discovery
 
 4. BLOG ANALYSIS - Content strategy examination:
-• EXPLICIT blog analysis requests with phrases like "analyze my blog", "check my blog posts", "review my writing style"
-• MUST be specifically about analyzing BLOG CONTENT, not just reading a website
+• Blog analysis requests with phrases like "analyze my blog", "check my blog posts", "review my writing style"
+• Requests to understand writing style from a website
 • For general website reading requests, use web search instead
-• Only trigger for URLs that are clearly blog posts or when user explicitly asks for blog content analysis
+• Trigger if URLs appear to be blog posts (contain /blog/, /posts/, or article patterns)
 
-5. WORKFLOW PHASE - User journey stage with explicit requirements:
+5. WORKFLOW PHASE - User journey stage with flexible requirements:
 
 PHASE 1: Discovery & Personalization (0-35% profile completeness)
 • Required fields to EXIT: firstName + contentNiche (at least 1 item) + (primaryPlatform OR primaryPlatforms)
@@ -312,49 +314,45 @@ PHASE 1: Discovery & Personalization (0-35% profile completeness)
 
 PHASE 2: Brand Voice & Positioning (35-55% profile completeness)
 • Required to ENTER: Discovery fields complete
-• Required to EXIT: Discovery fields + 2 of [targetAudience, brandVoice, businessType, contentGoals]
+• Required to EXIT: Discovery fields + 1 of [targetAudience, brandVoice, businessType, contentGoals]
 • Focus: Understanding brand identity, voice, target audience
 • Block content generation: YES
 
 PHASE 3: Collaborative Idea Generation (55-65% profile completeness)
-• Required to ENTER: Positioning fields complete + profile score >= 55%
+• Required to ENTER: Positioning fields complete + profile score >= 50%
 • Can generate: Content themes and high-level ideas (not full content yet)
 • Block full content drafts: YES (only allow idea generation)
 
-PHASE 4+: Content Creation Phases (65%+ profile completeness)
-• Required to ENTER: Profile score >= 65% AND has [firstName, contentNiche, primaryPlatform, targetAudience, brandVoice or businessType]
+PHASE 4+: Content Creation Phases (60%+ profile completeness)
+• Required to ENTER: Profile score >= 60% AND has [firstName, contentNiche, primaryPlatform, targetAudience OR brandVoice OR businessType]
 • Can generate: Full content drafts, captions, scripts
 • Block content generation: NO
 
-CRITICAL PHASE RULES:
-- Check BOTH profile completeness percentage AND individual required fields
-- If required fields missing OR score below threshold, CANNOT advance
-- Phase determination is STRICT - missing ANY required field blocks advancement
+FLEXIBLE PHASE RULES:
+- Check profile completeness percentage as PRIMARY indicator
+- Individual fields are GUIDELINES, not strict requirements
+- Phase determination is FLEXIBLE - use best judgment based on available data
 - Content generation blocking:
   * Phase 1-2: Block ALL content generation
   * Phase 3: Allow content IDEAS only, block full drafts
   * Phase 4+: Allow full content creation
-- Missing fields should only include fields that are truly empty/null/undefined
-- Do NOT suggest prompts for information that already exists (marked with ✅)
-- Only suggest prompts for fields marked with ❌ Missing
+- Missing fields should only include truly critical missing data
+- Prioritize user experience over strict field validation
 
-STRICT VALIDATION RULES:
-**TWITTER/X TRENDING SEARCH DETECTION (HIGH PRIORITY):**
+BALANCED VALIDATION RULES:
+**TWITTER/X TRENDING SEARCH DETECTION:**
 - Keywords: "trending", "trends", "viral", "popular", "hot", "what's happening", "latest ideas"
 - Platforms: "Twitter", "X", "social media trends"
-- Combined patterns: "search Twitter for...", "trending on X", "what's popular on Twitter", "latest from X"
-- User intent: Looking for current, real-time social content inspiration
 - When detected: Set searchService="grok", refinedQuery=[natural language about trends in their niche]
-- Recency: Use "day" or "hour" for trending content (not "week" or "month")
+- Recency: Use "day" or "hour" for trending content
 
 **OTHER VALIDATIONS:**
-- Extract usernames without @ symbol ONLY if explicitly mentioned
-- For blog analysis: REQUIRE explicit blog URLs or clear blog analysis requests
-- For Instagram analysis: REQUIRE explicit username mentions or analysis requests
-- For Instagram hashtag search: REQUIRE hashtag mentions (#hashtag) or explicit hashtag content requests
-- Do NOT hallucinate URLs, usernames, or requests that weren't mentioned
-- Be conservative - when in doubt, don't trigger analysis
-- Use semantic patterns, not keywords, but don't invent data
+- Extract usernames without @ symbol if explicitly mentioned OR strongly implied
+- For blog analysis: Look for blog URLs or clear blog analysis intent
+- For Instagram analysis: Trigger on username mentions or analysis requests
+- For Instagram hashtag search: Trigger on hashtag mentions or content research requests
+- Be proactive and helpful - when in doubt, trigger the analysis (better to help than block)
+- Use semantic understanding flexibly
 
 LANGUAGE MATCHING AND SEARCH OPTIMIZATION:
 CRITICAL FOR BLOG AND WEBSITE ANALYSIS:
@@ -417,26 +415,26 @@ ${memoriesContext}
       CRITICAL VALIDATION RULES:
       - For blog analysis: ONLY trigger if you see actual URLs (http/https) or explicit requests like "analyze my blog"
       - For Instagram analysis: ONLY trigger if you see @username mentions or explicit requests like "check my Instagram"
-      - For profile update: BE VERY CONSERVATIVE
-        * ONLY trigger for explicit profile update requests ("update my profile", "change my business type")
-        * OR when user shares significant NEW business information that fills ❌ missing fields
-        * DO NOT trigger for:
-          - Casual conversation about their business (just chatting)
-          - Generic questions or acknowledgments
-          - Discussions about content ideas (not profile data)
-          - Vague statements without concrete new information
+      - For profile update: BE REASONABLY PROACTIVE
+        * Trigger for explicit profile update requests ("update my profile", "change my business type")
+        * OR when user shares NEW business information that could enhance their profile
+        * DO trigger for:
+          - Business information shared naturally in conversation
+          - New goals, preferences, or strategies mentioned
+          - Platform or audience details provided
+          - Content direction or niche clarifications
         * Examples of when TO extract:
-          - "I'm a fitness coach" (when businessType is missing)
-          - "My target audience is young professionals" (when targetAudience is missing)
-          - "I want to focus on mental health content" (when contentNiche needs update)
-        * Examples of when NOT to extract:
-          - "Week has been good" (casual chat)
-          - "That sounds great" (acknowledgment)
-          - "I like that content idea" (discussing content, not profile)
-          - "How should I post?" (question, no new data)
-      - DO NOT use information from previous conversations or stored memories to infer analysis requests
-      - DO NOT trigger analysis based on general conversation topics
-      - When in doubt about profile updates, DO NOT extract (be conservative)`,
+          - "I'm a fitness coach" → extract businessType
+          - "My target audience is young professionals" → extract targetAudience
+          - "I want to focus on mental health content" → update contentNiche
+          - "I post mainly on Instagram and TikTok" → update platforms
+          - "I'm trying to grow my brand awareness" → extract contentGoals
+        * Only skip extraction for:
+          - Pure acknowledgments ("ok", "thanks", "got it")
+          - Questions without new information
+          - Casual greetings
+      - Use conversation context to infer helpful analysis opportunities
+      - Be proactive - helping users is better than blocking them`,
         },
       ],
      max_tokens: 500, // Reduced for performance
@@ -759,7 +757,7 @@ export function shouldExtractProfile(
   // Priority 2: Explicit user request to update profile
   // Intent analysis detected explicit update request
   if (unifiedDecision.profileUpdate.shouldExtract && 
-      unifiedDecision.profileUpdate.confidence >= 0.85) {
+      unifiedDecision.profileUpdate.confidence >= 0.75) {
     return {
       shouldExtract: true,
       reason: `Explicit profile update request: ${unifiedDecision.profileUpdate.reason}`,
@@ -768,10 +766,10 @@ export function shouldExtractProfile(
     };
   }
 
-  // Priority 3: Intent-based extraction with high confidence
-  // AI detected significant new profile information in conversation
+  // Priority 3: Intent-based extraction with moderate confidence
+  // AI detected new profile information in conversation
   if (unifiedDecision.profileUpdate.shouldExtract && 
-      unifiedDecision.profileUpdate.confidence >= 0.75) {
+      unifiedDecision.profileUpdate.confidence >= 0.60) {
     return {
       shouldExtract: true,
       reason: `Intent-based extraction: ${unifiedDecision.profileUpdate.reason}`,

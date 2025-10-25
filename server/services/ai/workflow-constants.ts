@@ -39,10 +39,10 @@ export const WORKFLOW_PHASES: Record<string, WorkflowPhaseRequirements> = {
   
   'Collaborative Idea Generation': {
     name: 'Collaborative Idea Generation',
-    minCompleteness: 55,
-    maxCompleteness: 65,
-    requiredFields: ['firstName', 'contentNiche', 'primaryPlatform', 'targetAudience'],
-    optionalFields: ['brandVoice', 'businessType', 'contentGoals'],
+    minCompleteness: 50,
+    maxCompleteness: 60,
+    requiredFields: ['firstName', 'contentNiche', 'primaryPlatform'],
+    optionalFields: ['targetAudience', 'brandVoice', 'businessType', 'contentGoals'],
     canGenerateContent: false,
     canGenerateIdeas: true,
     description: 'Generating content themes and high-level ideas'
@@ -50,10 +50,10 @@ export const WORKFLOW_PHASES: Record<string, WorkflowPhaseRequirements> = {
   
   'Developing Chosen Ideas': {
     name: 'Developing Chosen Ideas',
-    minCompleteness: 65,
+    minCompleteness: 60,
     maxCompleteness: 75,
-    requiredFields: ['firstName', 'contentNiche', 'primaryPlatform', 'targetAudience'],
-    optionalFields: ['brandVoice', 'businessType'],
+    requiredFields: ['firstName', 'contentNiche', 'primaryPlatform'],
+    optionalFields: ['targetAudience', 'brandVoice', 'businessType'],
     canGenerateContent: true,
     canGenerateIdeas: true,
     description: 'Creating specific content outlines and structures'
