@@ -481,9 +481,9 @@ ${memoriesContext}
       const profileData = user.profileData as any || {};
       
       const validatedPhase = determineWorkflowPhase(profileCompleteness, {
-        firstName: user.firstName,
-        contentNiche: user.contentNiche,
-        primaryPlatform: user.primaryPlatform,
+        firstName: user.firstName ?? undefined,
+        contentNiche: user.contentNiche ?? undefined,
+        primaryPlatform: user.primaryPlatform ?? undefined,
         primaryPlatforms: (user as any).primaryPlatforms,
         targetAudience: profileData.targetAudience,
         brandVoice: profileData.brandVoice,

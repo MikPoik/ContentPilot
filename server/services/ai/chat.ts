@@ -277,5 +277,6 @@ export async function extractMemoriesFromConversation(
   const { extractMemoriesFromConversation: extractMemories } = await import(
     "./memory"
   );
-  return extractMemories(userMessage, assistantResponse, existingMemories);
+  const extracted = await extractMemories(userMessage, assistantResponse, existingMemories);
+  return extracted.map(m => m.content);
 }

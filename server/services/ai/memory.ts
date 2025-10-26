@@ -463,7 +463,12 @@ Return JSON array or [] if no confirmed user insights found.`,
             extractedStrings.length,
             "memories",
           );
-          return extractedStrings;
+          // Return properly formatted ExtractedMemory objects
+          return extractedStrings.map(content => ({
+            content,
+            confidence: 0.5, // Lower confidence for fallback extraction
+            source: 'conversation' as const
+          }));
         }
       } catch (fallbackError) {
         console.log("Fallback extraction also failed:", fallbackError);
