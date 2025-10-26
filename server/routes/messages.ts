@@ -40,14 +40,14 @@ export function registerMessageRoutes(app: Express) {
 
     try {
       const { content } = req.body;
-      
+
       // Enhanced input validation with standardized errors
       if (!content || typeof content !== 'string') {
         const error = ErrorTypes.INVALID_INPUT('message', 'content missing or invalid type');
         logError(error, 'CHAT_FLOW');
         return res.status(error.statusCode).json(formatErrorResponse(error));
       }
-      
+
       // Validate content is not empty/whitespace only
       const trimmedContent = content.trim();
       if (trimmedContent.length === 0) {
@@ -55,7 +55,7 @@ export function registerMessageRoutes(app: Express) {
         logError(error, 'CHAT_FLOW');
         return res.status(error.statusCode).json(formatErrorResponse(error));
       }
-      
+
       // Check message length limits (prevent abuse)
       if (trimmedContent.length > 10000) {
         const error = ErrorTypes.MESSAGE_TOO_LONG(10000);
@@ -110,7 +110,7 @@ export function registerMessageRoutes(app: Express) {
 
       // PARALLEL DATA FETCH: Get conversation history, user profile, and start memory search simultaneously
       const dataFetchStart = Date.now();
-      
+
       // Build memory search query early (can start before other fetches complete)
       const memorySearchPromise = (async () => {
         const memorySearchStart = Date.now();
@@ -119,12 +119,12 @@ export function registerMessageRoutes(app: Express) {
             storage.getMessages(conversationId),
             storage.getUser(userId)
           ]);
-          
+
           const chatHistory = messages.map(m => ({
             role: m.role as 'user' | 'assistant' | 'system',
             content: m.content
           }));
-          
+
           // Build query using smart concatenation
           const queryBuildingStart = Date.now();
           const searchQuery = await buildMemorySearchQuery(content, chatHistory.slice(-6), user);
@@ -296,7 +296,7 @@ export function registerMessageRoutes(app: Express) {
           const analysisStart = Date.now();
           try {
             console.log(`📝 [CHAT_FLOW] Performing blog analysis for ${blogDecision.urls.length} URLs...`);
-            
+
             // Send blog analysis activity indicator
             const blogUrlsText = blogDecision.urls.length === 1 
               ? `Analyzing blog: ${blogDecision.urls[0]}` 
@@ -392,7 +392,7 @@ export function registerMessageRoutes(app: Express) {
       // Generate AI response stream with user profile and memories
       const aiResponseStart = Date.now();
       console.log(`🤖 [CHAT_FLOW] Starting AI response generation...`);
-  const responseWithMetadata: ChatResponseWithMetadata = await generateChatResponse(chatHistory, user!, relevantMemories, searchDecision, instagramAnalysisResult, instagramHashtagResult, blogAnalysisResult, workflowPhaseDecision); // Pass workflow decision from unified intent analysis
+      const responseWithMetadata: ChatResponseWithMetadata = await generateChatResponse(chatHistory, user!, relevantMemories, searchDecision, instagramAnalysisResult, instagramHashtagResult, blogAnalysisResult, workflowPhaseDecision); // Pass workflow decision from unified intent analysis
       let fullResponse = '';
 
       // Send search metadata immediately when search is performed (even with 0 citations)
@@ -488,15 +488,15 @@ export function registerMessageRoutes(app: Express) {
           let conversationProfileUpdates: any = {};
           if (extractionDecision.shouldExtract) {
             const profileExtractionStart = Date.now();
-            
+
             console.log(`👤 [CHAT_FLOW] Running profile extraction - reason: ${extractionDecision.reason}, source: ${extractionDecision.source}, confidence: ${extractionDecision.confidence}`);
-            
+
             // Send profile extraction activity indicator
             res.write(`[AI_ACTIVITY]{"type":"profile_extracting","message":"Updating your profile..."}[/AI_ACTIVITY]`);
             if (typeof (res as any).flush === 'function') {
               try { (res as any).flush(); } catch {}
             }
-            
+
             // Pass analysis context flags to help AI be more conservative
             const extractedProfile = await extractProfileInfo(
               userMessage,
@@ -508,13 +508,13 @@ export function registerMessageRoutes(app: Express) {
               }
             );
             conversationProfileUpdates = extractedProfile;
-            
+
             // Clear profile extraction indicator
             res.write(`[AI_ACTIVITY]{"type":null,"message":""}[/AI_ACTIVITY]`);
             if (typeof (res as any).flush === 'function') {
               try { (res as any).flush(); } catch {}
             }
-            
+
             console.log(`👤 [CHAT_FLOW] Profile extraction completed: ${Date.now() - profileExtractionStart}ms - extracted fields: ${Object.keys(extractedProfile || {}).join(', ') || 'none'}`);
           } else {
             console.log(`👤 [CHAT_FLOW] Skipping profile extraction - ${extractionDecision.reason}`);
@@ -546,19 +546,19 @@ export function registerMessageRoutes(app: Express) {
 
           if (Object.keys(combinedProfileUpdates).length > 0) {
             const profileSaveStart = Date.now();
-            
+
             // Extract capped fields for notification before cleaning up
             const cappedFields = combinedProfileUpdates.profileData?._cappedFields || [];
-            
+
             // Clean up internal metadata BEFORE saving to database
             if (combinedProfileUpdates.profileData?._cappedFields) {
               delete combinedProfileUpdates.profileData._cappedFields;
             }
-            
+
             const updatedUser = await storage.updateUserProfile(userId, combinedProfileUpdates);
             console.log(`👤 [CHAT_FLOW] Profile update saved: ${Date.now() - profileSaveStart}ms`);
             console.log(`👤 [CHAT_FLOW] Combined profile updates:`, Object.keys(combinedProfileUpdates));
-            
+
             // Send profile update notification to frontend
             const profileUpdateMetadata = {
               fieldsUpdated: Object.keys(combinedProfileUpdates).filter(key => 
@@ -569,7 +569,7 @@ export function registerMessageRoutes(app: Express) {
               extractionReason: extractionDecision.reason,
               cappedFields: cappedFields.length > 0 ? cappedFields : undefined
             };
-            
+
             res.write(`[PROFILE_UPDATED]${JSON.stringify(profileUpdateMetadata)}[/PROFILE_UPDATED]\n`);
             if (typeof (res as any).flush === 'function') {
               try { (res as any).flush(); } catch {}
@@ -593,43 +593,51 @@ export function registerMessageRoutes(app: Express) {
           }
 
           const memoryExtractionStart = Date.now();
-          const newMemories = await extractMemoriesFromConversation(content, fullResponse, relevantMemories);
-          console.log(`🧠 [CHAT_FLOW] Memory extraction: ${Date.now() - memoryExtractionStart}ms (found ${newMemories.length} memories)`);
+          // The extractMemoriesFromConversation function should now return an array of objects, each containing content, confidence, and source
+          const extractedMemories = await extractMemoriesFromConversation(content, fullResponse, relevantMemories);
+          console.log(`🧠 [CHAT_FLOW] Memory extraction: ${Date.now() - memoryExtractionStart}ms (found ${extractedMemories.length} memories)`);
 
-          if (newMemories.length > 0) {
+          if (extractedMemories.length > 0) {
             // Generate embeddings in BATCH for much faster processing
             const embeddingStart = Date.now();
-            const embeddings = await generateBatchEmbeddings(newMemories);
-            console.log(`🧠 [CHAT_FLOW] Batch embeddings: ${Date.now() - embeddingStart}ms (${embeddings.length} embeddings)`);
+            const embeddings = await generateBatchEmbeddings(extractedMemories.map(m => m.content)); // Pass only content for embedding
+            console.log(`🧠 [CHAT_FLOW] Batch embedding generation: ${Date.now() - embeddingStart}ms (${embeddings.length} embeddings)`);
+
+            // Prepare memories with embeddings and metadata
+            const memoriesWithEmbeddings = extractedMemories.map((memory, index) => ({
+              content: memory.content,
+              embedding: embeddings[index],
+              confidence: memory.confidence,
+              source: memory.source
+            }));
 
             // SEMANTIC DEDUPLICATION: Check each new memory against existing ones before insertion
             const deduplicationStart = Date.now();
-            const memoriesToSave: Array<{ content: string; embedding: number[]; isDuplicate: boolean }> = [];
-            
-            for (let i = 0; i < newMemories.length; i++) {
-              const memoryContent = newMemories[i];
-              const embedding = embeddings[i];
+            const memoriesToSave: Array<{ content: string; embedding: number[]; isDuplicate: boolean; confidence: number; source: string }> = [];
+
+            for (let i = 0; i < memoriesWithEmbeddings.length; i++) {
+              const memory = memoriesWithEmbeddings[i];
               
               // Check similarity with existing memories
-              const similarExisting = await storage.searchSimilarMemories(userId, embedding, 5);
+              const similarExisting = await storage.searchSimilarMemories(userId, memory.embedding, 5);
               const highestSimilarity = similarExisting.length > 0 ? similarExisting[0].similarity : 0;
-              
+
               // Use 0.92 threshold for true duplicates (semantic deduplication)
               // This prevents near-identical memories while allowing semantically different ones
               if (highestSimilarity >= 0.92) {
-                console.log(`🧠 [DEDUP] Skipping duplicate memory (similarity: ${highestSimilarity.toFixed(3)}): "${memoryContent.substring(0, 60)}..."`);
-                memoriesToSave.push({ content: memoryContent, embedding, isDuplicate: true });
+                console.log(`🧠 [DEDUP] Skipping duplicate memory (similarity: ${highestSimilarity.toFixed(3)}): "${memory.content.substring(0, 60)}..."`);
+                memoriesToSave.push({ ...memory, isDuplicate: true });
               } else {
-                console.log(`🧠 [DEDUP] Accepting new memory (highest similarity: ${highestSimilarity.toFixed(3)}): "${memoryContent.substring(0, 60)}..."`);
-                memoriesToSave.push({ content: memoryContent, embedding, isDuplicate: false });
+                console.log(`🧠 [DEDUP] Accepting new memory (highest similarity: ${highestSimilarity.toFixed(3)}): "${memory.content.substring(0, 60)}..."`);
+                memoriesToSave.push({ ...memory, isDuplicate: false });
               }
             }
-            console.log(`🧠 [CHAT_FLOW] Semantic deduplication check: ${Date.now() - deduplicationStart}ms (${memoriesToSave.filter(m => !m.isDuplicate).length}/${newMemories.length} unique)`);
+            console.log(`🧠 [CHAT_FLOW] Semantic deduplication check: ${Date.now() - deduplicationStart}ms (${memoriesToSave.filter(m => !m.isDuplicate).length}/${extractedMemories.length} unique)`);
 
             // Save only non-duplicate memories with importance scoring
             const saveStart = Date.now();
             const uniqueMemories = memoriesToSave.filter(m => !m.isDuplicate);
-            
+
             if (uniqueMemories.length > 0) {
               // Send saving memories activity
               res.write(`[AI_ACTIVITY]{"type":"saving_memories","message":"Saving memories for future reference..."}[/AI_ACTIVITY]\n`);
@@ -645,36 +653,40 @@ export function registerMessageRoutes(app: Express) {
                   // 3. Business-critical information
                   const content = memory.content.toLowerCase();
                   let importanceScore = 0.5; // Base score
-                  
+
                   // Boost for profile-related content
                   if (content.includes('my name') || content.includes('my business') || 
                       content.includes('i am') || content.includes("i'm")) {
                     importanceScore += 0.2;
                   }
-                  
+
                   // Boost for business information
                   if (content.includes('target audience') || content.includes('brand voice') ||
                       content.includes('content goal') || content.includes('niche')) {
                     importanceScore += 0.15;
                   }
-                  
-                  // Boost for analysis results
-                  if ((memory.content as any)?.metadata?.source === 'instagram_analysis' ||
-                      (memory.content as any)?.metadata?.source === 'blog_analysis') {
+
+                  // Boost for analysis results based on source and confidence
+                  if (memory.source === 'instagram_analysis' && memory.confidence > 0.8) {
                     importanceScore += 0.1;
+                  } else if (memory.source === 'blog_analysis' && memory.confidence > 0.8) {
+                    importanceScore += 0.1;
+                  } else if (memory.source === 'web_search' && memory.confidence > 0.85) {
+                    importanceScore += 0.05;
                   }
-                  
+
                   // Cap at 1.0
                   importanceScore = Math.min(1.0, importanceScore);
-                  
+
                   return storage.createMemory({
                     userId,
                     content: memory.content,
                     embedding: memory.embedding,
                     metadata: { 
-                      source: 'conversation', 
+                      source: memory.source, 
                       conversationId,
                       importance: importanceScore,
+                      confidence: memory.confidence, // Store confidence from extraction
                       createdAt: new Date().toISOString()
                     }
                   });
@@ -687,8 +699,60 @@ export function registerMessageRoutes(app: Express) {
           }
           console.log(`🧠 [CHAT_FLOW] Total memory processing: ${Date.now() - memorySaveStart}ms`);
         } catch (error) {
-          console.log('❌ [CHAT_FLOW] Memory extraction error:', error);
-          console.log(`🧠 [CHAT_FLOW] Memory processing failed: ${Date.now() - memorySaveStart}ms`);
+          console.log('❌ [CHAT_FLOW] Memory save error:', error);
+        }
+
+        // Track workflow phase transitions
+        try {
+          // Use responseWithMetadata.workflowDecision directly
+          if (responseWithMetadata.workflowDecision && user) {
+            const currentPhase = responseWithMetadata.workflowDecision.currentPhase;
+            // Safely access currentWorkflowPhase from user profile data
+            const previousPhase = (user.profileData as any)?.currentWorkflowPhase || null;
+
+            // Only track if phase has changed and both previous and current phases are defined
+            if (previousPhase && currentPhase && currentPhase !== previousPhase) {
+              console.log(`📊 [WORKFLOW_TRANSITION] Phase change: ${previousPhase} → ${currentPhase}`);
+
+              const transitionMemory = `User advanced from ${previousPhase} to ${currentPhase} workflow phase (${user.profileCompleteness}% profile complete)`;
+              const transitionEmbedding = await generateEmbedding(transitionMemory);
+
+              await storage.createMemory({
+                userId,
+                content: transitionMemory,
+                embedding: transitionEmbedding,
+                metadata: {
+                  source: 'workflow_transition',
+                  conversationId,
+                  fromPhase: previousPhase,
+                  toPhase: currentPhase,
+                  profileCompleteness: user.profileCompleteness,
+                  importance: 0.8,
+                  confidence: 1.0, // Confidence for workflow transitions is high
+                  createdAt: new Date().toISOString()
+                }
+              });
+
+              // Update user's current phase in profile data
+              await storage.updateUserProfile(userId, {
+                profileData: {
+                  ...(user.profileData as any || {}),
+                  currentWorkflowPhase: currentPhase
+                }
+              });
+            } else if (currentPhase && !previousPhase) {
+              // If there's a current phase but no previous phase recorded, just record the current one
+              console.log(`📊 [WORKFLOW_TRANSITION] Initializing workflow phase: ${currentPhase}`);
+              await storage.updateUserProfile(userId, {
+                profileData: {
+                  ...(user.profileData as any || {}),
+                  currentWorkflowPhase: currentPhase
+                }
+              });
+            }
+          }
+        } catch (error) {
+          console.log('❌ [WORKFLOW_TRANSITION] Tracking error:', error);
         }
 
         // Update conversation title if it's the first exchange (ASYNC - don't block response)
@@ -709,7 +773,7 @@ export function registerMessageRoutes(app: Express) {
         }
 
         const totalDuration = Date.now() - requestStartTime;
-        
+
         // Comprehensive performance summary
         console.log(`\n📊 [PERFORMANCE] Request Summary:`);
         console.log(`  Total Duration: ${totalDuration}ms`);
@@ -738,7 +802,7 @@ export function registerMessageRoutes(app: Express) {
         res.end();
       } catch (error) {
         console.error('❌ [CHAT_FLOW] Streaming error:', error);
-        
+
         // Try to send error indicator to client if possible
         if (!res.headersSent) {
           res.status(500).json({ 
@@ -763,7 +827,7 @@ export function registerMessageRoutes(app: Express) {
       // Provide user-friendly error messages based on error type
       let errorMessage = "Failed to process message. Please try again.";
       let statusCode = 500;
-      
+
       if (error instanceof Error) {
         // Network/timeout errors
         if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
@@ -785,7 +849,7 @@ export function registerMessageRoutes(app: Express) {
           errorMessage = "Database connection issue. Please try again in a moment.";
           statusCode = 503;
         }
-        
+
         console.log(`🔍 [CHAT_FLOW] Error classification: ${statusCode} - ${errorMessage}`);
       }
 

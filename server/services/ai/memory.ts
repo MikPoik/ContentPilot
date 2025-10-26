@@ -224,11 +224,17 @@ export async function rephraseQueryForEmbedding(
   return buildMemorySearchQuery(userMessage, conversationHistory, user);
 }
 
+export interface ExtractedMemory {
+  content: string;
+  confidence: number;
+  source: 'user' | 'assistant' | 'conversation';
+}
+
 export async function extractMemoriesFromConversation(
   userMessage: string,
   assistantResponse: string,
   existingMemories?: Array<{ content: string; similarity?: number }>,
-): Promise<string[]> {
+): Promise<ExtractedMemory[]> {
   try {
     // Use GPT-4o-mini for more precise instruction following
     const response = await openai.chat.completions.create({
@@ -342,72 +348,90 @@ Return JSON array or [] if no confirmed user insights found.`,
 
       const memories = JSON.parse(cleanResult);
 
-      // Post-processing filter to catch problematic extractions
-      const filteredMemories = Array.isArray(memories)
-        ? memories.filter((m) => {
-            if (typeof m !== "string") return false;
+      // Post-processing filter with confidence scoring
+      const filteredMemories: ExtractedMemory[] = Array.isArray(memories)
+        ? memories.map((m) => {
+            if (typeof m !== "string") return null;
             const trimmed = m.trim();
 
             // Basic sanity checks
-            if (trimmed.length < 10 || trimmed.length > 500) return false;
+            if (trimmed.length < 10 || trimmed.length > 500) return null;
 
             const meaningfulChars = trimmed.replace(/[\s\p{P}\p{S}]/gu, '');
-            if (meaningfulChars.length < trimmed.length * 0.4) return false;
+            if (meaningfulChars.length < trimmed.length * 0.4) return null;
 
-            // POST-PROCESSING FILTER: Truly language-agnostic using structural patterns only
+            // Calculate confidence score (0-1)
+            let confidence = 0.7; // Base confidence
+            const wordCount = trimmed.split(/\s+/).length;
+
+            // POST-PROCESSING FILTER: Language-agnostic using character diversity
 
             // 1. Filter out questions (universal - ends with ?)
             if (trimmed.match(/\?$/)) {
-              console.log(`🧠 [MEMORY_FILTER] Filtered question (ends with ?): "${trimmed}"`);
-              return false;
+              console.log(`🧠 [MEMORY_FILTER] Filtered question: "${trimmed}"`);
+              return null;
             }
 
-            // 2. Filter out JSON-like structures or malformed extractions
+            // 2. Filter out JSON-like structures
             if (trimmed.match(/^\{.*".*".*\}$/) || trimmed.match(/^\[.*\]$/)) {
               console.log(`🧠 [MEMORY_FILTER] Filtered JSON structure: "${trimmed}"`);
-              return false;
+              return null;
             }
 
-            // 3. Statistical pattern: Too many punctuation marks = likely malformed or meta-text
-            const punctuationCount = (trimmed.match(/[,;:.!?]/g) || []).length;
-            const wordCount = trimmed.split(/\s+/).length;
-            const punctuationRatio = punctuationCount / wordCount;
-
-            // If more than 30% of words followed by punctuation, likely a list or malformed text
-            if (punctuationRatio > 0.3 && wordCount > 3) {
-              console.log(`🧠 [MEMORY_FILTER] Filtered high punctuation ratio (${punctuationRatio.toFixed(2)}): "${trimmed}"`);
-              return false;
+            // 3. Character diversity check (more language-agnostic)
+            const uniqueChars = new Set(trimmed.toLowerCase()).size;
+            const diversityRatio = uniqueChars / trimmed.length;
+            if (diversityRatio < 0.15) {
+              console.log(`🧠 [MEMORY_FILTER] Filtered low diversity (${diversityRatio.toFixed(2)}): "${trimmed}"`);
+              return null;
             }
 
-            // 4. Detect quoted text patterns - often indicates suggestions or examples
+            // Boost confidence for good diversity
+            if (diversityRatio > 0.3) confidence += 0.1;
+
+            // 4. Detect quoted text patterns
             const quoteCount = (trimmed.match(/["'«»"'"]/g) || []).length;
-            if (quoteCount >= 6) { // At least 3 quoted phrases (more lenient)
-              console.log(`🧠 [MEMORY_FILTER] Filtered multiple quoted phrases: "${trimmed}"`);
-              return false;
+            if (quoteCount >= 6) {
+              console.log(`🧠 [MEMORY_FILTER] Filtered multiple quotes: "${trimmed}"`);
+              return null;
             }
 
-            // 5. Statistical: Very short or very long memories are often malformed
+            // 5. Word count quality checks
             if (wordCount < 4) {
               console.log(`🧠 [MEMORY_FILTER] Filtered too short (${wordCount} words): "${trimmed}"`);
-              return false;
+              return null;
             }
-
-            if (wordCount > 60) { // Allow slightly longer memories for detailed info
+            if (wordCount > 60) {
               console.log(`🧠 [MEMORY_FILTER] Filtered too long (${wordCount} words): "${trimmed}"`);
-              return false;
+              return null;
             }
 
-            // 6. Detect parenthetical/explanatory text patterns - often meta-commentary
+            // Boost confidence for optimal length (10-40 words)
+            if (wordCount >= 10 && wordCount <= 40) confidence += 0.15;
+
+            // 6. Detect excessive parentheticals
             const parenCount = (trimmed.match(/[()[\]]/g) || []).length;
-            if (parenCount >= 6) { // More lenient - allow some parenthetical detail
+            if (parenCount >= 6) {
               console.log(`🧠 [MEMORY_FILTER] Filtered excessive parentheticals: "${trimmed}"`);
-              return false;
+              return null;
             }
-            return true;
-          })
+
+            // Determine source from content patterns
+            const lowerContent = trimmed.toLowerCase();
+            let source: 'user' | 'assistant' | 'conversation' = 'conversation';
+            
+            if (lowerContent.includes('user wants') || lowerContent.includes('user confirmed')) {
+              source = 'user';
+              confidence += 0.1;
+            } else if (lowerContent.includes('analysis') || lowerContent.includes('discovered')) {
+              source = 'assistant';
+            }
+
+            return { content: trimmed, confidence: Math.min(1.0, confidence), source };
+          }).filter((m): m is ExtractedMemory => m !== null)
         : [];
 
-      console.log(`🧠 [AI_SERVICE] Extracted ${filteredMemories.length} memories after post-processing filter`);
+      console.log(`🧠 [AI_SERVICE] Extracted ${filteredMemories.length} memories with confidence scores`);
       return filteredMemories;
     } catch (parseError) {
       console.log("Memory extraction JSON parse error:", parseError);
