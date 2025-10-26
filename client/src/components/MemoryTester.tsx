@@ -109,17 +109,6 @@ export default function MemoryTester() {
         <CardHeader>
           <CardTitle>Memory System Tester</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Test Endpoints Status</h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div>✅ GET /api/memories - Fetch all memories</div>
-              <div>✅ POST /api/memories - Create memory with embedding</div>
-              <div>✅ DELETE /api/memories/:id - Delete memory</div>
-              <div>✅ POST /api/memories/search - Vector similarity search</div>
-            </div>
-          </div>
-        </CardContent>
       </Card>
 
       <Card>
