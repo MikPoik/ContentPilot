@@ -11,7 +11,9 @@ import { type Memory } from "@shared/schema";
 export default function MemoryTester() {
   const [newMemoryContent, setNewMemoryContent] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<(Memory & { similarity: number })[]>([]);
+  const [searchResults, setSearchResults] = useState<
+    (Memory & { similarity: number })[]
+  >([]);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -23,9 +25,9 @@ export default function MemoryTester() {
   // Create memory mutation
   const createMemoryMutation = useMutation({
     mutationFn: async (content: string) => {
-      const response = await apiRequest("POST", "/api/memories", { 
+      const response = await apiRequest("POST", "/api/memories", {
         content,
-        metadata: { source: "memory_tester" } as Record<string, any>
+        metadata: { source: "memory_tester" } as Record<string, any>,
       });
       return response.json();
     },
@@ -70,7 +72,10 @@ export default function MemoryTester() {
   // Search memories mutation
   const searchMemoriesMutation = useMutation({
     mutationFn: async ({ query, limit }: { query: string; limit?: number }) => {
-      const response = await apiRequest("POST", "/api/memories/search", { query, limit });
+      const response = await apiRequest("POST", "/api/memories/search", {
+        query,
+        limit,
+      });
       return response.json();
     },
     onSuccess: (results) => {
@@ -107,7 +112,7 @@ export default function MemoryTester() {
     <div className="space-y-6 p-4 max-w-4xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>Memory System Tester</CardTitle>
+          <CardTitle>Manage Memories</CardTitle>
         </CardHeader>
       </Card>
 
@@ -123,9 +128,11 @@ export default function MemoryTester() {
               onChange={(e) => setNewMemoryContent(e.target.value)}
               data-testid="input-memory-content"
             />
-            <Button 
+            <Button
               onClick={handleCreateMemory}
-              disabled={createMemoryMutation.isPending || !newMemoryContent.trim()}
+              disabled={
+                createMemoryMutation.isPending || !newMemoryContent.trim()
+              }
               data-testid="button-create-memory"
             >
               {createMemoryMutation.isPending ? "Creating..." : "Create Memory"}
@@ -146,21 +153,29 @@ export default function MemoryTester() {
               onChange={(e) => setSearchQuery(e.target.value)}
               data-testid="input-search-query"
             />
-            <Button 
+            <Button
               onClick={handleSearchMemories}
               disabled={searchMemoriesMutation.isPending || !searchQuery.trim()}
               data-testid="button-search-memories"
             >
-              {searchMemoriesMutation.isPending ? "Searching..." : "Search Memories"}
+              {searchMemoriesMutation.isPending
+                ? "Searching..."
+                : "Search Memories"}
             </Button>
           </div>
 
           {searchResults.length > 0 && (
             <div className="mt-4">
-              <h4 className="font-semibold mb-2">Search Results ({searchResults.length})</h4>
+              <h4 className="font-semibold mb-2">
+                Search Results ({searchResults.length})
+              </h4>
               <div className="space-y-2">
                 {searchResults.map((result) => (
-                  <div key={result.id} className="p-3 border rounded bg-blue-50" data-testid={`search-result-${result.id}`}>
+                  <div
+                    key={result.id}
+                    className="p-3 border rounded bg-blue-50"
+                    data-testid={`search-result-${result.id}`}
+                  >
                     <div className="text-sm text-gray-600 mb-1">
                       Similarity: {(result.similarity * 100).toFixed(2)}%
                     </div>
@@ -179,11 +194,17 @@ export default function MemoryTester() {
         </CardHeader>
         <CardContent>
           {memories.length === 0 ? (
-            <div className="text-gray-500" data-testid="text-no-memories">No memories found. Create one to test the system.</div>
+            <div className="text-gray-500" data-testid="text-no-memories">
+              No memories found. Create one to test the system.
+            </div>
           ) : (
             <div className="space-y-2">
               {memories.map((memory) => (
-                <div key={memory.id} className="p-3 border rounded bg-gray-50 flex justify-between items-start" data-testid={`memory-${memory.id}`}>
+                <div
+                  key={memory.id}
+                  className="p-3 border rounded bg-gray-50 flex justify-between items-start"
+                  data-testid={`memory-${memory.id}`}
+                >
                   <div className="flex-1">
                     <div className="text-sm text-gray-600 mb-1">
                       Created: {new Date(memory.createdAt).toLocaleString()}
