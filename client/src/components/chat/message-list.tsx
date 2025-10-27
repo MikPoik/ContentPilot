@@ -321,13 +321,13 @@ export default function MessageList({
                 {/* Show activity indicators for streaming assistant messages or messages with active AI activities */}
                 {((message as any).metadata?.streaming || (message as any).metadata?.aiActivity) && (
                   <>
-                    <AIActivityIndicator 
-                      activity={(message as any).metadata?.aiActivity || null}
-                      message={(message as any).metadata?.aiActivityMessage || ''}
-                      searchQuery={(message as any).metadata?.searchQuery}
-                    />
-                    {!((message as any).metadata?.aiActivity) && isSearching && (
-                      <SearchIndicator isSearching={true} searchQuery={(message as any).metadata?.searchQuery} />
+                    {/* Only show AI activity if streaming is true - prevents flash after response completes */}
+                    {(message as any).metadata?.streaming && (
+                      <AIActivityIndicator 
+                        activity={(message as any).metadata?.aiActivity || null}
+                        message={(message as any).metadata?.aiActivityMessage || ''}
+                        searchQuery={(message as any).metadata?.searchQuery}
+                      />
                     )}
                   </>
                 )}
