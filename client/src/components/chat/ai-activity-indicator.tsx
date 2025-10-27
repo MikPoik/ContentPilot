@@ -16,14 +16,14 @@ export default function AIActivityIndicator({ activity, message, searchQuery, de
         return {
           icon: Brain,
           color: 'text-blue-600',
-          text: message || '',
+          text: message || 'Thinking...',
           animation: 'animate-pulse'
         };
       case 'reasoning':
         return {
           icon: Lightbulb,
           color: 'text-purple-600',
-          text: message || '',
+          text: message || 'Reasoning...',
           animation: 'animate-pulse'
         };
       case 'searching':
@@ -37,21 +37,21 @@ export default function AIActivityIndicator({ activity, message, searchQuery, de
         return {
           icon: Eye,
           color: 'text-indigo-600',
-          text: message || '',
+          text: message || 'Recalling memories...',
           animation: 'animate-pulse'
         };
       case 'analyzing':
         return {
           icon: BarChart3,
           color: 'text-orange-600',
-          text: message || '',
+          text: message || 'Analyzing...',
           animation: 'animate-pulse'
         };
       case 'generating':
         return {
           icon: PenTool,
           color: 'text-green-600',
-          text: message || '',
+          text: message || 'Writing response...',
           animation: 'animate-pulse'
         };
       case 'instagram_analyzing':
