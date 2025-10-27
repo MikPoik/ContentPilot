@@ -9,11 +9,13 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import type { SubscriptionPlan } from "@shared/schema";
+import { useState } from "react";
 
 export default function SubscriptionManagement() {
   const { user, isLoading: userLoading } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
 
   // Fetch subscription plans
   const { data: plans, isLoading: plansLoading } = useQuery<SubscriptionPlan[]>({
@@ -24,15 +26,18 @@ export default function SubscriptionManagement() {
   // Create checkout session mutation
   const createCheckoutMutation = useMutation({
     mutationFn: async (planId: string) => {
+      setProcessingPlanId(planId);
       const response = await apiRequest("POST", "/api/subscriptions/create-checkout", { planId });
       return response.json();
     },
     onSuccess: (data) => {
+      setProcessingPlanId(null);
       if (data.url) {
         window.location.href = data.url;
       }
     },
     onError: () => {
+      setProcessingPlanId(null);
       toast({
         title: "Error",
         description: "Failed to create checkout session",
@@ -176,11 +181,12 @@ export default function SubscriptionManagement() {
                     <Button
                       className="w-full"
                       variant={isCurrentUserPlan ? "outline" : "default"}
-                      disabled={isCurrentUserPlan || createCheckoutMutation.isPending}
+                      disabled={isCurrentUserPlan || processingPlanId !== null}
+                      type="button"
                       onClick={() => createCheckoutMutation.mutate(plan.id)}
                       data-testid={`button-subscribe-${plan.id}`}
                     >
-                      {createCheckoutMutation.isPending ? (
+                      {processingPlanId === plan.id ? (
                         "Processing..."
                       ) : isCurrentUserPlan ? (
                         "Current Plan"
