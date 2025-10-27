@@ -168,6 +168,18 @@ export default function MessageList({
                 • Generate content ideas for your niche
               </p>
             </div>
+            <div className="mt-6">
+              <a
+                href="/profile-settings"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 shadow-sm hover:shadow-md"
+                data-testid="link-profile-settings"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                View Profile Data
+              </a>
+            </div>
           </div>
         </div>
 
@@ -226,6 +238,18 @@ export default function MessageList({
               <p className="font-medium text-muted-foreground">
                 • Rewrite or improve an existing caption
               </p>
+            </div>
+            <div className="mt-6">
+              <a
+                href="/profile-settings"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-200 shadow-sm hover:shadow-md"
+                data-testid="link-profile-settings-empty"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                View Profile Data
+              </a>
             </div>
           </div>
         </div>
