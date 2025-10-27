@@ -120,7 +120,8 @@ export default function Landing() {
         <div className="absolute inset-0 bg-gradient-to-br from-cyan-100/40 via-emerald-50/30 to-teal-100/40 dark:from-transparent dark:via-transparent dark:to-transparent" />
         
         <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-4xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto">
+            <div className="text-center lg:text-left">
             <Badge className="mb-6 bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0 px-4 py-1.5 text-sm font-medium shadow-lg">
               <Sparkles className="w-3 h-3 mr-1 inline" />
               AI-Powered Content Creation
@@ -161,9 +162,9 @@ export default function Landing() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4 sm:gap-8 max-w-2xl mx-auto">
+            <div className="grid grid-cols-3 gap-4 sm:gap-8 max-w-2xl mx-auto lg:mx-0">
               {stats.map((stat, index) => (
-                <div key={index} className="text-center">
+                <div key={index} className="text-center lg:text-left">
                   <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent mb-1">
                     {stat.value}
                   </div>
@@ -172,6 +173,19 @@ export default function Landing() {
               ))}
             </div>
           </div>
+
+          {/* Hero Image */}
+          <div className="hidden lg:block">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl blur-3xl" />
+              <img 
+                src="/hero-image.jpg" 
+                alt="ContentCraft AI Dashboard" 
+                className="relative rounded-2xl shadow-2xl border border-border/50 w-full h-auto"
+              />
+            </div>
+          </div>
+        </div>
         </div>
       </section>
 
