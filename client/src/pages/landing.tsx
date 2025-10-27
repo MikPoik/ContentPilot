@@ -117,7 +117,7 @@ export default function Landing() {
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-20 pb-24 sm:pt-24 sm:pb-32">
         <div className="absolute inset-0 bg-gradient-to-b from-emerald-100/80 via-teal-50/40 to-transparent dark:from-slate-900/60 dark:via-gray-950/30 dark:to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-br from-cyan-100/30 via-emerald-50/20 to-transparent dark:from-slate-900/20 dark:via-gray-950/10 dark:to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-cyan-100/30 via-emerald-50/20 to-transparent dark:from-slate-900/20 dark:via-gray-950/10 dark:to-transparent" />
         
         <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
