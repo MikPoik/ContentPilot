@@ -2,19 +2,15 @@ import { type User } from "@shared/schema";
 import { perplexityService } from "../perplexity";
 import { grokService } from "../grok";
 import { openai } from "../openai";
+import { buildWorkflowAwareSystemPrompt } from "./workflow";
 import {
-  buildWorkflowAwareSystemPrompt,
-} from "./workflow";
-import { 
   type WebSearchDecision,
   type WorkflowPhaseDecision,
-  type ChatMessage
+  type ChatMessage,
 } from "./intent";
 // Import functions to be used internally
 
-
 // Note: DeepInfra usage eliminated - moved to OpenAI for consistency
-
 
 export interface ChatResponseWithMetadata {
   stream: ReadableStream<string>;
@@ -32,7 +28,7 @@ export async function generateChatResponse(
   instagramAnalysisResult?: any,
   instagramHashtagResult?: any,
   blogAnalysisResult?: any,
-  workflowDecision?: WorkflowPhaseDecision
+  workflowDecision?: WorkflowPhaseDecision,
 ): Promise<ChatResponseWithMetadata> {
   const startTime = Date.now();
   console.log(`🤖 [AI_SERVICE] Building workflow-aware response...`);
@@ -40,15 +36,20 @@ export async function generateChatResponse(
   // Use workflow phase decision from caller (unified intent analysis)
   if (!workflowDecision) {
     // Fallback for backward compatibility - shouldn't happen in normal operation
-    console.warn(`⚠️ [AI_SERVICE] No workflow decision provided, this shouldn't happen with unified intent system`);
+    console.warn(
+      `⚠️ [AI_SERVICE] No workflow decision provided, this shouldn't happen with unified intent system`,
+    );
     workflowDecision = {
       currentPhase: "Discovery & Personalization",
       missingFields: ["name", "niche", "platform"],
       readyToAdvance: false,
-      suggestedPrompts: ["What's your name?", "What type of content do you create?"],
+      suggestedPrompts: [
+        "What's your name?",
+        "What type of content do you create?",
+      ],
       profilePatch: {},
       shouldBlockContentGeneration: true,
-      confidence: 0.9
+      confidence: 0.9,
     };
   }
 
@@ -70,12 +71,14 @@ export async function generateChatResponse(
 
     // Always set searchQuery if AI recommended search, even if we don't execute it
     if (searchDecision.shouldSearch) {
-      searchQuery = searchDecision.refinedQuery?.trim() || 
+      searchQuery =
+        searchDecision.refinedQuery?.trim() ||
         messages
           .slice()
           .reverse()
           .find((m) => m.role === "user")
-          ?.content?.trim() || "";
+          ?.content?.trim() ||
+        "";
     }
   }
 
@@ -91,11 +94,14 @@ export async function generateChatResponse(
       const searchStart = Date.now();
       searchPerformed = true;
 
-      if (searchDecision.searchService === 'grok' && grokService.isConfigured()) {
+      if (
+        searchDecision.searchService === "grok" &&
+        grokService.isConfigured()
+      ) {
         webSearchContext = await grokService.searchForChatContext(
           searchQuery || "",
           "Provide current, relevant social media information that would help a content strategist give accurate advice. Focus on recent trends, social media discussions, and real-time insights.",
-          searchDecision.socialHandles
+          searchDecision.socialHandles,
         );
       } else if (perplexityService.isConfigured()) {
         // Use Perplexity as fallback or when explicitly chosen
@@ -103,10 +109,12 @@ export async function generateChatResponse(
           searchQuery || "",
           "Provide current, relevant information that would help a social media content strategist give accurate advice. Focus on recent trends, current events, or factual data mentioned in the query.",
           searchDecision.recency,
-          searchDecision.domains
+          searchDecision.domains,
         );
       } else {
-        throw new Error(`${searchDecision.searchService} service not configured`);
+        throw new Error(
+          `${searchDecision.searchService} service not configured`,
+        );
       }
 
       console.log(
@@ -115,7 +123,9 @@ export async function generateChatResponse(
 
       // Even if no sources found, we still performed a search
       if (webSearchContext.citations.length === 0) {
-        console.log(`⚠️ [AI_SERVICE] Web search returned no results, but search was attempted`);
+        console.log(
+          `⚠️ [AI_SERVICE] Web search returned no results, but search was attempted`,
+        );
       }
     } catch (error) {
       console.log(
@@ -124,7 +134,11 @@ export async function generateChatResponse(
       );
       searchPerformed = false;
     }
-  } else if (searchDecision?.shouldSearch && !perplexityService.isConfigured() && !grokService.isConfigured()) {
+  } else if (
+    searchDecision?.shouldSearch &&
+    !perplexityService.isConfigured() &&
+    !grokService.isConfigured()
+  ) {
     console.log(
       `⚠️ [AI_SERVICE] No search services configured, skipping search despite AI recommendation`,
     );
@@ -149,16 +163,17 @@ export async function generateChatResponse(
   // Add blog analysis result to context if available
   let finalSystemPrompt = systemPrompt;
   if (blogAnalysisResult?.success && blogAnalysisResult.analysis) {
-    const { formatBlogAnalysisForChat } = await import('./blog.js');
+    const { formatBlogAnalysisForChat } = await import("./blog.js");
     finalSystemPrompt += `\n\n=== RECENT BLOG ANALYSIS ===\n${formatBlogAnalysisForChat(blogAnalysisResult.analysis, blogAnalysisResult.cached)}`;
   }
   //console.log(`🤖 [AI_SERVICE] Final system prompt length: ${finalSystemPrompt}`)
   // Add hashtag search result to context if available
   if (instagramHashtagResult?.success && instagramHashtagResult.hashtagResult) {
-    const { formatInstagramHashtagSearchForChat } = await import('./instagram.js');
+    const { formatInstagramHashtagSearchForChat } = await import(
+      "./instagram.js"
+    );
     finalSystemPrompt += `\n\n=== RECENT INSTAGRAM HASHTAG SEARCH ===\n${formatInstagramHashtagSearchForChat(instagramHashtagResult.hashtagResult, instagramHashtagResult.cached)}`;
   }
-
 
   const chatMessages: ChatMessage[] = [
     { role: "system", content: finalSystemPrompt },
@@ -176,7 +191,7 @@ export async function generateChatResponse(
     messages: chatMessages,
     stream: true,
     temperature: 0.7,
-    max_tokens: 1000,
+    max_tokens: 2000,
   });
   console.log(
     `🤖 [AI_SERVICE] OpenAI stream initialized: ${Date.now() - openaiRequestStart}ms`,
@@ -258,7 +273,6 @@ export async function generateConversationTitle(
   }
 }
 
-
 // Import and re-export functions for backward compatibility
 export async function extractProfileInfo(
   userMessage: string,
@@ -277,6 +291,10 @@ export async function extractMemoriesFromConversation(
   const { extractMemoriesFromConversation: extractMemories } = await import(
     "./memory"
   );
-  const extracted = await extractMemories(userMessage, assistantResponse, existingMemories);
-  return extracted.map(m => m.content);
+  const extracted = await extractMemories(
+    userMessage,
+    assistantResponse,
+    existingMemories,
+  );
+  return extracted.map((m) => m.content);
 }
