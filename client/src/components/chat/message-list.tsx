@@ -15,7 +15,16 @@ interface MessageListProps {
   isSearching?: boolean;
   searchQuery?: string;
   searchCitations?: string[];
-  aiActivity?: 'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | 'extracting_memories' | 'saving_memories' | null;
+  aiActivity?:
+    | "thinking"
+    | "reasoning"
+    | "searching"
+    | "recalling"
+    | "analyzing"
+    | "generating"
+    | "extracting_memories"
+    | "saving_memories"
+    | null;
   aiActivityMessage?: string;
   user?: User;
   conversationId?: string;
@@ -23,42 +32,48 @@ interface MessageListProps {
   onDeleteMessage?: (messageId: string) => void;
 }
 
-export default function MessageList({ 
-  messages, 
-  streamingMessage, 
-  isStreaming, 
+export default function MessageList({
+  messages,
+  streamingMessage,
+  isStreaming,
   isLoadingMessages = false,
   isSearching = false,
   searchQuery,
   searchCitations = [],
   aiActivity = null,
-  aiActivityMessage = '',
+  aiActivityMessage = "",
   user,
   conversationId,
   onRegenerateMessage,
-  onDeleteMessage
+  onDeleteMessage,
 }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const copyMessageContent = useCallback((content: string) => {
-    navigator.clipboard.writeText(content).then(() => {
-      toast({
-        title: "Copied!",
-        description: "Message copied to clipboard",
-        duration: 2000,
-      });
-    }).catch((err) => {
-      console.error('Failed to copy message content:', err);
-      toast({
-        title: "Copy failed",
-        description: "Unable to copy message to clipboard",
-        variant: "destructive",
-        duration: 3000,
-      });
-    });
-  }, [toast]);
+  const copyMessageContent = useCallback(
+    (content: string) => {
+      navigator.clipboard
+        .writeText(content)
+        .then(() => {
+          toast({
+            title: "Copied!",
+            description: "Message copied to clipboard",
+            duration: 2000,
+          });
+        })
+        .catch((err) => {
+          console.error("Failed to copy message content:", err);
+          toast({
+            title: "Copy failed",
+            description: "Unable to copy message to clipboard",
+            variant: "destructive",
+            duration: 3000,
+          });
+        });
+    },
+    [toast],
+  );
 
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
@@ -97,7 +112,7 @@ export default function MessageList({
   // Show loading spinner while messages are loading for a selected conversation
   if (conversationId && isLoadingMessages) {
     return (
-      <div 
+      <div
         ref={containerRef}
         className="h-full overflow-y-auto px-4 py-6 flex items-center justify-center"
         data-testid="message-list-loading"
@@ -111,9 +126,14 @@ export default function MessageList({
   }
 
   // Show welcome message only for completely empty state
-  if (!conversationId && messages.length === 0 && !streamingMessage && !isStreaming) {
+  if (
+    !conversationId &&
+    messages.length === 0 &&
+    !streamingMessage &&
+    !isStreaming
+  ) {
     return (
-      <div 
+      <div
         ref={containerRef}
         className="h-full overflow-y-auto px-4 py-6 space-y-6"
         data-testid="message-list"
@@ -128,15 +148,25 @@ export default function MessageList({
               Welcome to ContentCraft AI!
             </h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              I'm here to help you brainstorm amazing social media content ideas. 
-              Let's start by getting to know your brand and interests!
+              I'm here to help you brainstorm amazing social media content
+              ideas. Let's start by getting to know your brand and interests!
             </p>
             <div className="mt-4 text-xs text-muted-foreground/80 space-y-1">
-              <p className="font-medium text-muted-foreground">💡 Try asking me to:</p>
-              <p className="font-medium text-muted-foreground">• Analyze your Instagram profile (@username)</p>
-              <p className="font-medium text-muted-foreground">• Research websites or blogs for inspiration</p>
-              <p className="font-medium text-muted-foreground">• Check out competitor content strategies</p>
-              <p className="font-medium text-muted-foreground">• Generate content ideas for your niche</p>
+              <p className="font-medium text-muted-foreground">
+                💡 Try asking me to:
+              </p>
+              <p className="font-medium text-muted-foreground">
+                • Analyze your Instagram profile (@username)
+              </p>
+              <p className="font-medium text-muted-foreground">
+                • Research websites or blogs for inspiration
+              </p>
+              <p className="font-medium text-muted-foreground">
+                • Check out competitor content strategies
+              </p>
+              <p className="font-medium text-muted-foreground">
+                • Generate content ideas for your niche
+              </p>
             </div>
           </div>
         </div>
@@ -147,9 +177,14 @@ export default function MessageList({
   }
 
   // Show an empty-conversation helper when a conversation exists but has no messages yet
-  if (conversationId && messages.length === 0 && !streamingMessage && !isStreaming) {
+  if (
+    conversationId &&
+    messages.length === 0 &&
+    !streamingMessage &&
+    !isStreaming
+  ) {
     return (
-      <div 
+      <div
         ref={containerRef}
         className="h-full overflow-y-auto px-4 py-6 space-y-6"
         data-testid="message-list-empty-conversation"
@@ -163,14 +198,34 @@ export default function MessageList({
               This conversation is empty
             </h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Start the conversation by typing a message below. Here are some ideas to get you started.
+              Start the conversation by typing a message below. Here are some
+              ideas to get you started.
             </p>
             <div className="mt-4 text-xs text-muted-foreground/80 space-y-1">
-              <p className="font-medium text-muted-foreground">💡 Try asking me to:</p>
-              <p className="font-medium text-muted-foreground">• Generate content ideas for your brand</p>
-              <p className="font-medium text-muted-foreground">• Analyze an Instagram profile (@username)</p>
-              <p className="font-medium text-muted-foreground">• Research competitors or topic inspiration</p>
-              <p className="font-medium text-muted-foreground">• Rewrite or improve an existing caption</p>
+              <p className="font-medium text-muted-foreground">
+                💡 Try asking me to:
+              </p>
+              <p className="font-medium text-muted-foreground">
+                • Generate content ideas for your brand
+              </p>
+              <p className="font-medium text-muted-foreground">
+                • Analyze an Instagram profile (@username)
+              </p>
+              <p className="font-medium text-muted-foreground">
+                • Analyze an X (Twitter) profile
+              </p>
+              <p className="font-medium text-muted-foreground">
+                • Search the web for ideas
+              </p>
+              <p className="font-medium text-muted-foreground">
+                • Analyze Blog URL
+              </p>
+              <p className="font-medium text-muted-foreground">
+                • Research competitors or topic inspiration
+              </p>
+              <p className="font-medium text-muted-foreground">
+                • Rewrite or improve an existing caption
+              </p>
             </div>
           </div>
         </div>
@@ -181,7 +236,7 @@ export default function MessageList({
   }
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="h-full overflow-y-auto px-4 py-6 space-y-6"
       data-testid="message-list"
@@ -191,166 +246,233 @@ export default function MessageList({
         // Only apply fade-in to user messages and assistant messages from real DB (not optimistic)
         // Optimistic assistant messages have timestamp IDs, real DB messages have UUIDs
         const hasClientKey = Boolean((message as any).metadata?.clientKey);
-        const isOptimisticAssistant = message.role === 'assistant' && ((/^\d+-assistant$/.test(message.id.toString())) || /^temp-stream-/.test(message.id.toString()) || hasClientKey);
-        const shouldAnimate = message.role === 'user' || !isOptimisticAssistant;
-        
+        const isOptimisticAssistant =
+          message.role === "assistant" &&
+          (/^\d+-assistant$/.test(message.id.toString()) ||
+            /^temp-stream-/.test(message.id.toString()) ||
+            hasClientKey);
+        const shouldAnimate = message.role === "user" || !isOptimisticAssistant;
+
         return (
-          <div 
+          <div
             key={(message as any).metadata?.clientKey || message.id}
-            className={`group flex items-start space-x-3 ${shouldAnimate ? 'animate-fade-in' : ''} ${
-              message.role === 'user' ? 'justify-end' : ''
+            className={`group flex items-start space-x-3 ${shouldAnimate ? "animate-fade-in" : ""} ${
+              message.role === "user" ? "justify-end" : ""
             }`}
           >
-          {message.role === 'assistant' && (
-            <div className="hidden md:flex w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full items-center justify-center flex-shrink-0">
-              <span className="text-white text-sm">🤖</span>
-            </div>
-          )}
-          
-          <div className={`flex-1 max-w-3xl ${message.role === 'user' ? 'flex flex-col items-end' : ''}`}>
-            
+            {message.role === "assistant" && (
+              <div className="hidden md:flex w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full items-center justify-center flex-shrink-0">
+                <span className="text-white text-sm">🤖</span>
+              </div>
+            )}
 
-            <div className={`px-4 py-3 rounded-2xl ${
-              message.role === 'user'
-                ? 'bg-emerald-500 text-white rounded-tr-md max-w-fit'
-                : 'bg-muted text-foreground dark:text-white rounded-tl-md'
-            }`}>
-              {message.role === 'user' ? (
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                  {message.content}
-                </p>
-              ) : (
-                <div className="text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-p:leading-relaxed prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 dark:prose-invert dark:text-white dark:prose-p:text-white dark:prose-headings:text-white dark:prose-strong:text-white dark:prose-em:text-white dark:prose-li:text-white dark:prose-a:text-blue-300">
-                  {((message as any).metadata?.streaming) ? (
-                    <span className="inline dark:text-white">
+            <div
+              className={`flex-1 max-w-3xl ${message.role === "user" ? "flex flex-col items-end" : ""}`}
+            >
+              <div
+                className={`px-4 py-3 rounded-2xl ${
+                  message.role === "user"
+                    ? "bg-emerald-500 text-white rounded-tr-md max-w-fit"
+                    : "bg-muted text-foreground dark:text-white rounded-tl-md"
+                }`}
+              >
+                {message.role === "user" ? (
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                    {message.content}
+                  </p>
+                ) : (
+                  <div className="text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-p:leading-relaxed prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 dark:prose-invert dark:text-white dark:prose-p:text-white dark:prose-headings:text-white dark:prose-strong:text-white dark:prose-em:text-white dark:prose-li:text-white dark:prose-a:text-blue-300">
+                    {(message as any).metadata?.streaming ? (
+                      <span className="inline dark:text-white">
+                        <ReactMarkdown
+                          components={{
+                            p: ({ children, ...props }) => (
+                              <span {...props} className="dark:text-white">
+                                {children}
+                              </span>
+                            ),
+                            br: () => <br />,
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+                        <span className="w-2 h-4 bg-muted-foreground ml-1 animate-pulse inline-block align-baseline" />
+                      </span>
+                    ) : (
                       <ReactMarkdown
                         components={{
-                          p: ({ children, ...props }) => <span {...props} className="dark:text-white">{children}</span>,
-                          br: () => <br />,
+                          p: ({ children, ...props }) => (
+                            <p {...props} className="dark:text-white">
+                              {children}
+                            </p>
+                          ),
+                          span: ({ children, ...props }) => (
+                            <span {...props} className="dark:text-white">
+                              {children}
+                            </span>
+                          ),
+                          strong: ({ children, ...props }) => (
+                            <strong {...props} className="dark:text-white">
+                              {children}
+                            </strong>
+                          ),
+                          em: ({ children, ...props }) => (
+                            <em {...props} className="dark:text-white">
+                              {children}
+                            </em>
+                          ),
+                          li: ({ children, ...props }) => (
+                            <li {...props} className="dark:text-white">
+                              {children}
+                            </li>
+                          ),
+                          h1: ({ children, ...props }) => (
+                            <h1 {...props} className="dark:text-white">
+                              {children}
+                            </h1>
+                          ),
+                          h2: ({ children, ...props }) => (
+                            <h2 {...props} className="dark:text-white">
+                              {children}
+                            </h2>
+                          ),
+                          h3: ({ children, ...props }) => (
+                            <h3 {...props} className="dark:text-white">
+                              {children}
+                            </h3>
+                          ),
+                          h4: ({ children, ...props }) => (
+                            <h4 {...props} className="dark:text-white">
+                              {children}
+                            </h4>
+                          ),
+                          h5: ({ children, ...props }) => (
+                            <h5 {...props} className="dark:text-white">
+                              {children}
+                            </h5>
+                          ),
+                          h6: ({ children, ...props }) => (
+                            <h6 {...props} className="dark:text-white">
+                              {children}
+                            </h6>
+                          ),
                         }}
                       >
                         {message.content}
                       </ReactMarkdown>
-                      <span className="w-2 h-4 bg-muted-foreground ml-1 animate-pulse inline-block align-baseline" />
-                    </span>
-                  ) : (
-                    <ReactMarkdown 
-                      components={{
-                        p: ({ children, ...props }) => <p {...props} className="dark:text-white">{children}</p>,
-                        span: ({ children, ...props }) => <span {...props} className="dark:text-white">{children}</span>,
-                        strong: ({ children, ...props }) => <strong {...props} className="dark:text-white">{children}</strong>,
-                        em: ({ children, ...props }) => <em {...props} className="dark:text-white">{children}</em>,
-                        li: ({ children, ...props }) => <li {...props} className="dark:text-white">{children}</li>,
-                        h1: ({ children, ...props }) => <h1 {...props} className="dark:text-white">{children}</h1>,
-                        h2: ({ children, ...props }) => <h2 {...props} className="dark:text-white">{children}</h2>,
-                        h3: ({ children, ...props }) => <h3 {...props} className="dark:text-white">{children}</h3>,
-                        h4: ({ children, ...props }) => <h4 {...props} className="dark:text-white">{children}</h4>,
-                        h5: ({ children, ...props }) => <h5 {...props} className="dark:text-white">{children}</h5>,
-                        h6: ({ children, ...props }) => <h6 {...props} className="dark:text-white">{children}</h6>,
-                      }}
-                    >
-                      {message.content}
-                    </ReactMarkdown>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Show citations for assistant messages if available */}
+              {message.role === "assistant" &&
+                (message.metadata?.citations ||
+                  message.metadata?.searchPerformed) && (
+                  <SearchCitations
+                    citations={message.metadata.citations as string[]}
+                    searchQuery={message.metadata.searchQuery as string}
+                    searchPerformed={
+                      message.metadata.searchPerformed as boolean
+                    }
+                  />
+                )}
+
+              {/* Timestamp and activity indicators */}
+              {message.role === "user" ? (
+                /* User messages: timestamp below the message, right-aligned */
+                <div className="text-xs text-muted-foreground mt-1 px-1">
+                  {new Date(message.createdAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </div>
+              ) : (
+                /* Assistant messages: timestamp with activity indicators */
+                <div className="text-xs text-muted-foreground mt-1 px-1 flex items-center gap-2">
+                  <span>
+                    {new Date(message.createdAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+
+                  {/* Action buttons for assistant messages */}
+                  {!(message as any).metadata?.streaming && (
+                    <div className="flex items-center gap-1 ml-2">
+                      <button
+                        onClick={() => copyMessageContent(message.content)}
+                        className="opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 p-1 rounded hover:bg-muted/50 transition-all duration-200"
+                        title="Copy message"
+                        data-testid={`button-copy-${message.id}`}
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
+                      {onRegenerateMessage && (
+                        <button
+                          onClick={() =>
+                            onRegenerateMessage(message.id.toString())
+                          }
+                          className="opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 p-1 rounded hover:bg-muted/50 transition-all duration-200"
+                          title="Regenerate response"
+                          data-testid={`button-regenerate-${message.id}`}
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                        </button>
+                      )}
+                      {onDeleteMessage && (
+                        <button
+                          onClick={() => onDeleteMessage(message.id.toString())}
+                          className="opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 p-1 rounded hover:bg-muted/50 transition-all duration-200"
+                          title="Delete message"
+                          data-testid={`button-delete-${message.id}`}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Show activity indicators for streaming assistant messages or messages with active AI activities */}
+                  {((message as any).metadata?.streaming ||
+                    (message as any).metadata?.aiActivity) && (
+                    <>
+                      {/* Only show AI activity if streaming is true - prevents flash after response completes */}
+                      {(message as any).metadata?.streaming && (
+                        <AIActivityIndicator
+                          activity={
+                            (message as any).metadata?.aiActivity || null
+                          }
+                          message={
+                            (message as any).metadata?.aiActivityMessage || ""
+                          }
+                          searchQuery={(message as any).metadata?.searchQuery}
+                        />
+                      )}
+                    </>
                   )}
                 </div>
               )}
             </div>
-            
-            {/* Show citations for assistant messages if available */}
-            {message.role === 'assistant' && (message.metadata?.citations || message.metadata?.searchPerformed) && (
-              <SearchCitations 
-                citations={message.metadata.citations as string[]} 
-                searchQuery={message.metadata.searchQuery as string}
-                searchPerformed={message.metadata.searchPerformed as boolean}
-              />
-            )}
-            
-            {/* Timestamp and activity indicators */}
-            {message.role === 'user' ? (
-              /* User messages: timestamp below the message, right-aligned */
-              <div className="text-xs text-muted-foreground mt-1 px-1">
-                {new Date(message.createdAt).toLocaleTimeString([], { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                })}
-              </div>
-            ) : (
-              /* Assistant messages: timestamp with activity indicators */
-              <div className="text-xs text-muted-foreground mt-1 px-1 flex items-center gap-2">
-                <span>
-                  {new Date(message.createdAt).toLocaleTimeString([], { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
-                </span>
-                
-                {/* Action buttons for assistant messages */}
-                {!((message as any).metadata?.streaming) && (
-                  <div className="flex items-center gap-1 ml-2">
-                    <button
-                      onClick={() => copyMessageContent(message.content)}
-                      className="opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 p-1 rounded hover:bg-muted/50 transition-all duration-200"
-                      title="Copy message"
-                      data-testid={`button-copy-${message.id}`}
-                    >
-                      <Copy className="w-3 h-3" />
-                    </button>
-                    {onRegenerateMessage && (
-                      <button
-                        onClick={() => onRegenerateMessage(message.id.toString())}
-                        className="opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 p-1 rounded hover:bg-muted/50 transition-all duration-200"
-                        title="Regenerate response"
-                        data-testid={`button-regenerate-${message.id}`}
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                      </button>
-                    )}
-                    {onDeleteMessage && (
-                      <button
-                        onClick={() => onDeleteMessage(message.id.toString())}
-                        className="opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 p-1 rounded hover:bg-muted/50 transition-all duration-200"
-                        title="Delete message"
-                        data-testid={`button-delete-${message.id}`}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-                )}
 
-                {/* Show activity indicators for streaming assistant messages or messages with active AI activities */}
-                {((message as any).metadata?.streaming || (message as any).metadata?.aiActivity) && (
-                  <>
-                    {/* Only show AI activity if streaming is true - prevents flash after response completes */}
-                    {(message as any).metadata?.streaming && (
-                      <AIActivityIndicator 
-                        activity={(message as any).metadata?.aiActivity || null}
-                        message={(message as any).metadata?.aiActivityMessage || ''}
-                        searchQuery={(message as any).metadata?.searchQuery}
-                      />
-                    )}
-                  </>
+            {message.role === "user" && (
+              <div className="hidden md:flex w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full items-center justify-center flex-shrink-0">
+                {user?.profileImageUrl ? (
+                  <img
+                    src={user.profileImageUrl}
+                    alt="Profile"
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="text-white text-sm font-medium">
+                    {user?.firstName?.[0] ||
+                      user?.email?.[0]?.toUpperCase() ||
+                      "U"}
+                  </span>
                 )}
               </div>
             )}
           </div>
-
-          {message.role === 'user' && (
-            <div className="hidden md:flex w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full items-center justify-center flex-shrink-0">
-              {user?.profileImageUrl ? (
-                <img 
-                  src={user.profileImageUrl} 
-                  alt="Profile" 
-                  className="w-full h-full rounded-full object-cover"
-                />
-              ) : (
-                <span className="text-white text-sm font-medium">
-                  {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || "U"}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
         );
       })}
 

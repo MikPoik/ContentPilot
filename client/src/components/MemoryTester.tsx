@@ -173,10 +173,10 @@ export default function MemoryTester() {
                 {searchResults.map((result) => (
                   <div
                     key={result.id}
-                    className="p-3 border rounded bg-blue-50"
+                    className="p-3 border border-border rounded bg-card"
                     data-testid={`search-result-${result.id}`}
                   >
-                    <div className="text-sm text-gray-600 mb-1">
+                    <div className="text-sm text-muted-foreground mb-1">
                       Similarity: {(result.similarity * 100).toFixed(2)}%
                     </div>
                     <div>{result.content}</div>
@@ -202,16 +202,16 @@ export default function MemoryTester() {
               {memories.map((memory) => (
                 <div
                   key={memory.id}
-                  className="p-3 border rounded bg-gray-50 flex justify-between items-start"
+                  className="p-3 border border-border rounded bg-card flex justify-between items-start"
                   data-testid={`memory-${memory.id}`}
                 >
                   <div className="flex-1">
-                    <div className="text-sm text-gray-600 mb-1">
+                    <div className="text-sm text-muted-foreground mb-1">
                       Created: {new Date(memory.createdAt).toLocaleString()}
                     </div>
                     <div>{memory.content}</div>
                     {memory.metadata ? (
-                      <div className="text-xs text-gray-500 mt-1">
+                      <div className="text-xs text-muted-foreground mt-1">
                         Metadata: {JSON.stringify(memory.metadata as object)}
                       </div>
                     ) : null}
