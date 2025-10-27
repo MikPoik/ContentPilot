@@ -118,7 +118,12 @@ export default function AIActivityIndicator({ activity, message, searchQuery, de
     >
       <div className="flex items-center space-x-1">
         <IconComponent className={`h-4 w-4 ${config.color} ${config.animation}`} />
+        {activity === 'thinking' && <Brain className="h-3 w-3 animate-spin text-blue-600" />}
+        {activity === 'reasoning' && <Lightbulb className="h-3 w-3 animate-spin text-purple-600" />}
         {activity === 'searching' && <Globe className="h-3 w-3 animate-spin text-emerald-600" />}
+        {activity === 'recalling' && <Eye className="h-3 w-3 animate-spin text-indigo-600" />}
+        {activity === 'analyzing' && <BarChart3 className="h-3 w-3 animate-spin text-orange-600" />}
+        {activity === 'generating' && <PenTool className="h-3 w-3 animate-spin text-green-600" />}
         {activity === 'instagram_analyzing' && <Instagram className="h-3 w-3 animate-spin text-pink-600" />}
         {activity === 'blog_analyzing' && <FileText className="h-3 w-3 animate-spin text-blue-600" />}
         {activity === 'hashtag_searching' && <Hash className="h-3 w-3 animate-spin text-purple-600" />}
