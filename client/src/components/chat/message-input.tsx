@@ -59,6 +59,7 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
   return (
     <div className="border-t border-border bg-card px-2 py-2">
       <div className="flex items-end space-x-3 max-w-4xl mx-auto">
+        {/*
         <Button 
           variant="ghost" 
           size="sm"
@@ -66,7 +67,7 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
         >
           <Paperclip className="h-4 w-4" />
         </Button>
-        
+        */}
         <div className="flex-1 relative">
           <Textarea
             ref={textareaRef}

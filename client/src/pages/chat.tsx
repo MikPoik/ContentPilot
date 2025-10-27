@@ -684,9 +684,9 @@ export default function Chat() {
                 disabled={false}
               />
             )}
-            <Button variant="ghost" size="sm" className="p-2 text-muted-foreground hover:text-foreground">
+            {/* <Button variant="ghost" size="sm" className="p-2 text-muted-foreground hover:text-foreground">
               <Share className="h-4 w-4" />
-            </Button>
+            </Button> */}
             <Button
               variant="ghost"
               size="sm"
@@ -716,10 +716,10 @@ export default function Chat() {
                   <Download className="h-4 w-4 mr-2" />
                   Export Chat
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                {/* <DropdownMenuItem>
                   <Share className="h-4 w-4 mr-2" />
                   Share
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="h-4 w-4 mr-2" />
