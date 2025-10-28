@@ -90,7 +90,7 @@ export default function Landing() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-50/50 via-emerald-50/30 to-teal-50/50 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900 overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-50/50 via-emerald-50/30 to-teal-50/50 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/40 bg-white/80 dark:bg-gray-950/80 backdrop-blur-lg supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-gray-950/60">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
