@@ -20,7 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, X, Share, MoreVertical, LogOut, TestTube, Download } from "lucide-react";
+import { Menu, X, Share, MoreVertical, LogOut, TestTube, Download, SquareLibrary,LibraryBig } from "lucide-react";
 import MemoryTester from "../components/MemoryTester";
 import SearchIndicator from "../components/chat/search-indicator";
 import AIActivityIndicator from "../components/chat/ai-activity-indicator";
@@ -674,7 +674,7 @@ export default function Chat() {
               onClick={handleMemoryTesterToggle}
               data-testid="button-memory-tester"
             >
-              <TestTube className="h-4 w-4" />
+              <LibraryBig className="h-4 w-4" />
             </Button>
             {!isExportDisabled && (
               <ExportMenu
@@ -708,7 +708,7 @@ export default function Chat() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem onClick={handleMemoryTesterToggle}>
-                  <TestTube className="h-4 w-4 mr-2" />
+                  <LibraryBig className="h-4 w-4 mr-2" />
                   Memory Tester
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

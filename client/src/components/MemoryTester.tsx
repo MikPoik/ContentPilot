@@ -112,7 +112,7 @@ export default function MemoryTester() {
     <div className="space-y-6 p-4 max-w-4xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>Manage Memories</CardTitle>
+          <CardTitle>Memory library</CardTitle>
         </CardHeader>
       </Card>
 
