@@ -12,6 +12,11 @@ import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../vite.config";
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * In-memory cache storing pre-rendered HTML for each route.
@@ -81,8 +86,9 @@ export async function initializePrerender(): Promise<void> {
     let baseTemplate: string;
     
     if (isProduction) {
-      // In production, look for the built template
-      const templatePath = path.resolve(import.meta.dirname, 'public', 'index.html');
+      // In production, the compiled server is at dist/index.js
+      // and static files are at dist/public/
+      const templatePath = path.resolve(__dirname, 'public', 'index.html');
       
       if (!fs.existsSync(templatePath)) {
         console.warn('[SEO Prerender] Production template not found at:', templatePath);
@@ -94,7 +100,7 @@ export async function initializePrerender(): Promise<void> {
       
       // In production, try to load the SSR bundle if available
       // If SSR bundle doesn't exist, fall back to basic SEO-friendly HTML
-      const ssrBundlePath = path.resolve(import.meta.dirname, 'entry-server.js');
+      const ssrBundlePath = path.resolve(__dirname, 'entry-server.js');
       
       if (fs.existsSync(ssrBundlePath)) {
         try {
@@ -152,7 +158,7 @@ export async function initializePrerender(): Promise<void> {
       }
     } else {
       // In development, use Vite SSR to render actual components
-      const devTemplatePath = path.resolve(import.meta.dirname, '..', 'client', 'index.html');
+      const devTemplatePath = path.resolve(__dirname, '..', 'client', 'index.html');
       
       if (!fs.existsSync(devTemplatePath)) {
         console.warn('[SEO Prerender] Development template not found, skipping prerender initialization');
