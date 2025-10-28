@@ -372,46 +372,50 @@ Return JSON array or [] if no confirmed user insights found.`,
               return null;
             }
 
-            // 2. Filter out JSON-like structures
-            if (trimmed.match(/^\{.*".*".*\}$/) || trimmed.match(/^\[.*\]$/)) {
+            // 2. Filter out JSON-like structures (but not hashtag lists)
+            const hasHashtags = trimmed.includes('#');
+            if (!hasHashtags && (trimmed.match(/^\{.*".*".*\}$/) || trimmed.match(/^\[.*\]$/))) {
               console.log(`🧠 [MEMORY_FILTER] Filtered JSON structure: "${trimmed}"`);
               return null;
             }
 
-            // 3. Character diversity check (more language-agnostic)
-            const uniqueChars = new Set(trimmed.toLowerCase()).size;
-            const diversityRatio = uniqueChars / trimmed.length;
-            if (diversityRatio < 0.15) {
-              console.log(`🧠 [MEMORY_FILTER] Filtered low diversity (${diversityRatio.toFixed(2)}): "${trimmed}"`);
-              return null;
+            // 3. Character diversity check (more language-agnostic, but skip for hashtag-heavy content)
+            const hashtagCount = (trimmed.match(/#/g) || []).length;
+            if (hashtagCount < 3) { // Only apply diversity check if not a hashtag list
+              const uniqueChars = new Set(trimmed.toLowerCase()).size;
+              const diversityRatio = uniqueChars / trimmed.length;
+              if (diversityRatio < 0.15) {
+                console.log(`🧠 [MEMORY_FILTER] Filtered low diversity (${diversityRatio.toFixed(2)}): "${trimmed}"`);
+                return null;
+              }
+
+              // Boost confidence for good diversity
+              if (diversityRatio > 0.3) confidence += 0.1;
             }
 
-            // Boost confidence for good diversity
-            if (diversityRatio > 0.3) confidence += 0.1;
-
-            // 4. Detect quoted text patterns
+            // 4. Detect quoted text patterns (but allow some quotes for hashtag contexts)
             const quoteCount = (trimmed.match(/["'«»"'"]/g) || []).length;
-            if (quoteCount >= 6) {
+            if (quoteCount >= 8) { // Increased threshold from 6 to 8
               console.log(`🧠 [MEMORY_FILTER] Filtered multiple quotes: "${trimmed}"`);
               return null;
             }
 
-            // 5. Word count quality checks
-            if (wordCount < 4) {
+            // 5. Word count quality checks (relaxed for structured data like hashtags)
+            if (wordCount < 4 && hashtagCount < 2) { // Allow shorter if has hashtags
               console.log(`🧠 [MEMORY_FILTER] Filtered too short (${wordCount} words): "${trimmed}"`);
               return null;
             }
-            if (wordCount > 60) {
+            if (wordCount > 80) { // Increased from 60 to allow hashtag lists
               console.log(`🧠 [MEMORY_FILTER] Filtered too long (${wordCount} words): "${trimmed}"`);
               return null;
             }
 
-            // Boost confidence for optimal length (10-40 words)
-            if (wordCount >= 10 && wordCount <= 40) confidence += 0.15;
+            // Boost confidence for optimal length (10-40 words) or hashtag-rich content
+            if ((wordCount >= 10 && wordCount <= 40) || hashtagCount >= 3) confidence += 0.15;
 
-            // 6. Detect excessive parentheticals
+            // 6. Detect excessive parentheticals (but allow hashtag lists with commas)
             const parenCount = (trimmed.match(/[()[\]]/g) || []).length;
-            if (parenCount >= 6) {
+            if (parenCount >= 8 && hashtagCount < 2) { // Increased threshold and exclude hashtag content
               console.log(`🧠 [MEMORY_FILTER] Filtered excessive parentheticals: "${trimmed}"`);
               return null;
             }
