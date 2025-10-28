@@ -7,6 +7,10 @@ import { registerSeoFileRoutes } from "./seo-files";
 const app = express();
 // Disable ETag to avoid 304 responses on API JSON routes and ensure fresh payloads
 app.set("etag", false);
+
+// Webhook endpoint needs raw body BEFORE json parser
+app.use('/api/subscriptions/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

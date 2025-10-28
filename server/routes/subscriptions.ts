@@ -14,9 +14,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 export function registerSubscriptionRoutes(app: Express) {
-  // Webhook middleware for raw body (must be before other middleware)
-  app.use('/api/subscriptions/webhook', express.raw({ type: 'application/json' }));
-
   // Subscription management routes
   app.get("/api/subscriptions/plans", async (req, res) => {
     try {
