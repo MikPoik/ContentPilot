@@ -16,6 +16,7 @@ import {
   Target
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ClientOnly } from "@/components/client-only";
 
 export default function Landing() {
   const handleLogin = () => {
@@ -102,7 +103,9 @@ export default function Landing() {
             </span>
           </div>
           <div className="flex items-center space-x-4">
-            <ThemeToggle />
+            <ClientOnly>
+              <ThemeToggle />
+            </ClientOnly>
             <Button
               onClick={handleLogin}
               className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-6 py-2 shadow-lg hover:shadow-xl transition-all"
