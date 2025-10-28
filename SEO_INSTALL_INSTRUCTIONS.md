@@ -110,6 +110,16 @@ Notes:
 - Keep `--emptyOutDir false` to avoid deleting `dist/public` when building SSR
 - Optional: add `--ssrManifest` to `build:client` if you plan to do advanced asset preloading from SSR later
 
+If you don’t set `build.outDir` in `vite.config.ts`, you can direct the client output explicitly:
+
+```json
+{
+  "scripts": {
+    "build:client": "vite build --outDir ../dist/public"
+  }
+}
+```
+
 ---
 
 ## Configure SEO routes
@@ -171,11 +181,63 @@ for (const route of seoRoutes) {
 
 export function render(url: string) {
   const C = componentMap[url] || NotFound;
-  return renderToString(<C />);
+  return renderToString(<Component />);
 }
 ```
 
-If you use React Query, Theme, or other providers, wrap them here exactly as your client does (but avoid providers that read localStorage during SSR).
+If you use React Query, routing (wouter), Theme, or other providers, wrap them here exactly as your client does (but avoid providers that read localStorage during SSR).
+
+### Using Wouter routing during SSR
+If your pages use wouter (`Link`, `useLocation`, `useRoute`, etc.), wrap the page in a Router and pass the current URL via `ssrPath` so route-aware hooks resolve correctly while prerendering:
+
+```tsx
+import { renderToString } from "react-dom/server";
+import { Router } from "wouter";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import NotFound from "@/pages/not-found";
+import { seoRoutes } from "@shared/seo-config";
+
+const pages = import.meta.glob<{ default: () => JSX.Element }>("/src/pages/*.tsx", { eager: true });
+const componentMap: Record<string, () => JSX.Element> = {};
+
+for (const route of seoRoutes) {
+  const pagePath = `/src/pages/${route.component}.tsx`;
+  const mod = pages[pagePath];
+  if (mod) componentMap[route.path] = mod.default;
+}
+
+export function render(url: string) {
+  const C = componentMap[url] || NotFound;
+  return renderToString(
+    <QueryClientProvider client={queryClient}>
+      <Router ssrPath={url}>
+        <C />
+      </Router>
+    </QueryClientProvider>
+  );
+}
+```
+
+---
+
+## Theme and client‑only components
+
+Some theme providers/toggles access `localStorage` or `window` during render and will error in SSR. Practical rules:
+
+- Do NOT wrap a Theme provider during SSR if it reads from `localStorage`.
+- Wrap theme toggles and other browser-only widgets in a client-only guard so they only render after hydration.
+
+Example (as used in `client/src/pages/landing.tsx`):
+
+```tsx
+import { ClientOnly } from "@/components/client-only";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+
+<ClientOnly>
+  <ThemeToggle />
+</ClientOnly>
+```
 
 ---
 

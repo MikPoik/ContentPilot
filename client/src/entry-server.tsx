@@ -9,6 +9,7 @@ import { renderToString } from "react-dom/server";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { queryClient } from "./lib/queryClient";
+import { Router } from "wouter";
 import { seoRoutes } from "@shared/seo-config";
 import NotFound from "@/pages/not-found";
 
@@ -52,7 +53,9 @@ export function render(url: string) {
   const html = renderToString(
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Component />
+        <Router ssrPath={url}>
+          <Component />
+        </Router>
       </TooltipProvider>
     </QueryClientProvider>
   );
