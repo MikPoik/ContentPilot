@@ -77,14 +77,19 @@ export function registerMessageRoutes(app: Express) {
 
       const messagesUsed = currentUser.messagesUsed || 0;
       const messagesLimit = currentUser.messagesLimit || 10;
+      const messagePacks = currentUser.messagePacks || 0;
 
       // Check message limits (skip check for unlimited plans where messagesLimit is -1)
-      if (messagesLimit !== -1 && messagesUsed >= messagesLimit) {
-        const error = ErrorTypes.MESSAGE_LIMIT_REACHED(messagesLimit);
+      // Total available = subscription limit + message packs
+      const totalAvailable = messagesLimit === -1 ? -1 : messagesLimit + messagePacks;
+      
+      if (totalAvailable !== -1 && messagesUsed >= messagesLimit && messagePacks === 0) {
+        // User has exhausted both subscription messages and packs
+        const error = ErrorTypes.MESSAGE_LIMIT_REACHED(totalAvailable);
         return res.status(error.statusCode).json({
           ...formatErrorResponse(error),
           messagesUsed,
-          messagesLimit
+          messagesLimit: totalAvailable
         });
       }
 

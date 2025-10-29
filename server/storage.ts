@@ -93,6 +93,11 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Find user by Stripe subscription ID
+  async findUserByStripeSubscriptionId(stripeSubscriptionId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.stripeSubscriptionId, stripeSubscriptionId));
+    return user;
+  }
   // User operations (required for Replit Auth)
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -450,15 +455,37 @@ export class DatabaseStorage implements IStorage {
   }
 
   async incrementMessageUsage(userId: string): Promise<User | undefined> {
-    const [user] = await db
-      .update(users)
-      .set({ 
-        messagesUsed: sql`${users.messagesUsed} + 1`,
-        updatedAt: new Date()
-      })
-      .where(eq(users.id, userId))
-      .returning();
-    return user;
+    // Get current user state
+    const currentUser = await this.getUser(userId);
+    if (!currentUser) return undefined;
+
+    const messagePacks = currentUser.messagePacks || 0;
+    const messagesUsed = currentUser.messagesUsed || 0;
+
+    // Deplete message packs first before using subscription messages
+    if (messagePacks > 0) {
+      // Use message pack credits
+      const [user] = await db
+        .update(users)
+        .set({ 
+          messagePacks: messagePacks - 1,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      return user;
+    } else {
+      // Use subscription messages (increment messagesUsed)
+      const [user] = await db
+        .update(users)
+        .set({ 
+          messagesUsed: messagesUsed + 1,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      return user;
+    }
   }
 
   async resetMessageUsage(userId: string): Promise<User | undefined> {

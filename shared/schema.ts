@@ -34,6 +34,7 @@ export const users = pgTable("users", {
   subscriptionStatus: varchar("subscription_status").default("free"),
   messagesUsed: integer("messages_used").default(0),
   messagesLimit: integer("messages_limit").default(10),
+  messagePacks: integer("message_packs").default(0), // Total purchased message pack credits
   subscriptionStartedAt: timestamp("subscription_started_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -75,6 +76,7 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   priceAmount: integer("price_amount").notNull(), // in cents
   priceCurrency: varchar("price_currency").default("usd"),
   isActive: boolean("is_active").default(true),
+  planType: varchar("plan_type").default("subscription"), // 'subscription' or 'message_pack'
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -122,6 +124,7 @@ export const updateUserSubscriptionSchema = createInsertSchema(users).pick({
   subscriptionStatus: true,
   messagesUsed: true,
   messagesLimit: true,
+  messagePacks: true,
   subscriptionStartedAt: true,
 }).partial();
 
