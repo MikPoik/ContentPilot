@@ -9,6 +9,8 @@ import NotFound from "@/pages/not-found";
 import Chat from "@/pages/chat";
 import Landing from "@/pages/landing";
 import ProfileSettings from "@/pages/profile-settings";
+import PricingPage from "@/pages/pricing";
+import HowItWorksPage from "@/pages/how-it-works";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -28,6 +30,11 @@ function Router() {
 
   return (
     <Switch>
+      {/* Public routes */}
+      <Route path="/pricing" component={PricingPage} />
+      <Route path="/how-it-works" component={HowItWorksPage} />
+
+      {/* Root route depends on auth */}
       {!isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (

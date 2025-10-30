@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ClientOnly } from "@/components/client-only";
+import { Link } from "wouter";
 
 export default function Landing() {
   const handleLogin = () => {
@@ -103,6 +104,10 @@ export default function Landing() {
             </span>
           </div>
           <div className="flex items-center space-x-4">
+            <nav className="hidden sm:flex items-center space-x-4 mr-2">
+              <Link href="/how-it-works" className="text-sm text-muted-foreground hover:text-foreground">How it works</Link>
+              <Link href="/pricing" className="text-sm text-foreground font-medium">Pricing</Link>
+            </nav>
             <ClientOnly>
               <ThemeToggle />
             </ClientOnly>
@@ -152,15 +157,17 @@ export default function Landing() {
                 <Zap className="w-5 h-5 mr-2" />
                 Get Started Free
               </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-2 border-purple-500 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 px-8 py-6 text-lg"
-                data-testid="button-learn-more"
-              >
-                <Target className="w-5 h-5 mr-2" />
-                See Examples
-              </Button>
+              <Link href="/how-it-works">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="border-2 border-purple-500 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 px-8 py-6 text-lg"
+                  data-testid="button-learn-more"
+                >
+                  <Target className="w-5 h-5 mr-2" />
+                  See Examples
+                </Button>
+              </Link>
             </div>
 
             {/* Stats */}
