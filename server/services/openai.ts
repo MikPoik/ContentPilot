@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import logger from "../logger";
 
 // Centralized OpenAI client initialization
 const openai = new OpenAI({
@@ -21,12 +22,12 @@ export async function generateEmbedding(text: string): Promise<number[]> {
       input: text,
       dimensions: 1536,
     });
-    console.log(
+    logger.log(
       `🧠 [AI_SERVICE] Embedding generated: ${response.data[0].embedding.length} dimensions`,
     );
     return response.data[0].embedding;
   } catch (error) {
-    console.error("Error generating embedding:", error);
+    logger.error("Error generating embedding:", error);
     throw error;
   }
 }
@@ -62,23 +63,23 @@ export async function generateBatchEmbeddings(texts: string[]): Promise<number[]
     const embeddings = response.data.map(item => item.embedding);
     const duration = Date.now() - startTime;
     
-    console.log(
+    logger.log(
       `🧠 [AI_SERVICE] Batch embeddings generated: ${embeddings.length} embeddings in ${duration}ms (${(duration / embeddings.length).toFixed(1)}ms per embedding)`
     );
     
     return embeddings;
   } catch (error) {
-    console.error("Error generating batch embeddings:", error);
+    logger.error("Error generating batch embeddings:", error);
     
     // Fallback: generate embeddings one by one if batch fails
-    console.log("🔄 [AI_SERVICE] Falling back to sequential embedding generation...");
+    logger.log("🔄 [AI_SERVICE] Falling back to sequential embedding generation...");
     const embeddings: number[][] = [];
     for (const text of texts) {
       try {
         const embedding = await generateEmbedding(text);
         embeddings.push(embedding);
       } catch (err) {
-        console.error(`Failed to generate embedding for text: ${text.substring(0, 50)}...`, err);
+        logger.error(`Failed to generate embedding for text: ${text.substring(0, 50)}...`, err);
         throw err;
       }
     }

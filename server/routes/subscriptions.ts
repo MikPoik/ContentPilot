@@ -3,6 +3,7 @@ import express from "express";
 import Stripe from "stripe";
 import { storage } from "../storage";
 import { updateUserSubscriptionSchema } from "@shared/schema";
+import logger from "../logger";
 import { isAuthenticated } from "../replitAuth";
 
 // Initialize Stripe
@@ -73,7 +74,7 @@ export function registerSubscriptionRoutes(app: Express) {
 
       res.json({ url: session.url });
     } catch (error: any) {
-      console.error("Checkout creation error:", error);
+      logger.error("Checkout creation error:", error);
       res.status(500).json({ message: "Failed to create checkout session" });
     }
   });
@@ -117,7 +118,7 @@ export function registerSubscriptionRoutes(app: Express) {
 
       res.json({ success: true, subscription: updatedSubscription });
     } catch (error: any) {
-      console.error("Update subscription error:", error);
+      logger.error("Update subscription error:", error);
       res.status(500).json({ message: "Failed to update subscription plan" });
     }
   });
@@ -146,7 +147,7 @@ export function registerSubscriptionRoutes(app: Express) {
 
       res.json({ cancelAtPeriodEnd: true, currentPeriodEnd });
     } catch (error: any) {
-      console.error("Cancel subscription error:", error);
+      logger.error("Cancel subscription error:", error);
       res.status(500).json({ message: "Failed to cancel subscription" });
     }
   });
@@ -172,7 +173,7 @@ export function registerSubscriptionRoutes(app: Express) {
 
       res.json({ resumed: true });
     } catch (error: any) {
-      console.error("Resume subscription error:", error);
+      logger.error("Resume subscription error:", error);
       res.status(500).json({ message: "Failed to resume subscription" });
     }
   });
@@ -182,7 +183,7 @@ export function registerSubscriptionRoutes(app: Express) {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     
     if (!webhookSecret) {
-      console.error('Missing STRIPE_WEBHOOK_SECRET environment variable');
+      logger.error('Missing STRIPE_WEBHOOK_SECRET environment variable');
       return res.status(500).send('Webhook secret not configured');
     }
 
@@ -191,7 +192,7 @@ export function registerSubscriptionRoutes(app: Express) {
     try {
       event = stripe.webhooks.constructEvent(req.body, sig as string, webhookSecret);
     } catch (err: any) {
-      console.error('Webhook signature verification failed:', err.message);
+      logger.error('Webhook signature verification failed:', err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
@@ -217,7 +218,7 @@ export function registerSubscriptionRoutes(app: Express) {
                   messagePacks: newPacks,
                 });
                 
-                console.log(`💳 Message pack purchased: +${plan.messagesLimit} messages for user ${userId} (total packs: ${newPacks})`);
+                logger.log(`💳 Message pack purchased: +${plan.messagesLimit} messages for user ${userId} (total packs: ${newPacks})`);
               }
             } else {
               // Handle subscription - set base limit but preserve message packs
@@ -250,7 +251,7 @@ export function registerSubscriptionRoutes(app: Express) {
           
           if (customer && !customer.deleted && customer.email) {
             // For now, log the event - getUserByEmail method needs to be added to storage interface
-            console.log(`Subscription ${event.type} for customer: ${customer.email}`);
+            logger.log(`Subscription ${event.type} for customer: ${customer.email}`);
           }
           break;
 
@@ -262,19 +263,19 @@ export function registerSubscriptionRoutes(app: Express) {
             const user = await storage.findUserByStripeSubscriptionId?.(invoice.subscription);
             if (user) {
               await storage.updateUserSubscription(user.id, { messagesUsed: 0 });
-              console.log(`🔄 Reset messagesUsed for user ${user.id} after subscription renewal`);
+              logger.log(`🔄 Reset messagesUsed for user ${user.id} after subscription renewal`);
             }
           }
           break;
         }
 
         default:
-          console.log(`Unhandled event type: ${event.type}`);
+          logger.log(`Unhandled event type: ${event.type}`);
       }
 
       res.json({ received: true });
     } catch (error: any) {
-      console.error('Webhook processing error:', error);
+      logger.error('Webhook processing error:', error);
       res.status(500).json({ message: "Webhook processing failed" });
     }
   });

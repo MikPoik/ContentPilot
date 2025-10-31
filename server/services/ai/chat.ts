@@ -8,6 +8,7 @@ import {
   type WorkflowPhaseDecision,
   type ChatMessage,
 } from "./intent";
+import logger from "../../logger";
 // Import functions to be used internally
 
 // Note: DeepInfra usage eliminated - moved to OpenAI for consistency
@@ -31,12 +32,12 @@ export async function generateChatResponse(
   workflowDecision?: WorkflowPhaseDecision,
 ): Promise<ChatResponseWithMetadata> {
   const startTime = Date.now();
-  console.log(`🤖 [AI_SERVICE] Building workflow-aware response...`);
+  logger.log(`🤖 [AI_SERVICE] Building workflow-aware response...`);
 
   // Use workflow phase decision from caller (unified intent analysis)
   if (!workflowDecision) {
     // Fallback for backward compatibility - shouldn't happen in normal operation
-    console.warn(
+    logger.warn(
       `⚠️ [AI_SERVICE] No workflow decision provided, this shouldn't happen with unified intent system`,
     );
     workflowDecision = {
@@ -53,7 +54,7 @@ export async function generateChatResponse(
     };
   }
 
-  console.log(
+  logger.log(
     `🔄 [AI_SERVICE] Using workflow phase: ${workflowDecision.currentPhase}, block content: ${workflowDecision.shouldBlockContentGeneration}`,
   );
 
@@ -65,7 +66,7 @@ export async function generateChatResponse(
 
   // Use the search decision passed from the routes layer
   if (searchDecision) {
-    console.log(
+    logger.log(
       `🧠 [AI_SERVICE] Using search decision - shouldSearch: ${searchDecision.shouldSearch}, confidence: ${searchDecision.confidence}, reason: ${searchDecision.reason}`,
     );
 
@@ -88,7 +89,7 @@ export async function generateChatResponse(
     searchDecision.confidence >= 0.7
   ) {
     try {
-      console.log(
+      logger.log(
         `🔍 [AI_SERVICE] Performing ${searchDecision.searchService} search with query: "${searchQuery}"`,
       );
       const searchStart = Date.now();
@@ -117,18 +118,18 @@ export async function generateChatResponse(
         );
       }
 
-      console.log(
+      logger.log(
         `🔍 [AI_SERVICE] ${searchDecision.searchService} search completed: ${Date.now() - searchStart}ms (${webSearchContext.citations.length} sources)`,
       );
 
       // Even if no sources found, we still performed a search
       if (webSearchContext.citations.length === 0) {
-        console.log(
+        logger.log(
           `⚠️ [AI_SERVICE] Web search returned no results, but search was attempted`,
         );
       }
     } catch (error) {
-      console.log(
+      logger.log(
         `❌ [AI_SERVICE] ${searchDecision.searchService} search failed, continuing without search context:`,
         error,
       );
@@ -139,11 +140,11 @@ export async function generateChatResponse(
     !perplexityService.isConfigured() &&
     !grokService.isConfigured()
   ) {
-    console.log(
+    logger.log(
       `⚠️ [AI_SERVICE] No search services configured, skipping search despite AI recommendation`,
     );
   } else if (searchDecision?.shouldSearch) {
-    console.log(
+    logger.log(
       `🔍 [AI_SERVICE] AI recommended search but confidence too low (${searchDecision.confidence}), skipping search`,
     );
   }
@@ -156,7 +157,7 @@ export async function generateChatResponse(
     webSearchContext,
     instagramAnalysisResult,
   );
-  console.log(
+  logger.log(
     `🤖 [AI_SERVICE] Workflow-aware system prompt built: ${Date.now() - promptBuildStart}ms (length: ${systemPrompt.length} chars)`,
   );
 
@@ -166,7 +167,7 @@ export async function generateChatResponse(
     const { formatBlogAnalysisForChat } = await import("./blog.js");
     finalSystemPrompt += `\n\n=== RECENT BLOG ANALYSIS ===\n${formatBlogAnalysisForChat(blogAnalysisResult.analysis, blogAnalysisResult.cached)}`;
   }
-  //console.log(`🤖 [AI_SERVICE] Final system prompt length: ${finalSystemPrompt}`)
+  //logger.log(`🤖 [AI_SERVICE] Final system prompt length: ${finalSystemPrompt}`)
   // Add hashtag search result to context if available
   if (instagramHashtagResult?.success && instagramHashtagResult.hashtagResult) {
     const { formatInstagramHashtagSearchForChat } = await import(
@@ -180,12 +181,12 @@ export async function generateChatResponse(
     ...messages.slice(-20),
   ];
 
-  console.log(
+  logger.log(
     `🤖 [AI_SERVICE] Total messages: ${chatMessages.length}, Total tokens estimate: ${Math.ceil(chatMessages.reduce((acc, msg) => acc + msg.content.length, 0) / 4)}`,
   );
 
   const openaiRequestStart = Date.now();
-  console.log(`🤖 [AI_SERVICE] Sending request to OpenAI...`);
+  logger.log(`🤖 [AI_SERVICE] Sending request to OpenAI...`);
   const stream = await openai.chat.completions.create({
     model: "gpt-4.1",
     messages: chatMessages,
@@ -193,7 +194,7 @@ export async function generateChatResponse(
     temperature: 0.7,
     max_tokens: 2000,
   });
-  console.log(
+  logger.log(
     `🤖 [AI_SERVICE] OpenAI stream initialized: ${Date.now() - openaiRequestStart}ms`,
   );
 
@@ -209,7 +210,7 @@ export async function generateChatResponse(
           const content = chunk.choices[0]?.delta?.content || "";
           if (content) {
             if (!firstChunkReceived) {
-              console.log(
+              logger.log(
                 `🤖 [AI_SERVICE] First chunk received: ${Date.now() - firstChunkStart}ms (TTFB)`,
               );
               firstChunkReceived = true;
@@ -219,12 +220,12 @@ export async function generateChatResponse(
             controller.enqueue(content);
           }
         }
-        console.log(
+        logger.log(
           `🤖 [AI_SERVICE] Stream completed: ${chunkCount} chunks, ${totalContentLength} chars, total: ${Date.now() - startTime}ms`,
         );
         controller.close();
       } catch (error) {
-        console.log(
+        logger.log(
           `❌ [AI_SERVICE] Stream error after ${Date.now() - startTime}ms:`,
           error,
         );
@@ -268,7 +269,7 @@ export async function generateConversationTitle(
 
     return response.choices[0]?.message?.content?.trim() || "New Conversation";
   } catch (error) {
-    console.error("Error generating conversation title:", error);
+    logger.error("Error generating conversation title:", error);
     return "New Conversation";
   }
 }

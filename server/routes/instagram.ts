@@ -1,3 +1,4 @@
+import logger from "../logger";
 import type { Express, Request, Response } from 'express';
 import { z } from 'zod';
 import { isAuthenticated } from '../replitAuth.js';
@@ -95,7 +96,7 @@ export function registerInstagramRoutes(app: Express): void {
             }
           }, 0.85); // 85% similarity threshold for Instagram memories
         } catch (embeddingError) {
-          console.error('Error creating memory embedding:', embeddingError);
+          logger.error('Error creating memory embedding:', embeddingError);
         }
       }
 
@@ -106,7 +107,7 @@ export function registerInstagramRoutes(app: Express): void {
       });
 
     } catch (error) {
-      console.error('Instagram analysis error:', error);
+      logger.error('Instagram analysis error:', error);
 
       if (error instanceof z.ZodError) {
         return res.status(400).json({
@@ -158,7 +159,7 @@ export function registerInstagramRoutes(app: Express): void {
       });
 
     } catch (error) {
-      console.error('Get Instagram profile error:', error);
+      logger.error('Get Instagram profile error:', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to retrieve Instagram profile'
@@ -228,7 +229,7 @@ export function registerInstagramRoutes(app: Express): void {
             }
           }, 0.80); // 80% similarity threshold for hashtag memories
         } catch (embeddingError) {
-          console.error('Error creating hashtag memory embedding:', embeddingError);
+          logger.error('Error creating hashtag memory embedding:', embeddingError);
         }
       }
 
@@ -239,7 +240,7 @@ export function registerInstagramRoutes(app: Express): void {
       });
 
     } catch (error) {
-      console.error('Instagram hashtag search error:', error);
+      logger.error('Instagram hashtag search error:', error);
 
       if (error instanceof z.ZodError) {
         return res.status(400).json({
@@ -284,7 +285,7 @@ export function registerInstagramRoutes(app: Express): void {
       });
 
     } catch (error) {
-      console.error('Get Instagram hashtag search error:', error);
+      logger.error('Get Instagram hashtag search error:', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to retrieve hashtag search'
@@ -310,7 +311,7 @@ export function registerInstagramRoutes(app: Express): void {
       });
 
     } catch (error) {
-      console.error('HikerAPI test error:', error);
+      logger.error('HikerAPI test error:', error);
       res.status(502).json({
         success: false,
         error: 'HikerAPI connection failed',

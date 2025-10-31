@@ -1,3 +1,5 @@
+import logger from "../logger";
+
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -66,7 +68,7 @@ export class PerplexityService {
   constructor() {
     this.apiKey = process.env.PERPLEXITY_API_KEY || '';
     if (!this.apiKey) {
-      console.warn('⚠️ [PERPLEXITY] PERPLEXITY_API_KEY not set. Web search functionality will be disabled.');
+      logger.warn('⚠️ [PERPLEXITY] PERPLEXITY_API_KEY not set. Web search functionality will be disabled.');
     }
   }
 
@@ -130,7 +132,7 @@ export class PerplexityService {
 
     if (keysToDelete.length > 0) {
       keysToDelete.forEach(key => this.cache.delete(key));
-      console.log(`🧹 [PERPLEXITY CACHE] Cleaned up ${keysToDelete.length} expired entries`);
+      logger.log(`🧹 [PERPLEXITY CACHE] Cleaned up ${keysToDelete.length} expired entries`);
     }
   }
 
@@ -144,7 +146,7 @@ export class PerplexityService {
     if (cachedEntry && this.isCacheEntryValid(cachedEntry)) {
       // Update last accessed time for LRU
       cachedEntry.lastAccessed = Date.now();
-      console.log(`📦 [PERPLEXITY CACHE] Cache HIT for key: ${cacheKey}`);
+      logger.log(`📦 [PERPLEXITY CACHE] Cache HIT for key: ${cacheKey}`);
       return {
         context: cachedEntry.context,
         citations: cachedEntry.citations
@@ -154,10 +156,10 @@ export class PerplexityService {
     if (cachedEntry) {
       // Entry exists but is expired, remove it
       this.cache.delete(cacheKey);
-      console.log(`⏰ [PERPLEXITY CACHE] Expired entry removed for key: ${cacheKey}`);
+      logger.log(`⏰ [PERPLEXITY CACHE] Expired entry removed for key: ${cacheKey}`);
     }
 
-    console.log(`❌ [PERPLEXITY CACHE] Cache MISS for key: ${cacheKey}`);
+    logger.log(`❌ [PERPLEXITY CACHE] Cache MISS for key: ${cacheKey}`);
     return null;
   }
 
@@ -178,7 +180,7 @@ export class PerplexityService {
       timestamp: now,
       lastAccessed: now
     });
-    console.log(`💾 [PERPLEXITY CACHE] Cached result for key: ${cacheKey} (cache size: ${this.cache.size})`);
+    logger.log(`💾 [PERPLEXITY CACHE] Cached result for key: ${cacheKey} (cache size: ${this.cache.size})`);
   }
 
   /**
@@ -200,7 +202,7 @@ export class PerplexityService {
 
     if (oldestKey) {
       this.cache.delete(oldestKey);
-      console.log(`🗑️ [PERPLEXITY CACHE] Evicted LRU entry: ${oldestKey} (cache size: ${this.cache.size})`);
+      logger.log(`🗑️ [PERPLEXITY CACHE] Evicted LRU entry: ${oldestKey} (cache size: ${this.cache.size})`);
     }
   }
 
@@ -227,7 +229,7 @@ export class PerplexityService {
     }
 
     const startTime = Date.now();
-    console.log(`🔍 [PERPLEXITY] Starting web search query: "${query}"`);
+    logger.log(`🔍 [PERPLEXITY] Starting web search query: "${query}"`);
 
     try {
       const messages: PerplexityMessage[] = [];
@@ -262,7 +264,7 @@ export class PerplexityService {
         frequency_penalty: 1
       };
 
-      console.log(`🔍 [PERPLEXITY] Request config: model=${requestBody.model}, temperature=${requestBody.temperature}, recency=${requestBody.search_recency_filter}`);
+      logger.log(`🔍 [PERPLEXITY] Request config: model=${requestBody.model}, temperature=${requestBody.temperature}, recency=${requestBody.search_recency_filter}`);
 
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
@@ -275,12 +277,12 @@ export class PerplexityService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ [PERPLEXITY] API error: ${response.status} ${response.statusText}`, errorText);
+        logger.error(`❌ [PERPLEXITY] API error: ${response.status} ${response.statusText}`, errorText);
         throw new Error(`Perplexity API error: ${response.status} ${response.statusText}`);
       }
 
       const data: PerplexityResponse = await response.json();
-      console.log(`🔍 [PERPLEXITY] Search completed: ${Date.now() - startTime}ms, ${data.citations?.length || 0} citations`);
+      logger.log(`🔍 [PERPLEXITY] Search completed: ${Date.now() - startTime}ms, ${data.citations?.length || 0} citations`);
 
       return {
         content: data.choices[0]?.message?.content || '',
@@ -289,7 +291,7 @@ export class PerplexityService {
       };
 
     } catch (error) {
-      console.error(`❌ [PERPLEXITY] Search error after ${Date.now() - startTime}ms:`, error);
+      logger.error(`❌ [PERPLEXITY] Search error after ${Date.now() - startTime}ms:`, error);
       throw error;
     }
   }
@@ -338,7 +340,7 @@ export class PerplexityService {
 
     // If no citations found and query is a site search, try an immediate domain-only normalization first
     if (result.citations.length === 0 && query.includes('site:')) {
-      console.log(`🔍 [PERPLEXITY] No results for site search, attempting domain-only normalization as first fallback...`);
+      logger.log(`🔍 [PERPLEXITY] No results for site search, attempting domain-only normalization as first fallback...`);
 
       // Extract domain from site: query
       const siteMatch = query.match(/site:([^\s]+)/);
@@ -357,19 +359,19 @@ export class PerplexityService {
 
           if (domainOnlyResult.citations.length > 0) {
             result = domainOnlyResult;
-            console.log(`✅ [PERPLEXITY] Domain-only fallback successful: ${domainOnlyResult.citations.length} citations found`);
+            logger.log(`✅ [PERPLEXITY] Domain-only fallback successful: ${domainOnlyResult.citations.length} citations found`);
           }
         } catch (error) {
-          console.error(`❌ [PERPLEXITY] Domain-only fallback failed:`, error);
+          logger.error(`❌ [PERPLEXITY] Domain-only fallback failed:`, error);
         }
 
         // If still no results, continue with enhanced fallback strategies (recency adjustments, no-recency)
         if (result.citations.length === 0) {
-          console.log(`🔍 [PERPLEXITY] Domain-only normalization did not return results, trying enhanced fallback strategies...`);
+          logger.log(`🔍 [PERPLEXITY] Domain-only normalization did not return results, trying enhanced fallback strategies...`);
 
           // Strategy 1: Try with longer recency
           if (effectiveRecency === 'week') {
-            console.log(`🔍 [PERPLEXITY] Strategy 1: Trying with month recency...`);
+            logger.log(`🔍 [PERPLEXITY] Strategy 1: Trying with month recency...`);
             try {
               const monthResult = await this.search(query, {
                 systemPrompt: augmentedContextPrompt,
@@ -380,16 +382,16 @@ export class PerplexityService {
 
               if (monthResult.citations.length > 0) {
                 result = monthResult;
-                console.log(`✅ [PERPLEXITY] Strategy 1 successful: ${monthResult.citations.length} citations found`);
+                logger.log(`✅ [PERPLEXITY] Strategy 1 successful: ${monthResult.citations.length} citations found`);
               }
             } catch (error) {
-              console.error(`❌ [PERPLEXITY] Strategy 1 failed:`, error);
+              logger.error(`❌ [PERPLEXITY] Strategy 1 failed:`, error);
             }
           }
 
           // Strategy 2: Try with year recency if still no results
           if (result.citations.length === 0) {
-            console.log(`🔍 [PERPLEXITY] Strategy 2: Trying with year recency...`);
+            logger.log(`🔍 [PERPLEXITY] Strategy 2: Trying with year recency...`);
             try {
               const yearResult = await this.search(query, {
                 systemPrompt: augmentedContextPrompt,
@@ -400,16 +402,16 @@ export class PerplexityService {
 
               if (yearResult.citations.length > 0) {
                 result = yearResult;
-                console.log(`✅ [PERPLEXITY] Strategy 2 successful: ${yearResult.citations.length} citations found`);
+                logger.log(`✅ [PERPLEXITY] Strategy 2 successful: ${yearResult.citations.length} citations found`);
               }
             } catch (error) {
-              console.error(`❌ [PERPLEXITY] Strategy 2 failed:`, error);
+              logger.error(`❌ [PERPLEXITY] Strategy 2 failed:`, error);
             }
           }
 
           // Strategy 3: Try without recency filter for maximum coverage
           if (result.citations.length === 0) {
-            console.log(`🔍 [PERPLEXITY] Strategy 3: Trying without recency filter...`);
+            logger.log(`🔍 [PERPLEXITY] Strategy 3: Trying without recency filter...`);
             try {
               const noRecencyResult = await this.search(query, {
                 systemPrompt: augmentedContextPrompt,
@@ -420,10 +422,10 @@ export class PerplexityService {
 
               if (noRecencyResult.citations.length > 0) {
                 result = noRecencyResult;
-                console.log(`✅ [PERPLEXITY] Strategy 3 successful: ${noRecencyResult.citations.length} citations found`);
+                logger.log(`✅ [PERPLEXITY] Strategy 3 successful: ${noRecencyResult.citations.length} citations found`);
               }
             } catch (error) {
-              console.error(`❌ [PERPLEXITY] Strategy 3 failed:`, error);
+              logger.error(`❌ [PERPLEXITY] Strategy 3 failed:`, error);
             }
           }
         }

@@ -10,10 +10,11 @@ import { type Request, type Response, type NextFunction } from "express";
 import { seoRoutes, crawlerUserAgents, type SeoRoute } from "@shared/seo-config";
 import path from "path";
 import fs from "fs";
-import { createServer as createViteServer } from "vite";
-import viteConfig from "../vite.config";
+// Note: Avoid importing Vite or vite.config at module scope to keep
+// production bundles free of dev-only dependencies.
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import logger from "./logger";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -78,7 +79,7 @@ function generateHtmlDocument(content: string, route: SeoRoute, baseTemplate: st
  * This runs once at server startup.
  */
 export async function initializePrerender(): Promise<void> {
-  console.log('[SEO Prerender] Initializing prerender cache...');
+  logger.log('[SEO Prerender] Initializing prerender cache...');
   
   try {
     // Load the base template
@@ -91,8 +92,8 @@ export async function initializePrerender(): Promise<void> {
       const templatePath = path.resolve(__dirname, 'public', 'index.html');
       
       if (!fs.existsSync(templatePath)) {
-        console.warn('[SEO Prerender] Production template not found at:', templatePath);
-        console.warn('[SEO Prerender] Skipping prerender initialization - crawlers will receive client-side rendered content');
+        logger.warn('[SEO Prerender] Production template not found at:', templatePath);
+        logger.warn('[SEO Prerender] Skipping prerender initialization - crawlers will receive client-side rendered content');
         return;
       }
       
@@ -112,17 +113,17 @@ export async function initializePrerender(): Promise<void> {
               const appHtml = render(route.path);
               const html = generateHtmlDocument(appHtml, route, baseTemplate);
               prerenderCache.set(route.path, html);
-              console.log(`[SEO Prerender] Cached route (SSR): ${route.path}`);
+              logger.log(`[SEO Prerender] Cached route (SSR): ${route.path}`);
             } catch (error) {
-              console.error(`[SEO Prerender] Failed to render route ${route.path}:`, error);
+              logger.error(`[SEO Prerender] Failed to render route ${route.path}:`, error);
             }
           }
         } catch (error) {
-          console.error('[SEO Prerender] Failed to load SSR bundle, falling back to basic HTML:', error);
+          logger.error('[SEO Prerender] Failed to load SSR bundle, falling back to basic HTML:', error);
           // Fall through to basic HTML fallback
         }
       } else {
-        console.warn('[SEO Prerender] SSR bundle not found - using basic SEO fallback HTML');
+        logger.warn('[SEO Prerender] SSR bundle not found - using basic SEO fallback HTML');
         
         // Fallback: Generate basic SEO-friendly HTML with structured data
         for (const route of seoRoutes) {
@@ -150,9 +151,9 @@ export async function initializePrerender(): Promise<void> {
             const html = generateHtmlDocument(content, route, baseTemplate);
             prerenderCache.set(route.path, html);
             
-            console.log(`[SEO Prerender] Cached route (fallback): ${route.path}`);
+            logger.log(`[SEO Prerender] Cached route (fallback): ${route.path}`);
           } catch (error) {
-            console.error(`[SEO Prerender] Failed to render route ${route.path}:`, error);
+            logger.error(`[SEO Prerender] Failed to render route ${route.path}:`, error);
           }
         }
       }
@@ -161,16 +162,17 @@ export async function initializePrerender(): Promise<void> {
       const devTemplatePath = path.resolve(__dirname, '..', 'client', 'index.html');
       
       if (!fs.existsSync(devTemplatePath)) {
-        console.warn('[SEO Prerender] Development template not found, skipping prerender initialization');
+        logger.warn('[SEO Prerender] Development template not found, skipping prerender initialization');
         return;
       }
       
       baseTemplate = fs.readFileSync(devTemplatePath, 'utf-8');
       
       // Create a temporary Vite server for SSR
+      const { createServer: createViteServer } = await import('vite');
+      const configFile = path.resolve(__dirname, '..', 'vite.config.ts');
       const vite = await createViteServer({
-        ...viteConfig,
-        configFile: false,
+        configFile,
         server: { middlewareMode: true },
         appType: "custom",
       });
@@ -189,9 +191,9 @@ export async function initializePrerender(): Promise<void> {
             const html = generateHtmlDocument(appHtml, route, baseTemplate);
             prerenderCache.set(route.path, html);
             
-            console.log(`[SEO Prerender] Cached route: ${route.path}`);
+            logger.log(`[SEO Prerender] Cached route: ${route.path}`);
           } catch (error) {
-            console.error(`[SEO Prerender] Failed to render route ${route.path}:`, error);
+            logger.error(`[SEO Prerender] Failed to render route ${route.path}:`, error);
           }
         }
       } finally {
@@ -200,9 +202,9 @@ export async function initializePrerender(): Promise<void> {
       }
     }
     
-    console.log(`[SEO Prerender] Successfully cached ${prerenderCache.size} routes`);
+    logger.log(`[SEO Prerender] Successfully cached ${prerenderCache.size} routes`);
   } catch (error) {
-    console.error('[SEO Prerender] Initialization failed:', error);
+    logger.error('[SEO Prerender] Initialization failed:', error);
   }
 }
 
@@ -235,7 +237,7 @@ export function seoMiddleware(req: Request, res: Response, next: NextFunction): 
   // Check if we have a pre-rendered version of this route
   const cachedHtml = prerenderCache.get(req.path);
   if (cachedHtml) {
-    console.log(`[SEO Prerender] Serving cached HTML to crawler for: ${req.path}`);
+    logger.log(`[SEO Prerender] Serving cached HTML to crawler for: ${req.path}`);
     res.status(200).set({ 'Content-Type': 'text/html' }).send(cachedHtml);
     return;
   }
@@ -268,5 +270,5 @@ export function getCacheStats() {
  */
 export function invalidateRoute(path: string): void {
   prerenderCache.delete(path);
-  console.log(`[SEO Prerender] Invalidated cache for route: ${path}`);
+  logger.log(`[SEO Prerender] Invalidated cache for route: ${path}`);
 }

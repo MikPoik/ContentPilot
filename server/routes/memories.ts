@@ -3,6 +3,7 @@ import { storage } from "../storage";
 import { insertMemorySchema } from "@shared/schema";
 import { generateEmbedding } from "../services/openai";
 import { isAuthenticated } from "../replitAuth";
+import logger from "../logger";
 
 export function registerMemoryRoutes(app: Express) {
   // Get all memories for authenticated user
@@ -39,7 +40,7 @@ export function registerMemoryRoutes(app: Express) {
       const memory = await storage.createMemory(validatedData);
       res.json(memory);
     } catch (error) {
-      console.error("Memory creation error:", error);
+      logger.error("Memory creation error:", error);
       res.status(400).json({ message: "Failed to create memory" });
     }
   });
@@ -89,7 +90,7 @@ export function registerMemoryRoutes(app: Express) {
       
       res.json(similarMemories);
     } catch (error) {
-      console.error("Memory search error:", error);
+      logger.error("Memory search error:", error);
       res.status(500).json({ message: "Failed to search memories" });
     }
   });

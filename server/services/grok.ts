@@ -1,6 +1,7 @@
 import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import { WebSearchResult } from "./perplexity";
+import logger from "../logger";
 
 interface GrokSearchParameters {
   mode: 'on' | 'off' | 'auto';
@@ -36,7 +37,7 @@ export class GrokService {
 
   constructor() {
     if (!process.env.XAI_API_KEY) {
-      console.warn('⚠️ [GROK] XAI_API_KEY not set. Grok search functionality will be disabled.');
+      logger.warn('⚠️ [GROK] XAI_API_KEY not set. Grok search functionality will be disabled.');
     }
   }
 
@@ -83,7 +84,7 @@ export class GrokService {
     const cachedEntry = this.cache.get(cacheKey);
     if (cachedEntry && this.isCacheEntryValid(cachedEntry)) {
       cachedEntry.lastAccessed = Date.now();
-      console.log(`📦 [GROK CACHE] Cache HIT for key: ${cacheKey}`);
+      logger.log(`📦 [GROK CACHE] Cache HIT for key: ${cacheKey}`);
       return {
         context: cachedEntry.context,
         citations: cachedEntry.citations
@@ -94,7 +95,7 @@ export class GrokService {
       this.cache.delete(cacheKey);
     }
     
-    console.log(`❌ [GROK CACHE] Cache MISS for key: ${cacheKey}`);
+    logger.log(`❌ [GROK CACHE] Cache MISS for key: ${cacheKey}`);
     return null;
   }
 
@@ -112,7 +113,7 @@ export class GrokService {
       timestamp: Date.now(),
       lastAccessed: Date.now()
     });
-    console.log(`💾 [GROK CACHE] Cached result for key: ${cacheKey}`);
+    logger.log(`💾 [GROK CACHE] Cached result for key: ${cacheKey}`);
   }
 
   /**
@@ -154,7 +155,7 @@ export class GrokService {
     }
 
     const startTime = Date.now();
-    console.log(`🔍 [GROK] Starting search query: "${query}"`);
+    logger.log(`🔍 [GROK] Starting search query: "${query}"`);
 
     try {
       const searchParams: GrokSearchParameters = {
@@ -185,15 +186,15 @@ export class GrokService {
       });
 
       const content = result.text || '';
-      console.log(`🔍 [GROK] Search completed: ${Date.now() - startTime}ms`);
+      logger.log(`🔍 [GROK] Search completed: ${Date.now() - startTime}ms`);
 
       // Extract citations from sources and content
       const citations = this.extractCitations(content, result.sources);
 
       // Log response details for debugging
-      console.log(`🔍 [GROK] Response content length: ${content.length}, citations found: ${citations.length}`);
+      logger.log(`🔍 [GROK] Response content length: ${content.length}, citations found: ${citations.length}`);
       if (result.sources && result.sources.length > 0) {
-        console.log(`🔍 [GROK] API returned ${result.sources.length} sources`);
+        logger.log(`🔍 [GROK] API returned ${result.sources.length} sources`);
       }
 
       return {
@@ -203,7 +204,7 @@ export class GrokService {
       };
 
     } catch (error) {
-      console.error(`❌ [GROK] Search error after ${Date.now() - startTime}ms:`, error);
+      logger.error(`❌ [GROK] Search error after ${Date.now() - startTime}ms:`, error);
       throw error;
     }
   }

@@ -1,4 +1,5 @@
 import { openai } from "../openai";
+import logger from "../../logger";
 import OpenAI from "openai";
 // Centralized OpenAI client initialization for query rephrasing (using Gemini for cost efficiency)
 const geminiClient = new OpenAI({
@@ -32,11 +33,11 @@ export async function buildMemorySearchQuery(
   const userMessageLength = userMessage.trim().length;
 
   try {
-    console.log(`🔍 [AI_SERVICE] Building memory search query (simplified)...`);
+    logger.log(`🔍 [AI_SERVICE] Building memory search query (simplified)...`);
 
     // If user message is already in optimal range, use it directly
     if (userMessageLength >= OPTIMAL_MIN && userMessageLength <= OPTIMAL_MAX) {
-      console.log(
+      logger.log(
         `✅ [AI_SERVICE] Using user message directly (${userMessageLength} chars, optimal range): ${Date.now() - startTime}ms`
       );
       return userMessage.trim();
@@ -55,7 +56,7 @@ export async function buildMemorySearchQuery(
         ? truncated.substring(0, lastSentence + 1).trim()
         : truncated.trim();
       
-      console.log(
+      logger.log(
         `✅ [AI_SERVICE] Truncated long message (${userMessageLength} → ${result.length} chars): ${Date.now() - startTime}ms`
       );
       return result;
@@ -81,7 +82,7 @@ export async function buildMemorySearchQuery(
         const contextSnippet = assistantWords.slice(0, 15).join(' ');
         const contextQuery = `${userMessage.trim()} ${contextSnippet}`.substring(0, OPTIMAL_MAX);
         
-        console.log(
+        logger.log(
           `✅ [AI_SERVICE] Added assistant context (${userMessageLength} → ${contextQuery.length} chars): ${Date.now() - startTime}ms`
         );
         return contextQuery;
@@ -89,12 +90,12 @@ export async function buildMemorySearchQuery(
     }
 
     // Fallback: just use the user message as-is
-    console.log(
+    logger.log(
       `✅ [AI_SERVICE] Using user message as-is (${userMessageLength} chars): ${Date.now() - startTime}ms`
     );
     return userMessage.trim();
   } catch (error) {
-    console.error(
+    logger.error(
       `❌ [AI_SERVICE] Query building error after ${Date.now() - startTime}ms:`,
       error
     );
@@ -118,7 +119,7 @@ export async function rephraseQueryWithAI(
 ): Promise<string> {
   const internalStartTime = startTime || Date.now();
   try {
-    console.log(`🤖 [AI_SERVICE] AI rephrasing query for embedding search...`);
+    logger.log(`🤖 [AI_SERVICE] AI rephrasing query for embedding search...`);
 
     // Build conversation context from recent messages
     const contextMessages = conversationHistory
@@ -198,12 +199,12 @@ Rephrase this query for better memory search:`,
 
     const rephrasedQuery =
       response.choices[0]?.message?.content?.trim() || userMessage;
-    console.log(
+    logger.log(
       `🤖 [AI_SERVICE] AI query rephrasing completed: ${Date.now() - internalStartTime}ms`
     );
     return rephrasedQuery;
   } catch (error) {
-    console.error(
+    logger.error(
       `❌ [AI_SERVICE] AI query rephrasing error after ${Date.now() - internalStartTime}ms:`,
       error
     );
@@ -300,7 +301,7 @@ Return JSON array or [] if no confirmed user insights found.`,
 
     const result = response.choices[0]?.message?.content?.trim();
     if (!result) return [];
-    console.log(`🧠 [AI_SERVICE] Raw memory extraction result:`, result)
+    logger.log(`🧠 [AI_SERVICE] Raw memory extraction result:`, result)
     try {
       // Clean up the result before parsing
       let cleanResult = result.trim();
@@ -368,14 +369,14 @@ Return JSON array or [] if no confirmed user insights found.`,
 
             // 1. Filter out questions (universal - ends with ?)
             if (trimmed.match(/\?$/)) {
-              console.log(`🧠 [MEMORY_FILTER] Filtered question: "${trimmed}"`);
+              logger.log(`🧠 [MEMORY_FILTER] Filtered question: "${trimmed}"`);
               return null;
             }
 
             // 2. Filter out JSON-like structures (but not hashtag lists)
             const hasHashtags = trimmed.includes('#');
             if (!hasHashtags && (trimmed.match(/^\{.*".*".*\}$/) || trimmed.match(/^\[.*\]$/))) {
-              console.log(`🧠 [MEMORY_FILTER] Filtered JSON structure: "${trimmed}"`);
+              logger.log(`🧠 [MEMORY_FILTER] Filtered JSON structure: "${trimmed}"`);
               return null;
             }
 
@@ -385,7 +386,7 @@ Return JSON array or [] if no confirmed user insights found.`,
               const uniqueChars = new Set(trimmed.toLowerCase()).size;
               const diversityRatio = uniqueChars / trimmed.length;
               if (diversityRatio < 0.15) {
-                console.log(`🧠 [MEMORY_FILTER] Filtered low diversity (${diversityRatio.toFixed(2)}): "${trimmed}"`);
+                logger.log(`🧠 [MEMORY_FILTER] Filtered low diversity (${diversityRatio.toFixed(2)}): "${trimmed}"`);
                 return null;
               }
 
@@ -396,17 +397,17 @@ Return JSON array or [] if no confirmed user insights found.`,
             // 4. Detect quoted text patterns (but allow some quotes for hashtag contexts)
             const quoteCount = (trimmed.match(/["'«»"'"]/g) || []).length;
             if (quoteCount >= 8) { // Increased threshold from 6 to 8
-              console.log(`🧠 [MEMORY_FILTER] Filtered multiple quotes: "${trimmed}"`);
+              logger.log(`🧠 [MEMORY_FILTER] Filtered multiple quotes: "${trimmed}"`);
               return null;
             }
 
             // 5. Word count quality checks (relaxed for structured data like hashtags)
             if (wordCount < 4 && hashtagCount < 2) { // Allow shorter if has hashtags
-              console.log(`🧠 [MEMORY_FILTER] Filtered too short (${wordCount} words): "${trimmed}"`);
+              logger.log(`🧠 [MEMORY_FILTER] Filtered too short (${wordCount} words): "${trimmed}"`);
               return null;
             }
             if (wordCount > 80) { // Increased from 60 to allow hashtag lists
-              console.log(`🧠 [MEMORY_FILTER] Filtered too long (${wordCount} words): "${trimmed}"`);
+              logger.log(`🧠 [MEMORY_FILTER] Filtered too long (${wordCount} words): "${trimmed}"`);
               return null;
             }
 
@@ -416,7 +417,7 @@ Return JSON array or [] if no confirmed user insights found.`,
             // 6. Detect excessive parentheticals (but allow hashtag lists with commas)
             const parenCount = (trimmed.match(/[()[\]]/g) || []).length;
             if (parenCount >= 8 && hashtagCount < 2) { // Increased threshold and exclude hashtag content
-              console.log(`🧠 [MEMORY_FILTER] Filtered excessive parentheticals: "${trimmed}"`);
+              logger.log(`🧠 [MEMORY_FILTER] Filtered excessive parentheticals: "${trimmed}"`);
               return null;
             }
 
@@ -435,11 +436,11 @@ Return JSON array or [] if no confirmed user insights found.`,
           }).filter((m): m is ExtractedMemory => m !== null)
         : [];
 
-      console.log(`🧠 [AI_SERVICE] Extracted ${filteredMemories.length} memories with confidence scores`);
+      logger.log(`🧠 [AI_SERVICE] Extracted ${filteredMemories.length} memories with confidence scores`);
       return filteredMemories;
     } catch (parseError) {
-      console.log("Memory extraction JSON parse error:", parseError);
-      console.log("Raw result:", result);
+      logger.log("Memory extraction JSON parse error:", parseError);
+      logger.log("Raw result:", result);
 
       // Fallback: try to extract complete strings manually using regex
       try {
@@ -462,7 +463,7 @@ Return JSON array or [] if no confirmed user insights found.`,
             })
             .slice(0, 5); // Max 5 memories
 
-          console.log(
+          logger.log(
             "Fallback extraction found:",
             extractedStrings.length,
             "memories",
@@ -475,13 +476,13 @@ Return JSON array or [] if no confirmed user insights found.`,
           }));
         }
       } catch (fallbackError) {
-        console.log("Fallback extraction also failed:", fallbackError);
+        logger.log("Fallback extraction also failed:", fallbackError);
       }
 
       return [];
     }
   } catch (error) {
-    console.log("Memory extraction error:", error);
+    logger.log("Memory extraction error:", error);
     return [];
   }
 }

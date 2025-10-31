@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { insertConversationSchema } from "@shared/schema";
 import { isAuthenticated } from "../replitAuth";
+import logger from "../logger";
 
 export function registerConversationRoutes(app: Express) {
   // Get all conversations for authenticated user
@@ -41,7 +42,7 @@ export function registerConversationRoutes(app: Express) {
       const conversation = await storage.createConversation(validatedData);
       res.json(conversation);
     } catch (error) {
-      console.error("Conversation creation error:", error);
+      logger.error("Conversation creation error:", error);
       res.status(400).json({ message: "Invalid conversation data" });
     }
   });

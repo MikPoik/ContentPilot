@@ -1,5 +1,6 @@
 import { type User } from "@shared/schema";
 import { openai } from "../openai";
+import logger from "../../logger";
 
 import OpenAI from "openai";
 
@@ -156,7 +157,7 @@ export function safeJsonParse<T>(
 
     return JSON.parse(sanitized.trim()) as T;
   } catch (error) {
-    console.error("JSON parsing failed:", error, "Input:", jsonString);
+    logger.error("JSON parsing failed:", error, "Input:", jsonString);
     return fallback;
   }
 }
@@ -175,7 +176,7 @@ export async function analyzeUnifiedIntent(
   const timeoutMs = 120000; // Reduced to 4 seconds for faster response
 
   try {
-    console.log(`🧠 [UNIFIED_INTENT] Starting unified intent analysis...`);
+    logger.log(`🧠 [UNIFIED_INTENT] Starting unified intent analysis...`);
 
     // Get last 4 messages for context (optimized for performance)
     const contextMessages = messages.slice(-4);
@@ -455,12 +456,12 @@ ${memoriesContext}
 
     const result = response.choices[0]?.message?.content?.trim();
     if (!result) {
-      console.log(
+      logger.log(
         `❌ [UNIFIED_INTENT] No response from Gemini flash after ${Date.now() - startTime}ms`,
       );
       return getDefaultUnifiedDecision();
     }
-    console.log(`🧠 [UNIFIED_INTENT] Raw AI response:`, result);
+    logger.log(`🧠 [UNIFIED_INTENT] Raw AI response:`, result);
 
     // Parse the condensed response and normalize it
     const condensedResponse = safeJsonParse<any>(
@@ -493,7 +494,7 @@ ${memoriesContext}
 
       // If AI chose a phase that doesn't match profile completeness, override with validated phase
       if (decision.workflowPhase.currentPhase !== validatedPhase.name) {
-        console.log(`🔄 [VALIDATION] Correcting workflow phase from "${decision.workflowPhase.currentPhase}" to "${validatedPhase.name}" based on ${profileCompleteness}% completeness`);
+        logger.log(`🔄 [VALIDATION] Correcting workflow phase from "${decision.workflowPhase.currentPhase}" to "${validatedPhase.name}" based on ${profileCompleteness}% completeness`);
         decision.workflowPhase.currentPhase = validatedPhase.name;
         decision.workflowPhase.shouldBlockContentGeneration = !validatedPhase.canGenerateContent;
         decision.workflowPhase.confidence = 0.95; // High confidence in rule-based decision
@@ -535,13 +536,13 @@ ${memoriesContext}
       });
 
       if (actuallyMissingFields.length !== decision.workflowPhase.missingFields.length) {
-        console.log(`🔍 [VALIDATION] Filtered missing fields from ${decision.workflowPhase.missingFields.length} to ${actuallyMissingFields.length}`);
-        console.log(`🔍 [VALIDATION] Removed fields that actually have values: ${decision.workflowPhase.missingFields.filter(f => !actuallyMissingFields.includes(f)).join(', ')}`);
+        logger.log(`🔍 [VALIDATION] Filtered missing fields from ${decision.workflowPhase.missingFields.length} to ${actuallyMissingFields.length}`);
+        logger.log(`🔍 [VALIDATION] Removed fields that actually have values: ${decision.workflowPhase.missingFields.filter(f => !actuallyMissingFields.includes(f)).join(', ')}`);
         decision.workflowPhase.missingFields = actuallyMissingFields;
       }
     }
 
-    console.log(
+    logger.log(
       `🧠 [UNIFIED_INTENT] Analysis complete: ${Date.now() - startTime}ms - webSearch: ${decision.webSearch.shouldSearch}, instagram: ${decision.instagramAnalysis.shouldAnalyze}, blog: ${decision.blogAnalysis.shouldAnalyze}, phase: ${decision.workflowPhase.currentPhase}`,
     );
 
@@ -549,14 +550,14 @@ ${memoriesContext}
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
-    console.error(
+    logger.error(
       `❌ [UNIFIED_INTENT] Error after ${Date.now() - startTime}ms:`,
       errorMessage,
     );
 
     // Return appropriate fallback based on error type
     if (errorMessage.includes("timeout")) {
-      console.log(
+      logger.log(
         `⏱️ [UNIFIED_INTENT] Request timed out after ${timeoutMs}ms - using safe fallback`,
       );
     }

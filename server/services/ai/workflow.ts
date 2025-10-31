@@ -1,5 +1,6 @@
 import { type User } from "@shared/schema";
 import { openai } from "../openai";
+import logger from "../../logger";
 import {
   ChatMessage,
   WorkflowPhaseDecision,
@@ -70,7 +71,7 @@ Focus on patterns, not specific language keywords. Be universal and language-agn
     };
 
   } catch (error) {
-    console.error('Error analyzing writing style with AI:', error);
+    logger.error('Error analyzing writing style with AI:', error);
     return null;
   }
 }
@@ -500,7 +501,7 @@ async function formatDetailedProfileData(profileData: any): Promise<string> {
 export async function decideWorkflowPhase(messages: ChatMessage[], user?: User): Promise<WorkflowPhaseDecision> {
   const startTime = Date.now();
   try {
-    console.log(`🔄 [AI_SERVICE] Analyzing workflow phase with GPT-4o-mini...`);
+    logger.log(`🔄 [AI_SERVICE] Analyzing workflow phase with GPT-4o-mini...`);
 
     // First, check profile completeness against constants
     if (user) {
@@ -519,7 +520,7 @@ export async function decideWorkflowPhase(messages: ChatMessage[], user?: User):
         contentGoals: profileData.contentGoals,
       });
       
-      console.log(`🔄 [AI_SERVICE] Profile at ${profileCompleteness}% → Validated phase: ${validatedPhase.name}`);
+      logger.log(`🔄 [AI_SERVICE] Profile at ${profileCompleteness}% → Validated phase: ${validatedPhase.name}`);
     }
 
     // Get last 8 messages for context
@@ -594,7 +595,7 @@ Analyze what workflow phase we're in and what's needed next. Be conservative abo
 
     const result = response.choices[0]?.message?.content?.trim();
     if (!result) {
-      console.log(`❌ [AI_SERVICE] No response from GPT-4.1 for workflow phase after ${Date.now() - startTime}ms`);
+      logger.log(`❌ [AI_SERVICE] No response from GPT-4.1 for workflow phase after ${Date.now() - startTime}ms`);
       return {
         currentPhase: "Discovery & Personalization",
         missingFields: ["name", "niche", "platform"],
@@ -641,11 +642,11 @@ Analyze what workflow phase we're in and what's needed next. Be conservative abo
     }
 
     const decision: WorkflowPhaseDecision = JSON.parse(sanitizedResult);
-    console.log(`🔄 [AI_SERVICE] Workflow phase: ${Date.now() - startTime}ms - phase: ${decision.currentPhase}, block content: ${decision.shouldBlockContentGeneration}`);
+    logger.log(`🔄 [AI_SERVICE] Workflow phase: ${Date.now() - startTime}ms - phase: ${decision.currentPhase}, block content: ${decision.shouldBlockContentGeneration}`);
     return decision;
 
   } catch (error) {
-    console.error(`❌ [AI_SERVICE] Workflow phase error after ${Date.now() - startTime}ms:`, error);
+    logger.error(`❌ [AI_SERVICE] Workflow phase error after ${Date.now() - startTime}ms:`, error);
     // Conservative fallback - stay in discovery
     return {
       currentPhase: "Discovery & Personalization",

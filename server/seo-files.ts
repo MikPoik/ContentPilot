@@ -7,16 +7,16 @@
 
 import { type Express } from "express";
 import { seoRoutes } from "@shared/seo-config";
+import logger from "./logger";
 
 /**
  * Get the base URL for the application.
  * In production, this would be your actual domain.
  */
 function getBaseUrl(): string {
-  // In production, use environment variable or your actual domain
-  if (process.env.NODE_ENV === 'production' && process.env.REPLIT_DOMAINS) {
-    const domains = process.env.REPLIT_DOMAINS.split(',');
-    return `https://${domains[0]}`;
+  // Prefer explicit APP_URL when provided (works for both dev and prod)
+  if (process.env.APP_URL) {
+    return process.env.APP_URL.replace(/\/$/, ''); // ensure no trailing slash
   }
   
   // In development, use localhost
@@ -86,5 +86,5 @@ export function registerSeoFileRoutes(app: Express): void {
     res.send(robotsTxt);
   });
   
-  console.log('[SEO Files] Registered /sitemap.xml and /robots.txt routes');
+  logger.log('[SEO Files] Registered /sitemap.xml and /robots.txt routes');
 }

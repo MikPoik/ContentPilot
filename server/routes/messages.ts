@@ -3,6 +3,7 @@ import { storage } from "../storage";
 import { isAuthenticated } from "../replitAuth";
 import { generateChatResponse, generateConversationTitle, type ChatResponseWithMetadata } from "../services/ai/chat";
 import { ErrorTypes, parseError, formatErrorResponse, logError } from "../services/errors";
+import logger from "../logger";
 import { generateEmbedding, generateBatchEmbeddings } from "../services/openai";
 import { extractProfileInfo } from "../services/ai/profile";
 import { extractMemoriesFromConversation, buildMemorySearchQuery } from "../services/ai/memory";
@@ -36,7 +37,7 @@ export function registerMessageRoutes(app: Express) {
   // Send a message and get AI response (streaming)
   app.post("/api/conversations/:id/messages", isAuthenticated, async (req: any, res) => {
     const requestStartTime = Date.now();
-    console.log(`\n🚀 [CHAT_FLOW] Starting message processing at ${new Date().toISOString()}`);
+    logger.log(`\n🚀 [CHAT_FLOW] Starting message processing at ${new Date().toISOString()}`);
 
     try {
       const { content } = req.body;
@@ -65,8 +66,8 @@ export function registerMessageRoutes(app: Express) {
 
       const conversationId = req.params.id;
       const userId = req.user.claims.sub;
-      console.log(`📝 [CHAT_FLOW] Processing message for user: ${userId}, conversation: ${conversationId}`);
-      console.log(`📏 [CHAT_FLOW] Message length: ${trimmedContent.length} characters`);
+      logger.log(`📝 [CHAT_FLOW] Processing message for user: ${userId}, conversation: ${conversationId}`);
+      logger.log(`📏 [CHAT_FLOW] Message length: ${trimmedContent.length} characters`);
 
       // Check message usage limits
       const currentUser = await storage.getUser(userId);
@@ -102,7 +103,7 @@ export function registerMessageRoutes(app: Express) {
       if (conversation.userId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
-      console.log(`✅ [CHAT_FLOW] Conversation verification: ${Date.now() - verificationStartTime}ms`);
+      logger.log(`✅ [CHAT_FLOW] Conversation verification: ${Date.now() - verificationStartTime}ms`);
 
       // Save user message (async, but wait for it)
       const saveUserMessageStart = Date.now();
@@ -111,7 +112,7 @@ export function registerMessageRoutes(app: Express) {
         role: 'user',
         content,
       });
-      console.log(`💾 [CHAT_FLOW] User message saved: ${Date.now() - saveUserMessageStart}ms`);
+      logger.log(`💾 [CHAT_FLOW] User message saved: ${Date.now() - saveUserMessageStart}ms`);
 
       // PARALLEL DATA FETCH: Get conversation history, user profile, and start memory search simultaneously
       const dataFetchStart = Date.now();
@@ -133,30 +134,30 @@ export function registerMessageRoutes(app: Express) {
           // Build query using smart concatenation
           const queryBuildingStart = Date.now();
           const searchQuery = await buildMemorySearchQuery(content, chatHistory.slice(-6), user);
-          console.log(`🔄 [CHAT_FLOW] Query building: ${Date.now() - queryBuildingStart}ms`);
-          console.log(`🔍 [CHAT_FLOW] Search query: "${searchQuery}"`);
+          logger.log(`🔄 [CHAT_FLOW] Query building: ${Date.now() - queryBuildingStart}ms`);
+          logger.log(`🔍 [CHAT_FLOW] Search query: "${searchQuery}"`);
 
           const embeddingStart = Date.now();
           const queryEmbedding = await generateEmbedding(searchQuery);
-          console.log(`🧠 [CHAT_FLOW] Embedding generation: ${Date.now() - embeddingStart}ms`);
+          logger.log(`🧠 [CHAT_FLOW] Embedding generation: ${Date.now() - embeddingStart}ms`);
 
           const similaritySearchStart = Date.now();
           const relevantMemories = await storage.searchSimilarMemories(userId, queryEmbedding, 5);
-          console.log(`🔍 [CHAT_FLOW] Vector similarity search: ${Date.now() - similaritySearchStart}ms`);
-          console.log(`🎯 [CHAT_FLOW] Total memory search: ${Date.now() - memorySearchStart}ms (found ${relevantMemories.length} memories)`);
+          logger.log(`🔍 [CHAT_FLOW] Vector similarity search: ${Date.now() - similaritySearchStart}ms`);
+          logger.log(`🎯 [CHAT_FLOW] Total memory search: ${Date.now() - memorySearchStart}ms (found ${relevantMemories.length} memories)`);
 
           if (relevantMemories.length > 0) {
-            console.log(`🧠 [CHAT_FLOW] Retrieved memories:`);
+            logger.log(`🧠 [CHAT_FLOW] Retrieved memories:`);
             relevantMemories.forEach((memory, index) => {
-              console.log(`  ${index + 1}. [Similarity: ${memory.similarity?.toFixed(3) || 'N/A'}] ${memory.content}`);
+              logger.log(`  ${index + 1}. [Similarity: ${memory.similarity?.toFixed(3) || 'N/A'}] ${memory.content}`);
             });
           } else {
-            console.log(`🧠 [CHAT_FLOW] No relevant memories found for this query`);
+            logger.log(`🧠 [CHAT_FLOW] No relevant memories found for this query`);
           }
 
           return { relevantMemories, user, messages: chatHistory };
         } catch (error) {
-          console.log(`❌ [CHAT_FLOW] Memory search failed: ${error}`);
+          logger.log(`❌ [CHAT_FLOW] Memory search failed: ${error}`);
           // Get user separately if memory search failed
           const fallbackUser = await storage.getUser(userId);
           return { relevantMemories: [], user: fallbackUser, messages: [] };
@@ -165,7 +166,7 @@ export function registerMessageRoutes(app: Express) {
 
       // Wait for memory search to complete
       const { relevantMemories, user, messages: chatHistory } = await memorySearchPromise;
-      console.log(`📚 [CHAT_FLOW] Parallel data fetch complete: ${Date.now() - dataFetchStart}ms`);
+      logger.log(`📚 [CHAT_FLOW] Parallel data fetch complete: ${Date.now() - dataFetchStart}ms`);
 
       // Use unified intent analysis to make all decisions in a single AI call
       const unifiedIntentStart = Date.now();
@@ -178,9 +179,9 @@ export function registerMessageRoutes(app: Express) {
       let unifiedDecision: any = null;
 
       try {
-        console.log(`🧠 [CHAT_FLOW] Starting unified intent analysis...`);
+        logger.log(`🧠 [CHAT_FLOW] Starting unified intent analysis...`);
         unifiedDecision = await analyzeUnifiedIntent(chatHistory, user || undefined, relevantMemories);
-        console.log(`🧠 [CHAT_FLOW] Unified intent analysis: ${Date.now() - unifiedIntentStart}ms - webSearch: ${unifiedDecision.webSearch.shouldSearch}, instagram: ${unifiedDecision.instagramAnalysis.shouldAnalyze}, hashtag: ${unifiedDecision.instagramHashtagSearch.shouldSearch}, blog: ${unifiedDecision.blogAnalysis.shouldAnalyze}, profileUpdate: ${unifiedDecision.profileUpdate?.shouldExtract || false}, phase: ${unifiedDecision.workflowPhase.currentPhase}`);
+        logger.log(`🧠 [CHAT_FLOW] Unified intent analysis: ${Date.now() - unifiedIntentStart}ms - webSearch: ${unifiedDecision.webSearch.shouldSearch}, instagram: ${unifiedDecision.instagramAnalysis.shouldAnalyze}, hashtag: ${unifiedDecision.instagramHashtagSearch.shouldSearch}, blog: ${unifiedDecision.blogAnalysis.shouldAnalyze}, profileUpdate: ${unifiedDecision.profileUpdate?.shouldExtract || false}, phase: ${unifiedDecision.workflowPhase.currentPhase}`);
 
         // Extract individual decisions for backward compatibility
         const instagramDecision = extractInstagramAnalysisDecision(unifiedDecision);
@@ -208,7 +209,7 @@ export function registerMessageRoutes(app: Express) {
           const instagramAnalysisStart = Date.now();
           try {
             // Log the explicit ownership flag for debugging and send Instagram analysis activity indicator
-            console.log(`📸 [CHAT_FLOW] Instagram decision isOwnProfile: ${instagramDecision.isOwnProfile}`);
+            logger.log(`📸 [CHAT_FLOW] Instagram decision isOwnProfile: ${instagramDecision.isOwnProfile}`);
             // Send Instagram analysis activity indicator
             res.write(`[AI_ACTIVITY]{"type":"instagram_analyzing","message":"@${instagramDecision.username}"}[/AI_ACTIVITY]`);
             if (typeof (res as any).flush === 'function') {
@@ -234,9 +235,9 @@ export function registerMessageRoutes(app: Express) {
               try { (res as any).flush(); } catch {}
             }
 
-            console.log(`📸 [CHAT_FLOW] Instagram analysis completed: ${Date.now() - instagramAnalysisStart}ms - success: ${instagramAnalysisResult.success}`);
+            logger.log(`📸 [CHAT_FLOW] Instagram analysis completed: ${Date.now() - instagramAnalysisStart}ms - success: ${instagramAnalysisResult.success}`);
           } catch (error) {
-            console.error(`❌ [CHAT_FLOW] Instagram analysis failed: ${Date.now() - instagramAnalysisStart}ms`, error);
+            logger.error(`❌ [CHAT_FLOW] Instagram analysis failed: ${Date.now() - instagramAnalysisStart}ms`, error);
 
             // Clear activity indicator on error
             res.write(`[AI_ACTIVITY]{"type":null,"message":""}[/AI_ACTIVITY]`);
@@ -279,9 +280,9 @@ export function registerMessageRoutes(app: Express) {
               try { (res as any).flush(); } catch {}
             }
 
-            console.log(`🏷️ [CHAT_FLOW] Hashtag search completed: ${Date.now() - hashtagSearchStart}ms - success: ${instagramHashtagResult.success}`);
+            logger.log(`🏷️ [CHAT_FLOW] Hashtag search completed: ${Date.now() - hashtagSearchStart}ms - success: ${instagramHashtagResult.success}`);
           } catch (error) {
-            console.error(`❌ [CHAT_FLOW] Hashtag search failed: ${Date.now() - hashtagSearchStart}ms`, error);
+            logger.error(`❌ [CHAT_FLOW] Hashtag search failed: ${Date.now() - hashtagSearchStart}ms`, error);
 
             // Clear activity indicator on error
             res.write(`[AI_ACTIVITY]{"type":null,"message":""}[/AI_ACTIVITY]`);
@@ -300,7 +301,7 @@ export function registerMessageRoutes(app: Express) {
         if (blogDecision.shouldAnalyze && blogDecision.urls.length > 0 && blogDecision.confidence >= 0.7) {
           const analysisStart = Date.now();
           try {
-            console.log(`📝 [CHAT_FLOW] Performing blog analysis for ${blogDecision.urls.length} URLs...`);
+            logger.log(`📝 [CHAT_FLOW] Performing blog analysis for ${blogDecision.urls.length} URLs...`);
 
             // Send blog analysis activity indicator
             const blogUrlsText = blogDecision.urls.length === 1 
@@ -329,9 +330,9 @@ export function registerMessageRoutes(app: Express) {
               try { (res as any).flush(); } catch {}
             }
 
-            console.log(`📝 [CHAT_FLOW] Blog analysis completed: ${Date.now() - analysisStart}ms - success: ${blogAnalysisResult.success}`);
+            logger.log(`📝 [CHAT_FLOW] Blog analysis completed: ${Date.now() - analysisStart}ms - success: ${blogAnalysisResult.success}`);
           } catch (error) {
-            console.error(`❌ [CHAT_FLOW] Blog analysis failed: ${Date.now() - analysisStart}ms`, error);
+            logger.error(`❌ [CHAT_FLOW] Blog analysis failed: ${Date.now() - analysisStart}ms`, error);
 
             // Clear activity indicator on error
             res.write(`[AI_ACTIVITY]{"type":null,"message":""}[/AI_ACTIVITY]`);
@@ -347,7 +348,7 @@ export function registerMessageRoutes(app: Express) {
         }
 
       } catch (error) {
-        console.log(`❌ [CHAT_FLOW] Unified intent analysis error: ${error}`);
+        logger.log(`❌ [CHAT_FLOW] Unified intent analysis error: ${error}`);
         // Fallback to safe defaults
         searchDecision = {
           shouldSearch: false,
@@ -396,7 +397,7 @@ export function registerMessageRoutes(app: Express) {
 
       // Generate AI response stream with user profile and memories
       const aiResponseStart = Date.now();
-      console.log(`🤖 [CHAT_FLOW] Starting AI response generation...`);
+      logger.log(`🤖 [CHAT_FLOW] Starting AI response generation...`);
       const responseWithMetadata: ChatResponseWithMetadata = await generateChatResponse(chatHistory, user!, relevantMemories, searchDecision, instagramAnalysisResult, instagramHashtagResult, blogAnalysisResult, workflowPhaseDecision); // Pass workflow decision from unified intent analysis
       let fullResponse = '';
 
@@ -412,7 +413,7 @@ export function registerMessageRoutes(app: Express) {
         if (typeof (res as any).flush === 'function') {
           try { (res as any).flush(); } catch {}
         }
-        console.log(`🔍 [CHAT_FLOW] Search metadata sent: searchPerformed=${responseWithMetadata.searchPerformed}, citations=${(responseWithMetadata.citations || []).length}, query="${responseWithMetadata.searchQuery}"`);
+        logger.log(`🔍 [CHAT_FLOW] Search metadata sent: searchPerformed=${responseWithMetadata.searchPerformed}, citations=${(responseWithMetadata.citations || []).length}, query="${responseWithMetadata.searchQuery}"`);
       }
 
       const reader = responseWithMetadata.stream.getReader();
@@ -430,8 +431,8 @@ export function registerMessageRoutes(app: Express) {
           }
         }
 
-        console.log(`🤖 [CHAT_FLOW] AI response generation completed: ${Date.now() - aiResponseStart}ms`);
-        console.log(`📏 [CHAT_FLOW] AI response length: ${fullResponse.length} characters`);
+        logger.log(`🤖 [CHAT_FLOW] AI response generation completed: ${Date.now() - aiResponseStart}ms`);
+        logger.log(`📏 [CHAT_FLOW] AI response length: ${fullResponse.length} characters`);
 
         // Save AI response
         const saveAiResponseStart = Date.now();
@@ -440,7 +441,7 @@ export function registerMessageRoutes(app: Express) {
           role: 'assistant',
           content: fullResponse,
         });
-        console.log(`💾 [CHAT_FLOW] AI response saved: ${Date.now() - saveAiResponseStart}ms`);
+        logger.log(`💾 [CHAT_FLOW] AI response saved: ${Date.now() - saveAiResponseStart}ms`);
 
         // Send the real database message ID to frontend
         const messageIdMetadata = JSON.stringify({
@@ -455,7 +456,7 @@ export function registerMessageRoutes(app: Express) {
         // Increment message usage count
         const incrementUsageStart = Date.now();
         await storage.incrementMessageUsage(userId);
-        console.log(`📈 [CHAT_FLOW] Message usage incremented: ${Date.now() - incrementUsageStart}ms`);
+        logger.log(`📈 [CHAT_FLOW] Message usage incremented: ${Date.now() - incrementUsageStart}ms`);
 
         // Extract and update user profile from conversation and workflow
         const profileUpdateStart = Date.now();
@@ -466,7 +467,7 @@ export function registerMessageRoutes(app: Express) {
           if (responseWithMetadata.workflowDecision?.profilePatch &&
               Object.keys(responseWithMetadata.workflowDecision.profilePatch).length > 0) {
             combinedProfileUpdates = { ...responseWithMetadata.workflowDecision.profilePatch };
-            console.log(`🔄 [CHAT_FLOW] Workflow profile patches:`, Object.keys(combinedProfileUpdates));
+            logger.log(`🔄 [CHAT_FLOW] Workflow profile patches:`, Object.keys(combinedProfileUpdates));
           }
 
           // CENTRALIZED PROFILE EXTRACTION DECISION
@@ -494,7 +495,7 @@ export function registerMessageRoutes(app: Express) {
           if (extractionDecision.shouldExtract) {
             const profileExtractionStart = Date.now();
 
-            console.log(`👤 [CHAT_FLOW] Running profile extraction - reason: ${extractionDecision.reason}, source: ${extractionDecision.source}, confidence: ${extractionDecision.confidence}`);
+            logger.log(`👤 [CHAT_FLOW] Running profile extraction - reason: ${extractionDecision.reason}, source: ${extractionDecision.source}, confidence: ${extractionDecision.confidence}`);
 
             // Send profile extraction activity indicator
             res.write(`[AI_ACTIVITY]{"type":"profile_extracting","message":"Updating your profile..."}[/AI_ACTIVITY]`);
@@ -520,9 +521,9 @@ export function registerMessageRoutes(app: Express) {
               try { (res as any).flush(); } catch {}
             }
 
-            console.log(`👤 [CHAT_FLOW] Profile extraction completed: ${Date.now() - profileExtractionStart}ms - extracted fields: ${Object.keys(extractedProfile || {}).join(', ') || 'none'}`);
+            logger.log(`👤 [CHAT_FLOW] Profile extraction completed: ${Date.now() - profileExtractionStart}ms - extracted fields: ${Object.keys(extractedProfile || {}).join(', ') || 'none'}`);
           } else {
-            console.log(`👤 [CHAT_FLOW] Skipping profile extraction - ${extractionDecision.reason}`);
+            logger.log(`👤 [CHAT_FLOW] Skipping profile extraction - ${extractionDecision.reason}`);
           }
 
           // Merge workflow patches with conversation-extracted updates
@@ -545,7 +546,7 @@ export function registerMessageRoutes(app: Express) {
           // REMOVED: Auto Instagram analysis during streaming (causes race conditions)
           // Instead, queue it for next conversation turn if username is discovered
           if (combinedProfileUpdates.instagramUsername && !instagramAnalysisResult) {
-            console.log(`📸 [CHAT_FLOW] Discovered Instagram username: @${combinedProfileUpdates.instagramUsername} - user can explicitly request analysis in next message`);
+            logger.log(`📸 [CHAT_FLOW] Discovered Instagram username: @${combinedProfileUpdates.instagramUsername} - user can explicitly request analysis in next message`);
             // Note: Workflow system will suggest Instagram analysis in next turn via suggested prompts
           }
 
@@ -561,8 +562,8 @@ export function registerMessageRoutes(app: Express) {
             }
 
             const updatedUser = await storage.updateUserProfile(userId, combinedProfileUpdates);
-            console.log(`👤 [CHAT_FLOW] Profile update saved: ${Date.now() - profileSaveStart}ms`);
-            console.log(`👤 [CHAT_FLOW] Combined profile updates:`, Object.keys(combinedProfileUpdates));
+            logger.log(`👤 [CHAT_FLOW] Profile update saved: ${Date.now() - profileSaveStart}ms`);
+            logger.log(`👤 [CHAT_FLOW] Combined profile updates:`, Object.keys(combinedProfileUpdates));
 
             // Send profile update notification to frontend
             const profileUpdateMetadata = {
@@ -580,12 +581,12 @@ export function registerMessageRoutes(app: Express) {
               try { (res as any).flush(); } catch {}
             }
           } else {
-            console.log(`👤 [CHAT_FLOW] No profile updates found`);
+            logger.log(`👤 [CHAT_FLOW] No profile updates found`);
           }
-          console.log(`👤 [CHAT_FLOW] Total profile processing: ${Date.now() - profileUpdateStart}ms`);
+          logger.log(`👤 [CHAT_FLOW] Total profile processing: ${Date.now() - profileUpdateStart}ms`);
         } catch (error) {
-          console.log('❌ [CHAT_FLOW] Profile processing error:', error);
-          console.log(`👤 [CHAT_FLOW] Profile processing failed: ${Date.now() - profileUpdateStart}ms`);
+          logger.log('❌ [CHAT_FLOW] Profile processing error:', error);
+          logger.log(`👤 [CHAT_FLOW] Profile processing failed: ${Date.now() - profileUpdateStart}ms`);
         }
 
         // Extract and save new memories from conversation
@@ -600,13 +601,13 @@ export function registerMessageRoutes(app: Express) {
           const memoryExtractionStart = Date.now();
           // The extractMemoriesFromConversation function should now return an array of objects, each containing content, confidence, and source
           const extractedMemories = await extractMemoriesFromConversation(content, fullResponse, relevantMemories);
-          console.log(`🧠 [CHAT_FLOW] Memory extraction: ${Date.now() - memoryExtractionStart}ms (found ${extractedMemories.length} memories)`);
+          logger.log(`🧠 [CHAT_FLOW] Memory extraction: ${Date.now() - memoryExtractionStart}ms (found ${extractedMemories.length} memories)`);
 
           if (extractedMemories.length > 0) {
             // Generate embeddings in BATCH for much faster processing
             const embeddingStart = Date.now();
             const embeddings = await generateBatchEmbeddings(extractedMemories.map(m => m.content)); // Pass only content for embedding
-            console.log(`🧠 [CHAT_FLOW] Batch embedding generation: ${Date.now() - embeddingStart}ms (${embeddings.length} embeddings)`);
+            logger.log(`🧠 [CHAT_FLOW] Batch embedding generation: ${Date.now() - embeddingStart}ms (${embeddings.length} embeddings)`);
 
             // Prepare memories with embeddings and metadata
             const memoriesWithEmbeddings = extractedMemories.map((memory, index) => ({
@@ -630,14 +631,14 @@ export function registerMessageRoutes(app: Express) {
               // Use 0.92 threshold for true duplicates (semantic deduplication)
               // This prevents near-identical memories while allowing semantically different ones
               if (highestSimilarity >= 0.92) {
-                console.log(`🧠 [DEDUP] Skipping duplicate memory (similarity: ${highestSimilarity.toFixed(3)}): "${memory.content.substring(0, 60)}..."`);
+                logger.log(`🧠 [DEDUP] Skipping duplicate memory (similarity: ${highestSimilarity.toFixed(3)}): "${memory.content.substring(0, 60)}..."`);
                 memoriesToSave.push({ ...memory, isDuplicate: true });
               } else {
-                console.log(`🧠 [DEDUP] Accepting new memory (highest similarity: ${highestSimilarity.toFixed(3)}): "${memory.content.substring(0, 60)}..."`);
+                logger.log(`🧠 [DEDUP] Accepting new memory (highest similarity: ${highestSimilarity.toFixed(3)}): "${memory.content.substring(0, 60)}..."`);
                 memoriesToSave.push({ ...memory, isDuplicate: false });
               }
             }
-            console.log(`🧠 [CHAT_FLOW] Semantic deduplication check: ${Date.now() - deduplicationStart}ms (${memoriesToSave.filter(m => !m.isDuplicate).length}/${extractedMemories.length} unique)`);
+            logger.log(`🧠 [CHAT_FLOW] Semantic deduplication check: ${Date.now() - deduplicationStart}ms (${memoriesToSave.filter(m => !m.isDuplicate).length}/${extractedMemories.length} unique)`);
 
             // Save only non-duplicate memories with importance scoring
             const saveStart = Date.now();
@@ -697,14 +698,14 @@ export function registerMessageRoutes(app: Express) {
                   });
                 })
               );
-              console.log(`🧠 [CHAT_FLOW] Saved ${uniqueMemories.length} unique memories with importance scoring: ${Date.now() - saveStart}ms`);
+              logger.log(`🧠 [CHAT_FLOW] Saved ${uniqueMemories.length} unique memories with importance scoring: ${Date.now() - saveStart}ms`);
             } else {
-              console.log(`🧠 [CHAT_FLOW] No new unique memories to save (all were duplicates)`);
+              logger.log(`🧠 [CHAT_FLOW] No new unique memories to save (all were duplicates)`);
             }
           }
-          console.log(`🧠 [CHAT_FLOW] Total memory processing: ${Date.now() - memorySaveStart}ms`);
+          logger.log(`🧠 [CHAT_FLOW] Total memory processing: ${Date.now() - memorySaveStart}ms`);
         } catch (error) {
-          console.log('❌ [CHAT_FLOW] Memory save error:', error);
+          logger.log('❌ [CHAT_FLOW] Memory save error:', error);
         }
 
         // Track workflow phase transitions
@@ -717,7 +718,7 @@ export function registerMessageRoutes(app: Express) {
 
             // Only track if phase has changed and both previous and current phases are defined
             if (previousPhase && currentPhase && currentPhase !== previousPhase) {
-              console.log(`📊 [WORKFLOW_TRANSITION] Phase change: ${previousPhase} → ${currentPhase}`);
+              logger.log(`📊 [WORKFLOW_TRANSITION] Phase change: ${previousPhase} → ${currentPhase}`);
 
               const transitionMemory = `User advanced from ${previousPhase} to ${currentPhase} workflow phase (${user.profileCompleteness}% profile complete)`;
               const transitionEmbedding = await generateEmbedding(transitionMemory);
@@ -747,7 +748,7 @@ export function registerMessageRoutes(app: Express) {
               });
             } else if (currentPhase && !previousPhase) {
               // If there's a current phase but no previous phase recorded, just record the current one
-              console.log(`📊 [WORKFLOW_TRANSITION] Initializing workflow phase: ${currentPhase}`);
+              logger.log(`📊 [WORKFLOW_TRANSITION] Initializing workflow phase: ${currentPhase}`);
               await storage.updateUserProfile(userId, {
                 profileData: {
                   ...(user.profileData as any || {}),
@@ -757,7 +758,7 @@ export function registerMessageRoutes(app: Express) {
             }
           }
         } catch (error) {
-          console.log('❌ [WORKFLOW_TRANSITION] Tracking error:', error);
+          logger.log('❌ [WORKFLOW_TRANSITION] Tracking error:', error);
         }
 
         // Update conversation title if it's the first exchange (ASYNC - don't block response)
@@ -769,34 +770,34 @@ export function registerMessageRoutes(app: Express) {
           ]).then(newTitle => {
             return storage.updateConversation(conversationId, { title: newTitle });
           }).then(() => {
-            console.log(`📝 [CHAT_FLOW] Title generated and saved asynchronously`);
+            logger.log(`📝 [CHAT_FLOW] Title generated and saved asynchronously`);
           }).catch(error => {
-            console.error(`❌ [CHAT_FLOW] Background title generation failed:`, error);
+            logger.error(`❌ [CHAT_FLOW] Background title generation failed:`, error);
             // Non-critical error - title will remain "New Conversation"
           });
-          console.log(`📝 [CHAT_FLOW] Title generation started in background (non-blocking)`);
+          logger.log(`📝 [CHAT_FLOW] Title generation started in background (non-blocking)`);
         }
 
         const totalDuration = Date.now() - requestStartTime;
 
         // Comprehensive performance summary
-        console.log(`\n📊 [PERFORMANCE] Request Summary:`);
-        console.log(`  Total Duration: ${totalDuration}ms`);
-        console.log(`  Breakdown:`);
-        console.log(`    • Verification & Setup: ${verificationStartTime ? (Date.now() - requestStartTime - totalDuration) : 0}ms`);
-        console.log(`    • Data Fetch & Memory Search: ${dataFetchStart ? (Date.now() - dataFetchStart) : 0}ms`);
-        console.log(`    • Intent Analysis: ${unifiedIntentStart ? (Date.now() - unifiedIntentStart) : 0}ms`);
+        logger.log(`\n📊 [PERFORMANCE] Request Summary:`);
+        logger.log(`  Total Duration: ${totalDuration}ms`);
+        logger.log(`  Breakdown:`);
+        logger.log(`    • Verification & Setup: ${verificationStartTime ? (Date.now() - requestStartTime - totalDuration) : 0}ms`);
+        logger.log(`    • Data Fetch & Memory Search: ${dataFetchStart ? (Date.now() - dataFetchStart) : 0}ms`);
+        logger.log(`    • Intent Analysis: ${unifiedIntentStart ? (Date.now() - unifiedIntentStart) : 0}ms`);
         if (instagramAnalysisResult) {
-          console.log(`    • Instagram Analysis: included in intent time`);
+          logger.log(`    • Instagram Analysis: included in intent time`);
         }
         if (blogAnalysisResult) {
-          console.log(`    • Blog Analysis: included in intent time`);
+          logger.log(`    • Blog Analysis: included in intent time`);
         }
-        console.log(`    • AI Response Generation: ${aiResponseStart ? (Date.now() - aiResponseStart) : 0}ms`);
-        console.log(`    • Profile Update: ${profileUpdateStart ? (Date.now() - profileUpdateStart) : 0}ms`);
-        console.log(`  Response Size: ${fullResponse.length} chars`);
-        console.log(`  Memories Used: ${relevantMemories.length}`);
-        console.log(`🏁 [CHAT_FLOW] Request completed at ${new Date().toISOString()}\n`);
+        logger.log(`    • AI Response Generation: ${aiResponseStart ? (Date.now() - aiResponseStart) : 0}ms`);
+        logger.log(`    • Profile Update: ${profileUpdateStart ? (Date.now() - profileUpdateStart) : 0}ms`);
+        logger.log(`  Response Size: ${fullResponse.length} chars`);
+        logger.log(`  Memories Used: ${relevantMemories.length}`);
+        logger.log(`🏁 [CHAT_FLOW] Request completed at ${new Date().toISOString()}\n`);
 
         // Clear any remaining AI activities
         res.write(`[AI_ACTIVITY]{"type":null,"message":""}[/AI_ACTIVITY]\n`);
@@ -806,7 +807,7 @@ export function registerMessageRoutes(app: Express) {
 
         res.end();
       } catch (error) {
-        console.error('❌ [CHAT_FLOW] Streaming error:', error);
+        logger.error('❌ [CHAT_FLOW] Streaming error:', error);
 
         // Try to send error indicator to client if possible
         if (!res.headersSent) {
@@ -819,15 +820,15 @@ export function registerMessageRoutes(app: Express) {
           try {
             res.write(`\n\n⚠️ An error occurred while processing your request. Please try again.`);
           } catch (writeError) {
-            console.error('❌ [CHAT_FLOW] Failed to write error message:', writeError);
+            logger.error('❌ [CHAT_FLOW] Failed to write error message:', writeError);
           }
         }
         res.end();
       }
     } catch (error) {
       const totalDuration = Date.now() - requestStartTime;
-      console.error('❌ [CHAT_FLOW] Message error:', error);
-      console.log(`🏁 [CHAT_FLOW] Request failed after: ${totalDuration}ms\n`);
+      logger.error('❌ [CHAT_FLOW] Message error:', error);
+      logger.log(`🏁 [CHAT_FLOW] Request failed after: ${totalDuration}ms\n`);
 
       // Provide user-friendly error messages based on error type
       let errorMessage = "Failed to process message. Please try again.";
@@ -855,7 +856,7 @@ export function registerMessageRoutes(app: Express) {
           statusCode = 503;
         }
 
-        console.log(`🔍 [CHAT_FLOW] Error classification: ${statusCode} - ${errorMessage}`);
+        logger.log(`🔍 [CHAT_FLOW] Error classification: ${statusCode} - ${errorMessage}`);
       }
 
       // Only send error response if headers haven't been sent yet
@@ -904,7 +905,7 @@ export function registerMessageRoutes(app: Express) {
 
       res.json({ message: "Message deleted successfully" });
     } catch (error) {
-      console.error('Delete message error:', error);
+      logger.error('Delete message error:', error);
       res.status(500).json({ message: "Failed to delete message" });
     }
   });

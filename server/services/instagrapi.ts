@@ -1,4 +1,5 @@
 import type { InstagramHashtagResult, InstagramHashtagPost } from '../../shared/schema.js';
+import logger from "../logger";
 
 interface InstagrapiResponse {
   [key: string]: any;
@@ -40,7 +41,7 @@ export class InstagrapiService {
   }
 
   async searchHashtag(hashtag: string, amount: number = 12): Promise<InstagramHashtagResult> {
-    console.log(`🏷️ [INSTAGRAPI] Searching hashtag #${hashtag} with ${amount} posts...`);
+    logger.log(`🏷️ [INSTAGRAPI] Searching hashtag #${hashtag} with ${amount} posts...`);
     
     // Remove # if provided in hashtag name
     const cleanHashtag = hashtag.replace('#', '');

@@ -1,4 +1,5 @@
 import type { InstagramProfile, InstagramPost, InstagramAccount } from '../../shared/schema.js';
+import logger from "../logger";
 
 interface HikerAPIResponse<T = any> {
   user?: T;
@@ -115,21 +116,21 @@ export class HikerAPIService {
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         consecutiveErrors++;
-        console.error(`Error fetching media chunk for user ${userId} (attempt ${consecutiveErrors}/${maxRetries}):`, error);
+        logger.error(`Error fetching media chunk for user ${userId} (attempt ${consecutiveErrors}/${maxRetries}):`, error);
         
         // If this is a 403/404/private account, stop trying immediately
         const errorMessage = error instanceof Error ? error.message : String(error);
         if (errorMessage.includes('403') || errorMessage.includes('404') || errorMessage.includes('Forbidden')) {
-          console.log(`User ${userId} has restricted access (private, forbidden, or no posts) - stopping media fetch`);
+          logger.log(`User ${userId} has restricted access (private, forbidden, or no posts) - stopping media fetch`);
           break;
         }
         
         // For other errors, wait before retry
         if (consecutiveErrors < maxRetries) {
-          console.log(`Retrying in ${consecutiveErrors * 2} seconds...`);
+          logger.log(`Retrying in ${consecutiveErrors * 2} seconds...`);
           await new Promise(resolve => setTimeout(resolve, consecutiveErrors * 2000));
         } else {
-          console.log(`Max retries exceeded for user ${userId}, stopping media fetch`);
+          logger.log(`Max retries exceeded for user ${userId}, stopping media fetch`);
           break;
         }
       }
@@ -145,13 +146,13 @@ export class HikerAPIService {
       });
       return Array.isArray(response) ? response.slice(0, 5) : [];
     } catch (error) {
-      console.error('Error fetching related profiles:', error);
+      logger.error('Error fetching related profiles:', error);
       return [];
     }
   }
 
   async searchHashtag(hashtag: string, amount: number = 12): Promise<import('../../shared/schema.js').InstagramHashtagResult> {
-    console.log(`🏷️ [HIKER_API] Searching hashtag #${hashtag} with ${amount} posts...`);
+    logger.log(`🏷️ [HIKER_API] Searching hashtag #${hashtag} with ${amount} posts...`);
     
     // Remove # if provided in hashtag name
     const cleanHashtag = hashtag.replace('#', '');
@@ -246,7 +247,7 @@ export class HikerAPIService {
     for (const accountData of similarAccountsData.slice(0, 3)) {
       try {
         if (accountData.username) {
-          console.log(`📸 [HIKER_API] Analyzing similar account: @${accountData.username}`);
+          logger.log(`📸 [HIKER_API] Analyzing similar account: @${accountData.username}`);
           const similarProfile = await this.getUserByUsername(accountData.username);
           const similarPosts = await this.getAllUserMedias(similarProfile.pk, 5, 2); // 5 posts, max 2 retries
           
@@ -301,16 +302,16 @@ export class HikerAPIService {
           });
         }
       } catch (error) {
-        console.error(`❌ [HIKER_API] Failed to analyze similar account @${accountData.username || 'unknown'}:`, error);
+        logger.error(`❌ [HIKER_API] Failed to analyze similar account @${accountData.username || 'unknown'}:`, error);
         
         // Log the specific error type for debugging
         const errorMessage = error instanceof Error ? error.message : String(error);
         if (errorMessage.includes('403')) {
-          console.log(`📸 [HIKER_API] Account @${accountData.username} is private or restricted - skipping`);
+          logger.log(`📸 [HIKER_API] Account @${accountData.username} is private or restricted - skipping`);
         } else if (errorMessage.includes('404')) {
-          console.log(`📸 [HIKER_API] Account @${accountData.username} not found - skipping`);
+          logger.log(`📸 [HIKER_API] Account @${accountData.username} not found - skipping`);
         } else {
-          console.log(`📸 [HIKER_API] Account @${accountData.username} analysis failed due to: ${errorMessage} - skipping`);
+          logger.log(`📸 [HIKER_API] Account @${accountData.username} analysis failed due to: ${errorMessage} - skipping`);
         }
         
         // Continue with next account instead of breaking the entire analysis

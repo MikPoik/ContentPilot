@@ -1,6 +1,7 @@
 import { type Conversation, type InsertConversation, type Message, type InsertMessage, type Memory, type InsertMemory, type User, type UpsertUser, type UpdateUserProfile, type UpdateUserSubscription, type SubscriptionPlan, type InsertSubscriptionPlan, type MessageMetadata, users, conversations, messages, memories, subscriptionPlans } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
+import logger from "./logger";
 
 // Helper function to calculate profile completeness
 function calculateProfileCompleteness(user: User, updates: Partial<UpdateUserProfile>): string {
@@ -278,7 +279,7 @@ export class DatabaseStorage implements IStorage {
     // Calculate and cache profile completeness
     const completenessPercentage = calculateProfileCompleteness(currentUser, profileData);
     mergedProfileData.profileCompleteness = completenessPercentage;
-    console.log(`📊 [STORAGE] Calculated profile completeness: ${completenessPercentage}%`);
+    logger.log(`📊 [STORAGE] Calculated profile completeness: ${completenessPercentage}%`);
 
     const [user] = await db
       .update(users)
@@ -329,7 +330,7 @@ export class DatabaseStorage implements IStorage {
 
     if (existingSimilar) {
       // Update the existing memory with new content and embedding
-      console.log(`🔄 [MEMORY_UPSERT] Updating existing memory (similarity: ${existingSimilar.similarity.toFixed(3)})`);
+      logger.log(`🔄 [MEMORY_UPSERT] Updating existing memory (similarity: ${existingSimilar.similarity.toFixed(3)})`);
       const [updatedMemory] = await db
         .update(memories)
         .set({
@@ -343,7 +344,7 @@ export class DatabaseStorage implements IStorage {
       return updatedMemory;
     } else {
       // No similar memory found, create new one
-      console.log(`➕ [MEMORY_UPSERT] Creating new memory (no similar found above ${similarityThreshold})`);
+      logger.log(`➕ [MEMORY_UPSERT] Creating new memory (no similar found above ${similarityThreshold})`);
       const [newMemory] = await db
         .insert(memories)
         .values(insertMemory)
@@ -391,7 +392,7 @@ export class DatabaseStorage implements IStorage {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysOld);
     
-    console.log(`🧹 [MEMORY_CLEANUP] Cleaning memories older than ${daysOld} days (before ${cutoffDate.toISOString()})`);
+    logger.log(`🧹 [MEMORY_CLEANUP] Cleaning memories older than ${daysOld} days (before ${cutoffDate.toISOString()})`);
     
     const result = await db
       .delete(memories)
@@ -400,7 +401,7 @@ export class DatabaseStorage implements IStorage {
       );
     
     const deletedCount = result.rowCount || 0;
-    console.log(`🧹 [MEMORY_CLEANUP] Removed ${deletedCount} stale memories for user ${userId}`);
+    logger.log(`🧹 [MEMORY_CLEANUP] Removed ${deletedCount} stale memories for user ${userId}`);
     return deletedCount;
   }
 

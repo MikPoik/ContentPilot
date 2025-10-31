@@ -7,16 +7,28 @@ import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+import logger from "./logger";
 
-if (!process.env.REPLIT_DOMAINS) {
-  throw new Error("Environment variable REPLIT_DOMAINS not provided");
+// Required Auth0 env vars
+if (!process.env.AUTH0_DOMAIN) {
+  throw new Error("Environment variable AUTH0_DOMAIN not provided");
+}
+if (!process.env.AUTH0_CLIENT_ID) {
+  throw new Error("Environment variable AUTH0_CLIENT_ID not provided");
+}
+if (!process.env.AUTH0_CLIENT_SECRET) {
+  throw new Error("Environment variable AUTH0_CLIENT_SECRET not provided");
+}
+if (!process.env.SESSION_SECRET) {
+  throw new Error("Environment variable SESSION_SECRET not provided");
 }
 
 const getOidcConfig = memoize(
   async () => {
     return await client.discovery(
-      new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
-      process.env.REPL_ID!
+      new URL(`https://${process.env.AUTH0_DOMAIN}`),
+      process.env.AUTH0_CLIENT_ID!,
+      process.env.AUTH0_CLIENT_SECRET!
     );
   },
   { maxAge: 3600 * 1000 }
@@ -27,7 +39,7 @@ export function getSession() {
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
+    createTableIfMissing: true,
     ttl: sessionTtl,
     tableName: "sessions",
   });
@@ -38,7 +50,8 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
       maxAge: sessionTtl,
     },
   });
@@ -57,63 +70,23 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
-  // Avoid overwriting user-provided names: only set first/last name from claims
-  // when there is no existing value in the database.
+  // Prefer not to overwrite user-provided names if already present
   const existing = await storage.getUser(claims["sub"]);
 
   const upsertPayload: any = {
     id: claims["sub"],
     email: claims["email"],
-    profileImageUrl: claims["profile_image_url"],
+    profileImageUrl: claims["picture"],
   };
 
   if (!existing || !existing.firstName) {
-    upsertPayload.firstName = claims["first_name"];
+    upsertPayload.firstName = claims["given_name"];
   }
   if (!existing || !existing.lastName) {
-    upsertPayload.lastName = claims["last_name"];
+    upsertPayload.lastName = claims["family_name"];
   }
 
   await storage.upsertUser(upsertPayload);
-}
-
-function resolveDomain(host: string): string {
-  const domains = process.env.REPLIT_DOMAINS!.split(',').map(d => d.trim().toLowerCase());
-  const h = host.toLowerCase();
-  
-  console.log(`Resolving host: ${host}, available domains: ${domains.join(', ')}`);
-  
-  // Check for exact match first
-  if (domains.includes(h)) {
-    console.log(`Exact match found: ${h}`);
-    return h;
-  }
-  
-  // Check for suffix match (for ephemeral subdomains)
-  const match = domains.find(d => h === d || h.endsWith(`.${d}`));
-  if (match) {
-    console.log(`Suffix match found: ${host} -> ${match}`);
-    return match;
-  }
-  
-  // Handle .co/.dev domain mismatch - convert .co to .dev for development
-  if (h.endsWith('.repl.co')) {
-    const devHost = h.replace('.repl.co', '.replit.dev');
-    console.log(`Converting .co to .dev: ${host} -> ${devHost}`);
-    const devMatch = domains.find(d => devHost === d || devHost.endsWith(`.${d}`));
-    if (devMatch) {
-      console.log(`Dev domain match found: ${devMatch}`);
-      return devMatch;
-    }
-    // Also check if any domain matches our converted hostname
-    if (domains.includes(devHost)) {
-      console.log(`Direct dev domain match: ${devHost}`);
-      return devHost;
-    }
-  }
-  
-  console.error(`Unrecognized host: ${host}, available domains: ${domains.join(', ')}`);
-  throw new Error(`Unrecognized host: ${host}`);
 }
 
 export async function setupAuth(app: Express) {
@@ -128,63 +101,77 @@ export async function setupAuth(app: Express) {
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
-    const user = {};
-    updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
-    verified(null, user);
+    try {
+      const user = {};
+      updateUserSession(user, tokens);
+      await upsertUser(tokens.claims());
+      verified(null, user);
+    } catch (error) {
+      logger.error("Auth verification error:", error);
+      verified(error as any, null as any);
+    }
   };
 
-  for (const domain of process.env
-    .REPLIT_DOMAINS!.split(",")) {
-    const strategy = new Strategy(
-      {
-        name: `replitauth:${domain}`,
-        config,
-        scope: "openid email profile offline_access",
-        callbackURL: `https://${domain}/api/callback`,
-      },
-      verify,
-    );
-    passport.use(strategy);
-  }
+  const callbackURL = process.env.APP_URL
+    ? `${process.env.APP_URL}/api/callback`
+    : `http://localhost:5000/api/callback`;
+  logger.log(`[AUTH] Using callback URL: ${callbackURL}`);
+  logger.log(`[AUTH] APP_URL environment variable: ${process.env.APP_URL || 'not set'}`);
+
+  const strategy = new Strategy(
+    {
+      name: "auth0",
+      config,
+      scope: "openid email profile offline_access",
+      callbackURL,
+    },
+    verify,
+  );
+  passport.use(strategy);
 
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    try {
-      const domain = resolveDomain(req.hostname);
-      passport.authenticate(`replitauth:${domain}`, {
-        prompt: "login consent",
-        scope: ["openid", "email", "profile", "offline_access"],
-      })(req, res, next);
-    } catch (error) {
-      console.error('Login domain resolution error:', error);
-      res.status(400).json({ message: "Invalid domain" });
-    }
+    passport.authenticate("auth0", {
+      prompt: "login consent",
+      scope: ["openid", "email", "profile", "offline_access"],
+    })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
-    try {
-      const domain = resolveDomain(req.hostname);
-      passport.authenticate(`replitauth:${domain}`, {
+    passport.authenticate(
+      "auth0",
+      {
         successReturnToOrRedirect: "/",
         failureRedirect: "/api/login",
-      })(req, res, next);
-    } catch (error) {
-      console.error('Callback domain resolution error:', error);
-      res.status(400).json({ message: "Invalid domain" });
-    }
+      },
+      (err: any, user: any, info: any) => {
+        if (err) {
+          logger.error("Auth0 callback error:", err);
+          logger.error("Error details:", JSON.stringify(err, null, 2));
+          return res.status(500).json({ error: "Authentication failed", details: err.message });
+        }
+        if (!user) {
+          logger.error("Auth0 callback failed - no user:", info);
+          return res.redirect("/api/login");
+        }
+        req.logIn(user, (loginErr) => {
+          if (loginErr) {
+            logger.error("Login session error:", loginErr);
+            return res.status(500).json({ error: "Session creation failed" });
+          }
+          res.redirect("/");
+        });
+      }
+    )(req, res, next);
   });
 
   app.get("/api/logout", (req, res) => {
     req.logout(() => {
-      res.redirect(
-        client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        }).href
-      );
+      const returnTo = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+      const logoutUrl = `https://${process.env.AUTH0_DOMAIN}/v2/logout?client_id=${process.env.AUTH0_CLIENT_ID}&returnTo=${encodeURIComponent(returnTo)}`;
+      res.redirect(logoutUrl);
     });
   });
 }
@@ -203,8 +190,7 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
 
   const refreshToken = user.refresh_token;
   if (!refreshToken) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
+    return res.status(401).json({ message: "Unauthorized" });
   }
 
   try {
@@ -213,7 +199,6 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     updateUserSession(user, tokenResponse);
     return next();
   } catch (error) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
+    return res.status(401).json({ message: "Unauthorized" });
   }
 };
