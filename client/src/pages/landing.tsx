@@ -71,7 +71,7 @@ export default function Landing() {
 
   const testimonials = [
     {
-      quote: "ContentPilot transformed how we create content. The AI understands our brand voice perfectly and saves us hours every week.",
+      quote: "WryteBot transformed how we create content. The AI understands our brand voice perfectly and saves us hours every week.",
       author: "Sarah Johnson",
       role: "Social Media Manager",
       rating: 5
@@ -83,7 +83,7 @@ export default function Landing() {
       rating: 5
     },
     {
-      quote: "Our engagement rates doubled since using ContentPilot. The AI-generated content feels authentic and on-brand.",
+      quote: "Our engagement rates doubled since using WryteBot. The AI-generated content feels authentic and on-brand.",
       author: "Emily Rodriguez",
       role: "Marketing Director",
       rating: 5
@@ -144,7 +144,7 @@ export default function Landing() {
             </h1>
 
             <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-              ContentPilot analyzes your brand voice, researches trends, and generates high-performing content for Twitter and Instagram in seconds.
+              WryteBot analyzes your brand voice, researches trends, and generates high-performing content for Twitter and Instagram in seconds.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
