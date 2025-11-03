@@ -100,7 +100,7 @@ export default function Landing() {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
-              ContentCraft AI
+              WryteBot
             </span>
           </div>
           <div className="flex items-center space-x-4">
@@ -126,14 +126,14 @@ export default function Landing() {
       <section className="relative pt-20 pb-24 sm:pt-24 sm:pb-32">
   <div className="absolute inset-0 bg-gradient-to-b from-emerald-100/80 via-teal-50/40 to-white/60 dark:from-slate-950/90 dark:via-slate-900/70 dark:to-slate-900/40 pointer-events-none" />
   <div className="absolute inset-0 bg-gradient-to-b from-cyan-100/30 via-emerald-50/20 to-transparent dark:from-transparent dark:via-transparent dark:to-transparent pointer-events-none" />
-        
+
         <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
             <Badge className="mb-6 bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0 px-4 py-1.5 text-sm font-medium shadow-lg">
               <Sparkles className="w-3 h-3 mr-1 inline" />
               AI-Powered Content Creation
             </Badge>
-            
+
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6 leading-tight">
               Create{" "}
               <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 dark:from-purple-400 dark:via-pink-400 dark:to-orange-400 bg-clip-text text-transparent animate-gradient">
@@ -267,8 +267,8 @@ export default function Landing() {
       {/* CTA Section */}
       <section className="py-20 relative">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500 dark:from-purple-900 dark:via-pink-900 dark:to-orange-800 pointer-events-none" />
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjA1IiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-30 pointer-events-none" />
-        
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjA1IiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAl" height="100%" fill="url(#grid)"/></svg>')] opacity-30 pointer-events-none" />
+
         <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="max-w-3xl mx-auto">
             <Sparkles className="w-16 h-16 text-white/90 mx-auto mb-6" />
@@ -276,9 +276,9 @@ export default function Landing() {
               Ready to Transform Your Content?
             </h2>
             <p className="text-lg sm:text-xl text-white/90 mb-8 leading-relaxed">
-              Join ContentPilot today and experience AI-powered content creation that understands your brand voice and drives engagement.
+              Join WryteBot today and experience AI-powered content creation that understands your brand voice and drives engagement.
             </p>
-            
+
             <Button
               onClick={handleLogin}
               size="lg"
@@ -288,7 +288,7 @@ export default function Landing() {
               Get Started Free
               <Sparkles className="w-5 h-5 ml-2" />
             </Button>
-            
+
             <p className="text-sm text-white/80 mt-6">
               No credit card required • 7-day free trial • Cancel anytime
             </p>
@@ -304,11 +304,11 @@ export default function Landing() {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
-              ContentCraft AI
+              WryteBot
             </span>
           </div>
           <p className="text-muted-foreground">
-            &copy; 2025 ContentCraft AI. All rights reserved.
+            &copy; 2025 WryteBot. All rights reserved.
           </p>
         </div>
       </footer>

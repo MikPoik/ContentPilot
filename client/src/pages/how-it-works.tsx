@@ -44,7 +44,7 @@ export default function HowItWorksPage() {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
-              ContentCraft AI
+              WryteBot
             </span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
@@ -62,7 +62,7 @@ export default function HowItWorksPage() {
       <section className="py-16 sm:py-24 bg-gradient-to-b from-emerald-50/60 to-transparent dark:from-slate-950/70 text-center">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <Badge className="mb-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0">Product tour</Badge>
-          <h1 className="text-4xl sm:text-5xl font-bold mb-4">How ContentCraft AI works</h1>
+          <h1 className="text-4xl sm:text-5xl font-bold mb-4">How WryteBot works</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             A focused workflow to research, ideate, and produce on-brand content—fast.
           </p>
@@ -112,7 +112,7 @@ export default function HowItWorksPage() {
       {/* CTA */}
       <section className="py-16 text-center bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Try it free</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Try WryteBot free</h2>
           <p className="text-white/90 mb-6">Create your first ideas in minutes. Cancel anytime.</p>
           <Button onClick={handleLogin} className="bg-white text-purple-600 hover:bg-gray-100">Get started</Button>
         </div>
@@ -126,10 +126,10 @@ export default function HowItWorksPage() {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
-              ContentCraft AI
+              WryteBot
             </span>
           </div>
-          <p className="text-muted-foreground">&copy; 2025 ContentCraft AI. All rights reserved.</p>
+          <p className="text-muted-foreground">&copy; 2025 WryteBot. All rights reserved.</p>
         </div>
       </footer>
     </div>

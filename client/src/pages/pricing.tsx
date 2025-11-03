@@ -39,7 +39,7 @@ export default function PricingPage() {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
-              ContentCraft AI
+              WryteBot
             </span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
@@ -164,10 +164,10 @@ export default function PricingPage() {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
-              ContentCraft AI
+              WryteBot
             </span>
           </div>
-          <p className="text-muted-foreground">&copy; 2025 ContentCraft AI. All rights reserved.</p>
+          <p className="text-muted-foreground">&copy; 2025 WryteBot. All rights reserved.</p>
         </div>
       </footer>
     </div>

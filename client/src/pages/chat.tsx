@@ -661,7 +661,7 @@ export default function Chat() {
             </Button>
             <div className="w-1 h-1 bg-emerald-500 rounded-full flex-shrink-0"></div>
             <h2 className="text-xs font-medium text-foreground truncate min-w-0">
-              {currentConversation?.title || "ContentCraft AI"}
+              {currentConversation?.title || "WryteBot"}
             </h2>
           </div>
 
