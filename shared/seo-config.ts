@@ -19,20 +19,20 @@ export interface SeoRoute {
 export const seoRoutes: SeoRoute[] = [
   {
     path: "/",
-    title: "ContentCraft | Create engaging content with AI",
-    description: "Welcome to ContentCraft - the best solution for your content creation needs.",
+    title: "WryteBot | Create engaging content with AI",
+    description: "Welcome to WryteBot — the best solution for your content creation needs.",
     component: "landing",  // Maps to client/src/pages/Home.tsx
   },
   {
     path: "/pricing",
-    title: "Pricing | ContentCraft AI",
+    title: "Pricing | WryteBot",
     description: "Simple, transparent pricing. Start free and upgrade anytime.",
     component: "pricing",
   },
   {
     path: "/how-it-works",
-    title: "How it works | ContentCraft AI",
-    description: "See how ContentCraft helps you research, ideate, and create content fast.",
+    title: "How it works | WryteBot",
+    description: "See how WryteBot helps you research, ideate, and create content fast.",
     component: "how-it-works",
   },
   // Add more routes as your app grows:
