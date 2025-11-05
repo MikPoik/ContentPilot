@@ -12,6 +12,11 @@ import { queryClient } from "./lib/queryClient";
 import { Router } from "wouter";
 import { seoRoutes } from "@shared/seo-config";
 import NotFound from "@/pages/not-found";
+import Landing from './pages/landing';
+import PricingPage from './pages/pricing';
+import HowItWorksPage from './pages/how-it-works';
+import TermsOfService from './pages/terms-of-service';
+import PrivacyPolicy from './pages/privacy-policy';
 
 /**
  * Dynamically import all page components using Vite's import.meta.glob.
@@ -28,7 +33,7 @@ const componentMap: Record<string, () => JSX.Element> = {};
 for (const route of seoRoutes) {
   const pagePath = `/src/pages/${route.component}.tsx`;
   const pageModule = pages[pagePath];
-  
+
   if (pageModule) {
     componentMap[route.path] = pageModule.default;
   } else {
@@ -49,7 +54,7 @@ for (const route of seoRoutes) {
 export function render(url: string) {
   // Get the component for this route (automatically mapped)
   const Component = componentMap[url] || NotFound;
-  
+
   const html = renderToString(
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -59,6 +64,6 @@ export function render(url: string) {
       </TooltipProvider>
     </QueryClientProvider>
   );
-  
+
   return html;
 }

@@ -307,6 +307,14 @@ export default function Landing() {
               WryteBot
             </span>
           </div>
+          <div className="flex justify-center space-x-6 mb-4">
+            <Link href="/terms-of-service" className="text-sm text-muted-foreground hover:text-foreground">
+              Terms of Service
+            </Link>
+            <Link href="/privacy-policy" className="text-sm text-muted-foreground hover:text-foreground">
+              Privacy Policy
+            </Link>
+          </div>
           <p className="text-muted-foreground">
             &copy; 2025 WryteBot. All rights reserved.
           </p>

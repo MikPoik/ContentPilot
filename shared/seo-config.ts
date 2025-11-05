@@ -35,19 +35,18 @@ export const seoRoutes: SeoRoute[] = [
     description: "See how WryteBot helps you research, ideate, and create content fast.",
     component: "how-it-works",
   },
-  // Add more routes as your app grows:
-  // {
-  //   path: "/about",
-  //   title: "About Us | My App",
-  //   description: "Learn more about our mission and team.",
-  //   component: "About",  // Maps to client/src/pages/About.tsx
-  // },
-  // {
-  //   path: "/contact",
-  //   title: "Contact Us | My App",
-  //   description: "Get in touch with our team.",
-  //   component: "Contact",  // Maps to client/src/pages/Contact.tsx
-  // },
+  {
+    path: "/terms-of-service",
+    title: "Terms of Service | WryteBot",
+    description: "Read our terms of service and understand your rights when using WryteBot.",
+    component: "terms-of-service",
+  },
+  {
+    path: "/privacy-policy",
+    title: "Privacy Policy | WryteBot",
+    description: "Learn how WryteBot collects, uses, and protects your personal information.",
+    component: "privacy-policy",
+  },
 ];
 
 /**

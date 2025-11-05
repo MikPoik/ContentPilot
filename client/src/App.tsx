@@ -11,6 +11,8 @@ import Landing from "@/pages/landing";
 import ProfileSettings from "@/pages/profile-settings";
 import PricingPage from "@/pages/pricing";
 import HowItWorksPage from "@/pages/how-it-works";
+import TermsOfService from "@/pages/terms-of-service";
+import PrivacyPolicy from "@/pages/privacy-policy";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -33,6 +35,8 @@ function Router() {
       {/* Public routes */}
       <Route path="/pricing" component={PricingPage} />
       <Route path="/how-it-works" component={HowItWorksPage} />
+      <Route path="/terms-of-service" component={TermsOfService} />
+      <Route path="/privacy-policy" component={PrivacyPolicy} />
 
       {/* Root route depends on auth */}
       {!isAuthenticated ? (
