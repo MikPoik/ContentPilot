@@ -28,6 +28,9 @@ import {
  * - If a STRIPE price env is missing, a placeholder will be used so the row exists;
  *   checkout will fail until you update the price ID. You can safely rerun this script
  *   after setting envs to update the rows.
+ *
+ * Execute from shell:
+ * npx tsx server/scripts/seed-subscription-plans.ts
  */
 
 function price(idEnv: string | undefined, placeholder: string) {
@@ -39,58 +42,76 @@ const seedPlans: InsertSubscriptionPlan[] = [
   {
     name: "Basic",
     description: "Great for getting started with AI content creation.",
-    stripePriceId: price(process.env.STRIPE_PRICE_BASIC, "price_basic_placeholder"),
+    stripePriceId: price(
+      process.env.STRIPE_PRICE_BASIC,
+      "price_basic_placeholder",
+    ),
     messagesLimit: 200,
     priceAmount: 1000, // $10.00
-    priceCurrency: "usd",
+    priceCurrency: "eur",
     isActive: true,
     planType: "subscription",
   },
   {
     name: "Pro",
-    description: "For power users who want unlimited messages and priority support.",
+    description:
+      "For power users who want unlimited messages and priority support.",
     stripePriceId: price(process.env.STRIPE_PRICE_PRO, "price_pro_placeholder"),
     messagesLimit: -1, // Unlimited
-    priceAmount: 2900, // $29.00
-    priceCurrency: "usd",
+    priceAmount: 1999, // $19.99
+    priceCurrency: "eur",
     isActive: true,
     planType: "subscription",
   },
 
   // Message Packs (one-time purchases)
   {
-    name: "Message Pack • 100",
-    description: "+100 one-time messages. Never expires; used before subscription messages.",
-    stripePriceId: price(process.env.STRIPE_PRICE_PACK_SMALL, "price_pack_small_placeholder"),
+    name: "Message Pack 100",
+    description:
+      "+100 one-time messages. Never expires; used before subscription messages.",
+    stripePriceId: price(
+      process.env.STRIPE_PRICE_PACK_SMALL,
+      "price_pack_small_placeholder",
+    ),
     messagesLimit: 100,
     priceAmount: 500, // $5.00
-    priceCurrency: "usd",
+    priceCurrency: "eur",
     isActive: true,
     planType: "message_pack",
   },
   {
-    name: "Message Pack • 500",
-    description: "+500 one-time messages. Never expires; used before subscription messages.",
-    stripePriceId: price(process.env.STRIPE_PRICE_PACK_MEDIUM, "price_pack_medium_placeholder"),
-    messagesLimit: 500,
-    priceAmount: 2000, // $20.00
-    priceCurrency: "usd",
+    name: "Message Pack 200",
+    description:
+      "+200 one-time messages. Never expires; used before subscription messages.",
+    stripePriceId: price(
+      process.env.STRIPE_PRICE_PACK_MEDIUM,
+      "price_pack_medium_placeholder",
+    ),
+    messagesLimit: 200,
+    priceAmount: 1000, // $10.00
+    priceCurrency: "eur",
     isActive: true,
     planType: "message_pack",
   },
   {
-    name: "Message Pack • 2000",
-    description: "+2000 one-time messages. Never expires; used before subscription messages.",
-    stripePriceId: price(process.env.STRIPE_PRICE_PACK_LARGE, "price_pack_large_placeholder"),
-    messagesLimit: 2000,
-    priceAmount: 6000, // $60.00
-    priceCurrency: "usd",
+    name: "Message Pack 300",
+    description:
+      "+300 one-time messages. Never expires; used before subscription messages.",
+    stripePriceId: price(
+      process.env.STRIPE_PRICE_PACK_LARGE,
+      "price_pack_large_placeholder",
+    ),
+    messagesLimit: 300,
+    priceAmount: 1500, // $15.00
+    priceCurrency: "eur",
     isActive: true,
     planType: "message_pack",
   },
 ];
 
-async function upsertByName(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan> {
+async function upsertByName(
+  plan: InsertSubscriptionPlan,
+): Promise<SubscriptionPlan> {
   const [existing] = await db
     .select()
     .from(subscriptionPlans)
@@ -127,7 +148,9 @@ async function main() {
   for (const plan of seedPlans) {
     const updated = await upsertByName(plan);
     results.push(updated);
-    console.log(`• ${updated.name} → $${(updated.priceAmount / 100).toFixed(2)} (${(updated as any).planType})`);
+    console.log(
+      `• ${updated.name} → $${(updated.priceAmount / 100).toFixed(2)} (${(updated as any).planType})`,
+    );
   }
 
   console.log(`✅ Seeded ${results.length} plans.`);
