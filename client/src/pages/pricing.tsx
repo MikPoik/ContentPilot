@@ -83,7 +83,7 @@ export default function PricingPage() {
                     </CardTitle>
                     <CardDescription>{plan.description}</CardDescription>
                     <div className="text-3xl font-bold">
-                      ${(plan.priceAmount / 100).toFixed(2)}
+                      €{(plan.priceAmount / 100).toFixed(2)}
                       <span className="text-sm text-muted-foreground font-normal">/month</span>
                     </div>
                   </CardHeader>
@@ -125,7 +125,7 @@ export default function PricingPage() {
                       </CardTitle>
                       <CardDescription>{plan.description}</CardDescription>
                       <div className="text-2xl font-bold">
-                        ${(plan.priceAmount / 100).toFixed(2)}
+                        €{(plan.priceAmount / 100).toFixed(2)}
                         <span className="text-sm text-muted-foreground"> one-time</span>
                       </div>
                     </CardHeader>

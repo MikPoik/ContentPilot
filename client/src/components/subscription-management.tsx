@@ -356,7 +356,7 @@ export default function SubscriptionManagement() {
                       </CardTitle>
                       <CardDescription>{plan.description}</CardDescription>
                       <div className="text-2xl font-bold">
-                        ${priceDisplay}
+                        €{priceDisplay}
                         <span className="text-sm text-gray-500 font-normal">/month</span>
                       </div>
                     </CardHeader>
@@ -433,7 +433,7 @@ export default function SubscriptionManagement() {
                           </CardTitle>
                           <CardDescription>{plan.description}</CardDescription>
                           <div className="text-2xl font-bold">
-                            ${priceDisplay}
+                            €{priceDisplay}
                             <span className="text-sm text-gray-500 font-normal"> one-time</span>
                           </div>
                         </CardHeader>
