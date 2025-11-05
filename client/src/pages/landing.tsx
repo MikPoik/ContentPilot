@@ -27,7 +27,7 @@ export default function Landing() {
   const features = [
     {
       icon: Twitter,
-      title: "Twitter Analysis",
+      title: "X (Twitter) Analysis",
       description: "Deep-dive into trending topics, hashtags, and engagement patterns to create viral-worthy content.",
       gradient: "from-purple-500 to-purple-600"
     },
@@ -77,7 +77,7 @@ export default function Landing() {
       rating: 5
     },
     {
-      quote: "The Twitter and Instagram analysis features are game-changers. I can now spot trends before they go viral.",
+      quote: "The X and Instagram analysis features are game-changers. I can now spot trends before they go viral.",
       author: "Michael Chen",
       role: "Content Creator",
       rating: 5

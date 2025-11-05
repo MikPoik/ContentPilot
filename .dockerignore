@@ -7,4 +7,4 @@ fly.toml
 /.config
 /.local
 /.upm
-/attached_assets
+/.cache
