@@ -314,6 +314,9 @@ export default function Landing() {
             <Link href="/privacy-policy" className="text-sm text-muted-foreground hover:text-foreground">
               Privacy Policy
             </Link>
+            <a href="mailto:support@wrytebot.com" className="text-sm text-muted-foreground hover:text-foreground">
+              Contact Support
+            </a>
           </div>
           <p className="text-muted-foreground">
             &copy; 2025 WryteBot. All rights reserved.
