@@ -1,14 +1,42 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useCallback, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Trash2, User as UserIcon, Target, Share2, Database, Shield, ArrowLeft, CheckCircle, CreditCard, Plus, X } from "lucide-react";
+import {
+  Trash2,
+  User as UserIcon,
+  Target,
+  Share2,
+  Database,
+  Shield,
+  ArrowLeft,
+  CheckCircle,
+  CreditCard,
+  Plus,
+  X,
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SubscriptionManagement from "@/components/subscription-management";
 import { apiRequest } from "@/lib/queryClient";
@@ -18,7 +46,6 @@ import { Link, useLocation } from "wouter";
 import BasicProfileCard from "@/components/profile/basic-profile-card";
 import AiCollectedDataCard from "@/components/profile/ai-collected-data-card";
 import DataUsageInfoCard from "@/components/profile/data-usage-info-card";
-
 
 export default function ProfileSettings() {
   const { user, isLoading } = useAuth();
@@ -31,11 +58,15 @@ export default function ProfileSettings() {
   const [localBusinessLocation, setLocalBusinessLocation] = useState("");
 
   // Get the 'from' parameter to know where to go back
-  const urlParams = new URLSearchParams(location.split('?')[1] || '');
-  const fromPath = urlParams.get('from') || '/';
+  const urlParams = new URLSearchParams(location.split("?")[1] || "");
+  const fromPath = urlParams.get("from") || "/";
 
   // Fetch conversations to validate the 'from' path
-  const { data: conversations = [], isLoading: convLoading, isFetching: convFetching } = useQuery<Conversation[]>({
+  const {
+    data: conversations = [],
+    isLoading: convLoading,
+    isFetching: convFetching,
+  } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
   });
 
@@ -49,32 +80,32 @@ export default function ProfileSettings() {
     // Validate provided fromPath points to an existing conversation
     const m = fromPath.match(/\/chat\/([^/?]+)/);
     if (m && m[1]) {
-      const exists = conversations.some(c => c.id === m[1]);
+      const exists = conversations.some((c) => c.id === m[1]);
       if (exists) return fromPath;
     }
 
     // If fromPath wasn't a chat path or the chat no longer exists, try localStorage last conversation
     try {
-      const lastId = localStorage.getItem('lastConversationId');
-      if (lastId && conversations.some(c => c.id === lastId)) {
+      const lastId = localStorage.getItem("lastConversationId");
+      if (lastId && conversations.some((c) => c.id === lastId)) {
         return `/chat/${lastId}`;
       }
     } catch {
       // ignore storage errors
     }
 
-  // Fallback to home
-  return '/';
-})();
+    // Fallback to home
+    return "/";
+  })();
 
-// Initialize local state when user data loads
-useEffect(() => {
-  if (user?.profileData) {
-    const profileData = user.profileData as any;
-    setLocalBusinessType(profileData.businessType || "");
-    setLocalBusinessLocation(profileData.businessLocation || "");
-  }
-}, [user?.profileData]);  // Cleanup debounce timeout on unmount
+  // Initialize local state when user data loads
+  useEffect(() => {
+    if (user?.profileData) {
+      const profileData = user.profileData as any;
+      setLocalBusinessType(profileData.businessType || "");
+      setLocalBusinessLocation(profileData.businessLocation || "");
+    }
+  }, [user?.profileData]); // Cleanup debounce timeout on unmount
   useEffect(() => {
     return () => {
       if (debounceTimeoutRef.current) {
@@ -86,7 +117,11 @@ useEffect(() => {
   // Mutation for updating profile data
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData: Partial<User>) => {
-      const response = await apiRequest("PATCH", "/api/auth/user/profile", profileData);
+      const response = await apiRequest(
+        "PATCH",
+        "/api/auth/user/profile",
+        profileData,
+      );
       return response.json();
     },
     onSuccess: () => {
@@ -110,9 +145,14 @@ useEffect(() => {
 
   const handleDeleteField = (fieldName: keyof User, displayName: string) => {
     const updateData = {
-      [fieldName]: fieldName === 'contentNiche' ? [] : fieldName === 'profileCompleteness' ? "0" : null,
+      [fieldName]:
+        fieldName === "contentNiche"
+          ? []
+          : fieldName === "profileCompleteness"
+            ? "0"
+            : null,
       // Ensure arrays get replaced (cleared) on server
-      ...(fieldName === 'contentNiche' ? { replaceArrays: true } : {}),
+      ...(fieldName === "contentNiche" ? { replaceArrays: true } : {}),
     };
     updateProfileMutation.mutate(updateData as any);
   };
@@ -120,14 +160,14 @@ useEffect(() => {
   // Helpers for array normalization and updates
   const normalizeLabel = (value: string) => {
     const trimmed = value.trim();
-    if (!trimmed) return '';
+    if (!trimmed) return "";
     return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
   };
 
   const uniqueMerge = (arr: string[]) => {
     const map = new Map<string, string>();
     arr.forEach((v) => {
-      if (v && typeof v === 'string') {
+      if (v && typeof v === "string") {
         const key = v.trim().toLowerCase();
         if (key) map.set(key, normalizeLabel(v));
       }
@@ -137,103 +177,165 @@ useEffect(() => {
 
   // Content Niche add/remove
   const addContentNiche = () => {
-    const value = window.prompt('Add a content niche label');
+    const value = window.prompt("Add a content niche label");
     if (!value) return;
     const label = normalizeLabel(value);
     if (!label) return;
     const current = (user!.contentNiche || []) as string[];
     const next = uniqueMerge([...current, label]);
-    updateProfileMutation.mutate({ contentNiche: next, replaceArrays: true } as any);
+    updateProfileMutation.mutate({
+      contentNiche: next,
+      replaceArrays: true,
+    } as any);
   };
 
   const removeContentNiche = (index: number) => {
     const current = (user!.contentNiche || []) as string[];
     const next = current.filter((_: string, i: number) => i !== index);
-    updateProfileMutation.mutate({ contentNiche: next, replaceArrays: true } as any);
+    updateProfileMutation.mutate({
+      contentNiche: next,
+      replaceArrays: true,
+    } as any);
   };
 
   // Primary Platforms add/remove
   const addPrimaryPlatform = () => {
-    const value = window.prompt('Add a primary platform (e.g., Instagram, TikTok)');
+    const value = window.prompt(
+      "Add a primary platform (e.g., Instagram, TikTok)",
+    );
     if (!value) return;
     const label = normalizeLabel(value);
     if (!label) return;
-    const current = ((user as any).primaryPlatforms && Array.isArray((user as any).primaryPlatforms)
-      ? (user as any).primaryPlatforms
-      : (user!.primaryPlatform ? [user!.primaryPlatform] : [])) as string[];
+    const current = (
+      (user as any).primaryPlatforms &&
+      Array.isArray((user as any).primaryPlatforms)
+        ? (user as any).primaryPlatforms
+        : user!.primaryPlatform
+          ? [user!.primaryPlatform]
+          : []
+    ) as string[];
     const next = uniqueMerge([...current, label]);
-    updateProfileMutation.mutate({ primaryPlatforms: next, primaryPlatform: next[0] ?? null, replaceArrays: true } as any);
+    updateProfileMutation.mutate({
+      primaryPlatforms: next,
+      primaryPlatform: next[0] ?? null,
+      replaceArrays: true,
+    } as any);
   };
 
   const removePrimaryPlatform = (index: number) => {
-    const current = ((user as any).primaryPlatforms && Array.isArray((user as any).primaryPlatforms)
-      ? (user as any).primaryPlatforms
-      : (user!.primaryPlatform ? [user!.primaryPlatform] : [])) as string[];
+    const current = (
+      (user as any).primaryPlatforms &&
+      Array.isArray((user as any).primaryPlatforms)
+        ? (user as any).primaryPlatforms
+        : user!.primaryPlatform
+          ? [user!.primaryPlatform]
+          : []
+    ) as string[];
     const next = current.filter((_: string, i: number) => i !== index);
-    updateProfileMutation.mutate({ primaryPlatforms: next, primaryPlatform: next[0] ?? null, replaceArrays: true } as any);
+    updateProfileMutation.mutate({
+      primaryPlatforms: next,
+      primaryPlatform: next[0] ?? null,
+      replaceArrays: true,
+    } as any);
   };
 
   // Brand Voice add/remove
   const addBrandVoice = () => {
-    const value = window.prompt('Add a brand voice trait (e.g., Professional, Friendly, Inspiring)');
+    const value = window.prompt(
+      "Add a brand voice trait (e.g., Professional, Friendly, Inspiring)",
+    );
     if (!value) return;
     const label = normalizeLabel(value);
     if (!label) return;
-  const profileData = user!.profileData as any || {};
-    const current = Array.isArray(profileData.brandVoice) ? profileData.brandVoice : [];
+    const profileData = (user!.profileData as any) || {};
+    const current = Array.isArray(profileData.brandVoice)
+      ? profileData.brandVoice
+      : [];
     const next = uniqueMerge([...current, label]);
     const newProfileData = { ...profileData, brandVoice: next };
-    updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+    updateProfileMutation.mutate({
+      profileData: newProfileData,
+      replaceArrays: true,
+    } as any);
   };
 
   const removeBrandVoice = (index: number) => {
-    const profileData = user!.profileData as any || {};
-    const current = Array.isArray(profileData.brandVoice) ? profileData.brandVoice : [];
+    const profileData = (user!.profileData as any) || {};
+    const current = Array.isArray(profileData.brandVoice)
+      ? profileData.brandVoice
+      : [];
     const next = current.filter((_: string, i: number) => i !== index);
     const newProfileData = { ...profileData, brandVoice: next };
-    updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+    updateProfileMutation.mutate({
+      profileData: newProfileData,
+      replaceArrays: true,
+    } as any);
   };
 
   // Content Goals add/remove
   const addContentGoal = () => {
-    const value = window.prompt('Add a content goal (e.g., Increase engagement, Build trust, Drive sales)');
+    const value = window.prompt(
+      "Add a content goal (e.g., Increase engagement, Build trust, Drive sales)",
+    );
     if (!value) return;
     const label = normalizeLabel(value);
     if (!label) return;
-  const profileData = user!.profileData as any || {};
-    const current = Array.isArray(profileData.contentGoals) ? profileData.contentGoals : [];
+    const profileData = (user!.profileData as any) || {};
+    const current = Array.isArray(profileData.contentGoals)
+      ? profileData.contentGoals
+      : [];
     const next = uniqueMerge([...current, label]);
     const newProfileData = { ...profileData, contentGoals: next };
-    updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+    updateProfileMutation.mutate({
+      profileData: newProfileData,
+      replaceArrays: true,
+    } as any);
   };
 
   const removeContentGoal = (index: number) => {
-    const profileData = user!.profileData as any || {};
-    const current = Array.isArray(profileData.contentGoals) ? profileData.contentGoals : [];
+    const profileData = (user!.profileData as any) || {};
+    const current = Array.isArray(profileData.contentGoals)
+      ? profileData.contentGoals
+      : [];
     const next = current.filter((_: string, i: number) => i !== index);
     const newProfileData = { ...profileData, contentGoals: next };
-    updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+    updateProfileMutation.mutate({
+      profileData: newProfileData,
+      replaceArrays: true,
+    } as any);
   };
 
   // Target Audience add/remove
   const addTargetAudience = () => {
-    const value = window.prompt('Add a target audience segment (e.g., Young professionals, Parents, Students)');
+    const value = window.prompt(
+      "Add a target audience segment (e.g., Young professionals, Parents, Students)",
+    );
     if (!value) return;
     const label = normalizeLabel(value);
     if (!label) return;
-  const profileData = user!.profileData as any || {};
-    const current = Array.isArray(profileData.targetAudience) ? profileData.targetAudience : [];
+    const profileData = (user!.profileData as any) || {};
+    const current = Array.isArray(profileData.targetAudience)
+      ? profileData.targetAudience
+      : [];
     const next = uniqueMerge([...current, label]);
     const newProfileData = { ...profileData, targetAudience: next };
-    updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+    updateProfileMutation.mutate({
+      profileData: newProfileData,
+      replaceArrays: true,
+    } as any);
   };
 
   const removeTargetAudience = (index: number) => {
-    const profileData = user!.profileData as any || {};
-    const current = Array.isArray(profileData.targetAudience) ? profileData.targetAudience : [];
+    const profileData = (user!.profileData as any) || {};
+    const current = Array.isArray(profileData.targetAudience)
+      ? profileData.targetAudience
+      : [];
     const next = current.filter((_: string, i: number) => i !== index);
     const newProfileData = { ...profileData, targetAudience: next };
-    updateProfileMutation.mutate({ profileData: newProfileData, replaceArrays: true } as any);
+    updateProfileMutation.mutate({
+      profileData: newProfileData,
+      replaceArrays: true,
+    } as any);
   };
 
   const handleClearAllProfile = () => {
@@ -277,7 +379,9 @@ useEffect(() => {
             <div className="text-center">
               <Shield className="h-12 w-12 mx-auto text-gray-400 mb-4" />
               <h3 className="text-lg font-semibold mb-2">Access Denied</h3>
-              <p className="text-gray-600 mb-4">You must be logged in to view profile settings.</p>
+              <p className="text-gray-600 mb-4">
+                You must be logged in to view profile settings.
+              </p>
               <Button asChild>
                 <Link href="/">Go to Home</Link>
               </Button>
@@ -288,7 +392,12 @@ useEffect(() => {
     );
   }
 
-  const hasProfileData = !!(user.contentNiche?.length || (user as any).primaryPlatforms?.length || user.primaryPlatform || (user.profileData && Object.keys(user.profileData as object).length > 0));
+  const hasProfileData = !!(
+    user.contentNiche?.length ||
+    (user as any).primaryPlatforms?.length ||
+    user.primaryPlatform ||
+    (user.profileData && Object.keys(user.profileData as object).length > 0)
+  );
 
   return (
     <div className="h-screen bg-background overflow-y-scroll">
@@ -309,7 +418,10 @@ useEffect(() => {
               </Link>
             </Button>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-page-title">
+              <h1
+                className="text-xl sm:text-2xl font-bold text-foreground"
+                data-testid="text-page-title"
+              >
                 Profile Settings
               </h1>
               <p className="text-sm text-muted-foreground mt-1 hidden sm:block">
@@ -334,19 +446,26 @@ useEffect(() => {
         <Alert>
           <Shield className="h-4 w-4" />
           <AlertDescription>
-            ContentCraft AI learns about your content creation preferences through conversations to provide personalized assistance.
-            You can review and delete any collected information at any time.
+            ContentCraft AI learns about your content creation preferences
+            through conversations to provide personalized assistance. You can
+            review and delete any collected information at any time.
           </AlertDescription>
         </Alert>
 
         {/* Tabbed Interface */}
         <Tabs defaultValue="profile" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="profile" className="flex items-center space-x-2">
+            <TabsTrigger
+              value="profile"
+              className="flex items-center space-x-2"
+            >
               <UserIcon className="h-4 w-4" />
               <span>Profile</span>
             </TabsTrigger>
-            <TabsTrigger value="subscription" className="flex items-center space-x-2 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:border-transparent">
+            <TabsTrigger
+              value="subscription"
+              className="flex items-center space-x-2 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:border-transparent"
+            >
               <CreditCard className="h-4 w-4" />
               <span>Subscription</span>
             </TabsTrigger>
@@ -373,10 +492,10 @@ useEffect(() => {
           <p className="text-sm text-muted-foreground">
             Need help? Contact us at{" "}
             <a
-              href="mailto:support@contentcraft.ai"
+              href="mailto:support@wrytebot.com"
               className="text-primary hover:underline font-medium"
             >
-              support@contentcraft.ai
+              support@wrytebot.com
             </a>
           </p>
         </div>
