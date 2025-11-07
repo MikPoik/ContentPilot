@@ -91,6 +91,7 @@ export interface IStorage {
   getSubscriptionPlan(id: string): Promise<SubscriptionPlan | undefined>;
   incrementMessageUsage(userId: string): Promise<User | undefined>;
   resetMessageUsage(userId: string): Promise<User | undefined>;
+  findUserByStripeSubscriptionId(stripeSubscriptionId: string): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -498,6 +499,14 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(users.id, userId))
       .returning();
+    return user;
+  }
+
+  async findUserByStripeSubscriptionId(stripeSubscriptionId: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.stripeSubscriptionId, stripeSubscriptionId));
     return user;
   }
 }
