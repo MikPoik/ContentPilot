@@ -47,7 +47,7 @@ const seedPlans: InsertSubscriptionPlan[] = [
       "price_basic_placeholder",
     ),
     messagesLimit: 200,
-    priceAmount: 1000, // $10.00
+    priceAmount: 999, // $10.00
     priceCurrency: "eur",
     isActive: true,
     planType: "subscription",
