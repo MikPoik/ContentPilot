@@ -137,7 +137,7 @@ export default function HowItWorksPage() {
               Privacy Policy
             </Link>
             <a href="mailto:support@wrytebot.com" className="text-sm text-muted-foreground hover:text-foreground">
-              Contact Support
+              Contact: support@wrytebot.com
             </a>
           </div>
           <p className="text-muted-foreground">&copy; 2025 WryteBot. All rights reserved.</p>

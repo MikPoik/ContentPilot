@@ -235,7 +235,7 @@ export default function TermsOfService() {
           <div className="flex justify-center space-x-6 text-sm text-muted-foreground">
             <Link href="/terms-of-service"><a>Terms of Service</a></Link>
             <Link href="/privacy-policy"><a>Privacy Policy</a></Link>
-            <a href="mailto:support@wrytebot.com" className="hover:text-foreground">Contact Support</a>
+            <a href="mailto:support@wrytebot.com" className="hover:text-foreground">Contact: support@wrytebot.com</a>
           </div>
         </div>
       </footer>
