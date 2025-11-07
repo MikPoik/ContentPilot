@@ -54,6 +54,12 @@ export function registerSubscriptionRoutes(app: Express) {
       // Determine if this is a message pack or subscription
       const isMessagePack = (plan as any).planType === 'message_pack';
 
+      // Determine the base URL for redirects
+      const baseUrl = process.env.APP_URL 
+        || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null)
+        || (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` : null)
+        || 'http://localhost:5000';
+
       // Create Stripe checkout session
       const session = await stripe.checkout.sessions.create({
         customer: stripeCustomerId,
@@ -63,8 +69,8 @@ export function registerSubscriptionRoutes(app: Express) {
           quantity: 1,
         }],
         mode: isMessagePack ? 'payment' : 'subscription',
-        success_url: `${process.env.REPLIT_DOMAINS ? 'https://' + process.env.REPLIT_DOMAINS.split(',')[0] : 'http://localhost:5000'}/profile-settings?success=true`,
-        cancel_url: `${process.env.REPLIT_DOMAINS ? 'https://' + process.env.REPLIT_DOMAINS.split(',')[0] : 'http://localhost:5000'}/profile-settings?canceled=true`,
+        success_url: `${baseUrl}/profile-settings?success=true`,
+        cancel_url: `${baseUrl}/profile-settings?canceled=true`,
         metadata: {
           userId,
           planId,
@@ -97,7 +103,7 @@ export function registerSubscriptionRoutes(app: Express) {
 
       // Get the current subscription from Stripe
       const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-      
+
       // Update the subscription with the new price
       const updatedSubscription = await stripe.subscriptions.update(user.stripeSubscriptionId, {
         items: [{
@@ -181,7 +187,7 @@ export function registerSubscriptionRoutes(app: Express) {
   app.post("/api/subscriptions/webhook", async (req, res) => {
     const sig = req.headers['stripe-signature'];
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    
+
     if (!webhookSecret) {
       logger.error('Missing STRIPE_WEBHOOK_SECRET environment variable');
       return res.status(500).send('Webhook secret not configured');
@@ -203,28 +209,28 @@ export function registerSubscriptionRoutes(app: Express) {
           const userId = session.metadata?.userId;
           const planId = session.metadata?.planId;
           const planType = session.metadata?.planType;
-          
+
           if (userId && planId) {
             const plan = await storage.getSubscriptionPlan(planId);
-            
+
             if (planType === 'message_pack' && plan) {
               // Handle message pack purchase - add messages to user's message pack balance
               const user = await storage.getUser(userId);
               if (user) {
                 const currentPacks = user.messagePacks || 0;
                 const newPacks = currentPacks + plan.messagesLimit;
-                
+
                 await storage.updateUserSubscription(userId, {
                   messagePacks: newPacks,
                 });
-                
+
                 logger.log(`💳 Message pack purchased: +${plan.messagesLimit} messages for user ${userId} (total packs: ${newPacks})`);
               }
             } else {
               // Handle subscription - set base limit but preserve message packs
               const user = await storage.getUser(userId);
               const existingPacks = user?.messagePacks || 0;
-              
+
               await storage.updateUserSubscription(userId, {
                 stripeSubscriptionId: session.subscription,
                 subscriptionPlanId: planId,
@@ -248,7 +254,7 @@ export function registerSubscriptionRoutes(app: Express) {
         case 'customer.subscription.deleted':
           const subscription = event.data.object as any;
           const customer = await stripe.customers.retrieve(subscription.customer);
-          
+
           if (customer && !customer.deleted && customer.email) {
             // For now, log the event - getUserByEmail method needs to be added to storage interface
             logger.log(`Subscription ${event.type} for customer: ${customer.email}`);
