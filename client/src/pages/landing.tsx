@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  MessageSquare, 
-  Sparkles, 
-  TrendingUp, 
-  Users, 
+import {
+  MessageSquare,
+  Sparkles,
+  TrendingUp,
+  Users,
   Instagram,
   Search,
   Zap,
@@ -13,7 +13,7 @@ import {
   Star,
   Twitter,
   Paintbrush,
-  Target
+  Target,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ClientOnly } from "@/components/client-only";
@@ -28,66 +28,75 @@ export default function Landing() {
     {
       icon: Twitter,
       title: "X (Twitter) Analysis",
-      description: "Deep-dive into trending topics, hashtags, and engagement patterns to create viral-worthy content.",
-      gradient: "from-purple-500 to-purple-600"
+      description:
+        "Deep-dive into trending topics, hashtags, and engagement patterns to create viral-worthy content.",
+      gradient: "from-purple-500 to-purple-600",
     },
     {
       icon: Instagram,
       title: "Instagram Insights",
-      description: "Analyze top-performing posts, reels, and stories to craft content that resonates with your audience.",
-      gradient: "from-pink-500 to-orange-500"
+      description:
+        "Analyze top-performing posts, reels, and stories to craft content that resonates with your audience.",
+      gradient: "from-pink-500 to-orange-500",
     },
     {
       icon: Search,
       title: "Web Research",
-      description: "Real-time web search to gather the latest trends, news, and insights for your content strategy.",
-      gradient: "from-rose-500 to-pink-500"
+      description:
+        "Real-time web search to gather the latest trends, news, and insights for your content strategy.",
+      gradient: "from-rose-500 to-pink-500",
     },
     {
       icon: Paintbrush,
       title: "Brand Voice AI",
-      description: "Learn and replicate your unique brand voice to ensure consistent, authentic messaging.",
-      gradient: "from-red-500 to-rose-500"
+      description:
+        "Learn and replicate your unique brand voice to ensure consistent, authentic messaging.",
+      gradient: "from-red-500 to-rose-500",
     },
     {
       icon: Sparkles,
       title: "Content Generation",
-      description: "Generate posts, captions, and hashtags that align with your brand and drive engagement.",
-      gradient: "from-purple-500 to-pink-500"
+      description:
+        "Generate posts, captions, and hashtags that align with your brand and drive engagement.",
+      gradient: "from-purple-500 to-pink-500",
     },
     {
       icon: BarChart3,
       title: "Performance Optimization",
-      description: "Get AI-powered suggestions to optimize posting times, formats, and content strategies.",
-      gradient: "from-fuchsia-500 to-pink-500"
-    }
+      description:
+        "Get AI-powered suggestions to optimize posting times, formats, and content strategies.",
+      gradient: "from-fuchsia-500 to-pink-500",
+    },
   ];
 
   const stats = [
     { value: "10K+", label: "Content Created" },
     { value: "95%", label: "Satisfaction Rate" },
-    { value: "24/7", label: "AI Assistant" }
+    { value: "24/7", label: "AI Assistant" },
   ];
 
   const testimonials = [
     {
-      quote: "WryteBot transformed how we create content. The AI understands our brand voice perfectly and saves us hours every week.",
-      author: "Sarah Johnson",
+      quote:
+        "WryteBot transformed how we create content. The AI understands our brand voice perfectly and saves us hours every week.",
+      author: "Sarah",
       role: "Social Media Manager",
-      rating: 5
+      rating: 5,
     },
     {
-      quote: "The X and Instagram analysis features are game-changers. I can now spot trends before they go viral.",
-      author: "Michael Chen",
+      quote:
+        "The X and Instagram analysis features are game-changers. I can now spot trends before they go viral.",
+      author: "Michael",
       role: "Content Creator",
-      rating: 5
+      rating: 5,
     },
     {
-      quote: "Our engagement rates doubled since using WryteBot. The AI-generated content feels authentic and on-brand.",
-      author: "Emily Rodriguez",
+      quote:
+        "Our engagement rates doubled since using WryteBot. The AI-generated content feels authentic and on-brand.",
+      author: "Emily",
       role: "Marketing Director",
-      rating: 5
-    }
+      rating: 5,
+    },
   ];
 
   return (
@@ -105,8 +114,18 @@ export default function Landing() {
           </div>
           <div className="flex items-center space-x-4">
             <nav className="hidden sm:flex items-center space-x-4 mr-2">
-              <Link href="/how-it-works" className="text-sm text-muted-foreground hover:text-foreground">How it works</Link>
-              <Link href="/pricing" className="text-sm text-foreground font-medium">Pricing</Link>
+              <Link
+                href="/how-it-works"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                How it works
+              </Link>
+              <Link
+                href="/pricing"
+                className="text-sm text-foreground font-medium"
+              >
+                Pricing
+              </Link>
             </nav>
             <ClientOnly>
               <ThemeToggle />
@@ -124,8 +143,8 @@ export default function Landing() {
 
       {/* Hero Section */}
       <section className="relative pt-20 pb-24 sm:pt-24 sm:pb-32">
-  <div className="absolute inset-0 bg-gradient-to-b from-emerald-100/80 via-teal-50/40 to-white/60 dark:from-slate-950/90 dark:via-slate-900/70 dark:to-slate-900/40 pointer-events-none" />
-  <div className="absolute inset-0 bg-gradient-to-b from-cyan-100/30 via-emerald-50/20 to-transparent dark:from-transparent dark:via-transparent dark:to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-emerald-100/80 via-teal-50/40 to-white/60 dark:from-slate-950/90 dark:via-slate-900/70 dark:to-slate-900/40 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-cyan-100/30 via-emerald-50/20 to-transparent dark:from-transparent dark:via-transparent dark:to-transparent pointer-events-none" />
 
         <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
@@ -144,7 +163,9 @@ export default function Landing() {
             </h1>
 
             <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-              WryteBot analyzes your brand voice, researches trends, and generates high-performing content for Twitter and Instagram in seconds.
+              WryteBot analyzes your brand voice, researches trends, and
+              generates high-performing content for Twitter and Instagram in
+              seconds.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -177,7 +198,9 @@ export default function Landing() {
                   <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent mb-1">
                     {stat.value}
                   </div>
-                  <div className="text-sm text-muted-foreground font-medium">{stat.label}</div>
+                  <div className="text-sm text-muted-foreground font-medium">
+                    {stat.label}
+                  </div>
                 </div>
               ))}
             </div>
@@ -196,7 +219,8 @@ export default function Landing() {
               </span>
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to create, optimize, and schedule social media content that performs.
+              Everything you need to create, optimize, and schedule social media
+              content that performs.
             </p>
           </div>
 
@@ -209,7 +233,9 @@ export default function Landing() {
                   className="group bg-white dark:bg-gray-900 border-border/50 dark:border-gray-800 hover:border-border dark:hover:border-gray-700 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
                 >
                   <CardContent className="p-6">
-                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-shadow`}>
+                    <div
+                      className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-shadow`}
+                    >
                       <Icon className="h-7 w-7 text-white" />
                     </div>
                     <h3 className="text-xl font-bold text-card-foreground mb-3">
@@ -237,25 +263,36 @@ export default function Landing() {
               </span>
             </h2>
             <p className="text-lg text-muted-foreground">
-              Join thousands of creators who are revolutionizing their content strategy
+              Join thousands of creators who are revolutionizing their content
+              strategy
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
             {testimonials.map((testimonial, index) => (
-              <Card key={index} className="bg-white dark:bg-gray-900 border-border/50 dark:border-gray-800 shadow-lg hover:shadow-xl transition-shadow">
+              <Card
+                key={index}
+                className="bg-white dark:bg-gray-900 border-border/50 dark:border-gray-800 shadow-lg hover:shadow-xl transition-shadow"
+              >
                 <CardContent className="p-6">
                   <div className="flex mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      <Star
+                        key={i}
+                        className="w-5 h-5 fill-yellow-400 text-yellow-400"
+                      />
                     ))}
                   </div>
                   <p className="text-muted-foreground mb-6 leading-relaxed italic">
                     "{testimonial.quote}"
                   </p>
                   <div>
-                    <div className="font-semibold text-card-foreground">{testimonial.author}</div>
-                    <div className="text-sm text-muted-foreground">{testimonial.role}</div>
+                    <div className="font-semibold text-card-foreground">
+                      {testimonial.author}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {testimonial.role}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -267,7 +304,13 @@ export default function Landing() {
       {/* CTA Section */}
       <section className="py-20 relative">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500 dark:from-purple-900 dark:via-pink-900 dark:to-orange-800 pointer-events-none" />
-        <div className="absolute inset-0 opacity-30 pointer-events-none" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='grid' width='60' height='60' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 10 0 L 0 0 0 10' fill='none' stroke='white' stroke-opacity='0.05' stroke-width='1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23grid)'/%3E%3C/svg%3E\")" }} />
+        <div
+          className="absolute inset-0 opacity-30 pointer-events-none"
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='grid' width='60' height='60' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 10 0 L 0 0 0 10' fill='none' stroke='white' stroke-opacity='0.05' stroke-width='1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23grid)'/%3E%3C/svg%3E\")",
+          }}
+        />
 
         <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="max-w-3xl mx-auto">
@@ -276,7 +319,8 @@ export default function Landing() {
               Ready to Transform Your Content?
             </h2>
             <p className="text-lg sm:text-xl text-white/90 mb-8 leading-relaxed">
-              Join WryteBot today and experience AI-powered content creation that understands your brand voice and drives engagement.
+              Join WryteBot today and experience AI-powered content creation
+              that understands your brand voice and drives engagement.
             </p>
 
             <Button
@@ -290,7 +334,7 @@ export default function Landing() {
             </Button>
 
             <p className="text-sm text-white/80 mt-6">
-              No credit card required • 7-day free trial • Cancel anytime
+              No credit card required • free trial • Cancel anytime
             </p>
           </div>
         </div>
@@ -308,13 +352,22 @@ export default function Landing() {
             </span>
           </div>
           <div className="flex justify-center space-x-6 mb-4">
-            <Link href="/terms-of-service" className="text-sm text-muted-foreground hover:text-foreground">
+            <Link
+              href="/terms-of-service"
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
               Terms of Service
             </Link>
-            <Link href="/privacy-policy" className="text-sm text-muted-foreground hover:text-foreground">
+            <Link
+              href="/privacy-policy"
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
               Privacy Policy
             </Link>
-            <a href="mailto:support@wrytebot.com" className="text-sm text-muted-foreground hover:text-foreground">
+            <a
+              href="mailto:support@wrytebot.com"
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
               Contact: support@wrytebot.com
             </a>
           </div>
