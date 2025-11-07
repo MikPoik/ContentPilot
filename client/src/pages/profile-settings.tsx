@@ -367,6 +367,19 @@ useEffect(() => {
             <SubscriptionManagement />
           </TabsContent>
         </Tabs>
+
+        {/* Support Contact */}
+        <div className="mt-8 pt-6 border-t border-border text-center">
+          <p className="text-sm text-muted-foreground">
+            Need help? Contact us at{" "}
+            <a
+              href="mailto:support@contentcraft.ai"
+              className="text-primary hover:underline font-medium"
+            >
+              support@contentcraft.ai
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );
