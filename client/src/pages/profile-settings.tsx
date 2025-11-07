@@ -346,7 +346,7 @@ useEffect(() => {
               <UserIcon className="h-4 w-4" />
               <span>Profile</span>
             </TabsTrigger>
-            <TabsTrigger value="subscription" className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white">
+            <TabsTrigger value="subscription" className="flex items-center space-x-2 bg-emerald-50 border border-emerald-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:border-transparent">
               <CreditCard className="h-4 w-4" />
               <span>Subscription</span>
             </TabsTrigger>
