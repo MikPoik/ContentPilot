@@ -737,34 +737,38 @@ export default function Chat() {
               <MemoryTester />
             </div>
           ) : (
-            <div className="h-full pb-16 md:pb-20 overflow-y-auto relative">
-              <MessageList
-                messages={allMessages}
-                streamingMessage={streamingMessage}
-                isStreaming={isStreaming}
-                isLoadingMessages={Boolean(conversationId) && (isLoadingMessages || isFetchingMessages)}
-                isSearching={isSearching}
-                searchQuery={searchQuery}
-                searchCitations={searchCitations}
-                aiActivity={aiActivity}
-                aiActivityMessage={aiActivityMessage}
-                user={user}
-                conversationId={conversationId}
-                onRegenerateMessage={handleRegenerateMessage}
-                onDeleteMessage={handleDeleteMessage}
-              />
+            <div className="h-full pb-16 md:pb-20 overflow-y-auto relative flex justify-center">
+              <div className="w-full max-w-4xl">
+                <MessageList
+                  messages={allMessages}
+                  streamingMessage={streamingMessage}
+                  isStreaming={isStreaming}
+                  isLoadingMessages={Boolean(conversationId) && (isLoadingMessages || isFetchingMessages)}
+                  isSearching={isSearching}
+                  searchQuery={searchQuery}
+                  searchCitations={searchCitations}
+                  aiActivity={aiActivity}
+                  aiActivityMessage={aiActivityMessage}
+                  user={user}
+                  conversationId={conversationId}
+                  onRegenerateMessage={handleRegenerateMessage}
+                  onDeleteMessage={handleDeleteMessage}
+                />
+              </div>
             </div>
           )}
         </div>
 
         {/* Message input - only show when not in memory tester mode */}
         {!showMemoryTester && (
-          <div className="flex-shrink-0 bg-card border-t border-border">
-            <MessageInput
-              onSendMessage={handleSendMessage}
-              isLoading={sendMessageMutation.isPending || isStreaming}
-              disabled={isStreaming}
-            />
+          <div className="flex-shrink-0 bg-card border-t border-border flex justify-center">
+            <div className="w-full max-w-4xl">
+              <MessageInput
+                onSendMessage={handleSendMessage}
+                isLoading={sendMessageMutation.isPending || isStreaming}
+                disabled={isStreaming}
+              />
+            </div>
           </div>
         )}
       </div>
