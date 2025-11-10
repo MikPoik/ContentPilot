@@ -453,7 +453,13 @@ export default function ProfileSettings() {
         </Alert>
 
         {/* Tabbed Interface */}
-        <Tabs defaultValue="profile" className="space-y-6">
+        <Tabs defaultValue="profile" className="space-y-6" onValueChange={(value) => {
+          if (value === "subscription") {
+            // Refetch user data and subscription plans when switching to subscription tab
+            queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/plans"] });
+          }
+        }}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger
               value="profile"
