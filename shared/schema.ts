@@ -33,7 +33,7 @@ export const users = pgTable("users", {
   subscriptionPlanId: varchar("subscription_plan_id"),
   subscriptionStatus: varchar("subscription_status").default("free"),
   messagesUsed: integer("messages_used").default(0),
-  messagesLimit: integer("messages_limit").default(10),
+  messagesLimit: integer("messages_limit").default(20),
   messagePacks: integer("message_packs").default(0), // Total purchased message pack credits
   subscriptionStartedAt: timestamp("subscription_started_at"),
   createdAt: timestamp("created_at").defaultNow(),

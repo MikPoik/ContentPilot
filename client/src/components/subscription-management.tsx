@@ -160,7 +160,7 @@ export default function SubscriptionManagement() {
   }
 
   const messagesUsed = user.messagesUsed || 0;
-  const messagesLimit = user.messagesLimit || 10;
+  const messagesLimit = user.messagesLimit || 20;
   const messagePacks = (user as any).messagePacks || 0;
   const totalLimit = messagesLimit + messagePacks;
   
