@@ -105,7 +105,12 @@ export default function ProfileSettings() {
       setLocalBusinessType(profileData.businessType || "");
       setLocalBusinessLocation(profileData.businessLocation || "");
     }
-  }, [user?.profileData]); // Cleanup debounce timeout on unmount
+  }, [user?.profileData]);
+
+  // Refresh user data when page mounts
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+  }, []); // Cleanup debounce timeout on unmount
   useEffect(() => {
     return () => {
       if (debounceTimeoutRef.current) {
