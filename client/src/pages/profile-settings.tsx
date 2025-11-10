@@ -458,6 +458,9 @@ export default function ProfileSettings() {
             // Refetch user data and subscription plans when switching to subscription tab
             queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
             queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/plans"] });
+          } else if (value === "profile") {
+            // Refetch user data when switching to profile tab
+            queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
           }
         }}>
           <TabsList className="grid w-full grid-cols-2">
