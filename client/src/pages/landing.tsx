@@ -164,7 +164,7 @@ export default function Landing() {
 
             <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
               WryteBot analyzes your brand voice, researches trends, and
-              generates high-performing content for Twitter and Instagram in
+              generates high-performing content for X and Instagram in
               seconds.
             </p>
 
