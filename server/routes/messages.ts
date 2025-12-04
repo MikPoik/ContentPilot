@@ -58,8 +58,8 @@ export function registerMessageRoutes(app: Express) {
       }
 
       // Check message length limits (prevent abuse)
-      if (trimmedContent.length > 10000) {
-        const error = ErrorTypes.MESSAGE_TOO_LONG(10000);
+      if (trimmedContent.length > 100000) {
+        const error = ErrorTypes.MESSAGE_TOO_LONG(100000);
         logError(error, 'CHAT_FLOW', { actualLength: trimmedContent.length });
         return res.status(error.statusCode).json(formatErrorResponse(error));
       }

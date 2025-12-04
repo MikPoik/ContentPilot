@@ -13,7 +13,7 @@ export default function MessageInput({ onSendMessage, isLoading, disabled }: Mes
   const [message, setMessage] = useState("");
   const [isOverflowing, setIsOverflowing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const maxChars = 20000;
+  const maxChars = 100000;
 
   // Auto-resize textarea based on content
   useEffect(() => {
