@@ -501,14 +501,6 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return user;
   }
-
-  async findUserByStripeSubscriptionId(stripeSubscriptionId: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.stripeSubscriptionId, stripeSubscriptionId));
-    return user;
-  }
 }
 
 export const storage = new DatabaseStorage();

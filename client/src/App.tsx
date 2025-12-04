@@ -16,7 +16,8 @@ import HowItWorksPage from "@/pages/how-it-works";
 import TermsOfService from "@/pages/terms-of-service";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import { useLocation } from "wouter";
-import { Suspense } from "react";
+import React, { Suspense } from "react";
+import CookieConsentBanner from "@/components/CookieConsentBanner";
 
 function HandlerRoutes() {
   const [location] = useLocation();
@@ -67,6 +68,38 @@ function Router() {
   );
 }
 
+// Google Analytics loader with consent
+function GoogleAnalyticsWithConsent() {
+  const [consented, setConsented] = React.useState(false);
+  const COOKIE_NAME = 'cookie_consent';
+
+  React.useEffect(() => {
+    if (localStorage.getItem(COOKIE_NAME) === 'true') {
+      setConsented(true);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (consented) {
+      const GA_ID = import.meta.env.VITE_GA_ID;
+      if (GA_ID && !window.gtag) {
+        const script = document.createElement('script');
+        script.async = true;
+        script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`;
+        document.head.appendChild(script);
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){window.dataLayer.push(arguments);}
+        window.gtag = gtag;
+        gtag('js', new Date());
+        gtag('config', GA_ID);
+      }
+    }
+  }, [consented]);
+
+  if (consented) return null;
+  return <CookieConsentBanner onConsent={() => setConsented(true)} />;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -84,6 +117,7 @@ function App() {
               </div>}>
                 <Toaster />
                 <Router />
+                <GoogleAnalyticsWithConsent />
               </Suspense>
             </TooltipProvider>
           </ThemeProvider>
