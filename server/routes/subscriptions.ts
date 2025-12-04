@@ -4,7 +4,7 @@ import Stripe from "stripe";
 import { storage } from "../storage";
 import { updateUserSubscriptionSchema } from "@shared/schema";
 import logger from "../logger";
-import { isAuthenticated } from "../replitAuth";
+import { isAuthenticated } from "../stackAuth";
 
 // Initialize Stripe
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -28,7 +28,7 @@ export function registerSubscriptionRoutes(app: Express) {
   app.post("/api/subscriptions/create-checkout", isAuthenticated, async (req: any, res) => {
     try {
       const { planId } = req.body;
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
       const user = await storage.getUser(userId);
 
       if (!user || !user.email) {
@@ -89,7 +89,7 @@ export function registerSubscriptionRoutes(app: Express) {
   app.post("/api/subscriptions/update-plan", isAuthenticated, async (req: any, res) => {
     try {
       const { planId } = req.body;
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
       const user = await storage.getUser(userId);
 
       if (!user || !user.stripeSubscriptionId) {
@@ -161,7 +161,7 @@ export function registerSubscriptionRoutes(app: Express) {
   // Resume subscription (undo cancel at period end)
   app.post("/api/subscriptions/resume", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
       const user = await storage.getUser(userId);
 
       if (!user || !user.stripeSubscriptionId) {

@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { stackClientApp } from "./stack";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -7,14 +8,38 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
+    "Cache-Control": "no-cache",
+  };
+  
+  // Get current user from Stack Auth to include user ID in headers
+  try {
+    const user = await stackClientApp.getUser();
+    if (user) {
+      headers["x-stack-user-id"] = user.id;
+    }
+  } catch (error) {
+    // User not authenticated, continue without header
+  }
+  
+  return headers;
+}
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const headers = await getAuthHeaders();
+  
+  if (data) {
+    headers["Content-Type"] = "application/json";
+  }
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json", "Cache-Control": "no-cache" } : { "Cache-Control": "no-cache" },
+    headers,
     cache: "no-store",
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
@@ -30,10 +55,12 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const headers = await getAuthHeaders();
+    
     const res = await fetch(queryKey.join("/") as string, {
       credentials: "include",
       cache: "no-store",
-      headers: { "Cache-Control": "no-cache" },
+      headers,
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { insertMemorySchema } from "@shared/schema";
 import { generateEmbedding } from "../services/openai";
-import { isAuthenticated } from "../replitAuth";
+import { isAuthenticated } from "../stackAuth";
 import logger from "../logger";
 
 export function registerMemoryRoutes(app: Express) {
@@ -25,7 +25,7 @@ export function registerMemoryRoutes(app: Express) {
         return res.status(400).json({ message: "Memory content is required" });
       }
 
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
       
       // Generate embedding for the content
       const embedding = await generateEmbedding(content);
@@ -53,7 +53,7 @@ export function registerMemoryRoutes(app: Express) {
       if (!memory) {
         return res.status(404).json({ message: "Memory not found" });
       }
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
       if (memory.userId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -76,7 +76,7 @@ export function registerMemoryRoutes(app: Express) {
         return res.status(400).json({ message: "Search query is required" });
       }
 
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
       
       // Generate embedding for the search query
       const queryEmbedding = await generateEmbedding(query);

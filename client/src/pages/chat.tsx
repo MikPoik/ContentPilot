@@ -159,11 +159,11 @@ export default function Chat() {
     };
     setMessages(prev => [...prev, optimisticAssistant]);
 
-    const response = await fetch(`/api/conversations/${targetConversationId}/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
-    });
+    const response = await apiRequest(
+      "POST",
+      `/api/conversations/${targetConversationId}/messages`,
+      { content }
+    );
 
     if (!response.ok) {
       if (response.status === 429) {

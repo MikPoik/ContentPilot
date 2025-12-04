@@ -1,7 +1,9 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { updateUserProfileSchema } from "@shared/schema";
+import { updateUserProfileSchema, neonAuthUsers } from "@shared/schema";
 import { isAuthenticated } from "../stackAuth";
+import { db } from "../db";
+import { eq } from "drizzle-orm";
 import logger from "../logger";
 
 export function registerAuthRoutes(app: Express) {
@@ -11,14 +13,37 @@ export function registerAuthRoutes(app: Express) {
       const userId = req.stackUser!.id;
       let user = await storage.getUser(userId);
       
-      // If user doesn't exist in our database, create them (first login)
+      // If user doesn't exist in our database, create them (lazy user creation)
       if (!user) {
         logger.log(`👤 [AUTH] Creating new user record for Stack Auth user: ${userId}`);
+
+        let neonAuthUser: { email: string | null; name: string | null } | undefined;
+        try {
+          const [neonUserRow] = await db
+            .select()
+            .from(neonAuthUsers)
+            .where(eq(neonAuthUsers.id, userId))
+            .limit(1);
+          if (neonUserRow) {
+            neonAuthUser = neonUserRow as any;
+          } else {
+            logger.warn(`User ${userId} not found in neon_auth.users_sync`);
+          }
+        } catch (dbError: any) {
+          // If the neon_auth schema/table is not reachable, fall back to minimal creation
+          if (dbError?.code === '42P01') {
+            logger.warn('neon_auth.users_sync not found; proceeding with minimal user creation');
+          } else {
+            logger.error('Error querying neon_auth.users_sync:', dbError);
+            throw dbError;
+          }
+        }
+
         const newUserData = {
           id: userId,
-          email: req.stackUser!.email || undefined,
-          firstName: req.stackUser!.displayName?.split(' ')[0] || undefined,
-          lastName: req.stackUser!.displayName?.split(' ').slice(1).join(' ') || undefined,
+          email: neonAuthUser?.email || undefined,
+          firstName: neonAuthUser?.name?.split(' ')[0] || undefined,
+          lastName: neonAuthUser?.name?.split(' ').slice(1).join(' ') || undefined,
         };
         user = await storage.upsertUser(newUserData);
         logger.log(`✅ [AUTH] User created successfully: ${userId}`);
