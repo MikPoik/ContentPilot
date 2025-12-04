@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { isAuthenticated } from "../replitAuth";
+import { isAuthenticated } from "../stackAuth";
 import { generateChatResponse, generateConversationTitle, type ChatResponseWithMetadata } from "../services/ai/chat";
 import { ErrorTypes, parseError, formatErrorResponse, logError } from "../services/errors";
 import logger from "../logger";
@@ -16,7 +16,7 @@ export function registerMessageRoutes(app: Express) {
   app.get("/api/conversations/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
       const conversationId = req.params.id;
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
 
       // Verify conversation exists and user owns it
       const conversation = await storage.getConversation(conversationId);
@@ -65,7 +65,7 @@ export function registerMessageRoutes(app: Express) {
       }
 
       const conversationId = req.params.id;
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
       logger.log(`📝 [CHAT_FLOW] Processing message for user: ${userId}, conversation: ${conversationId}`);
       logger.log(`📏 [CHAT_FLOW] Message length: ${trimmedContent.length} characters`);
 
@@ -877,7 +877,7 @@ export function registerMessageRoutes(app: Express) {
     try {
       const conversationId = req.params.id;
       const messageId = req.params.messageId;
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
 
       // Verify conversation exists and user owns it
       const conversation = await storage.getConversation(conversationId);

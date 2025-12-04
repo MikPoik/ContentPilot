@@ -1,15 +1,28 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { updateUserProfileSchema } from "@shared/schema";
-import { isAuthenticated } from "../replitAuth";
+import { isAuthenticated } from "../stackAuth";
 import logger from "../logger";
 
 export function registerAuthRoutes(app: Express) {
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const userId = req.stackUser!.id;
+      let user = await storage.getUser(userId);
+      
+      // If user doesn't exist in our database, create them (first login)
+      if (!user) {
+        logger.log(`👤 [AUTH] Creating new user record for Stack Auth user: ${userId}`);
+        const newUserData = {
+          id: userId,
+          email: req.stackUser!.email || undefined,
+          firstName: req.stackUser!.displayName?.split(' ')[0] || undefined,
+          lastName: req.stackUser!.displayName?.split(' ').slice(1).join(' ') || undefined,
+        };
+        user = await storage.upsertUser(newUserData);
+        logger.log(`✅ [AUTH] User created successfully: ${userId}`);
+      }
       
       // Auto-cleanup malformed data if present
       if (user?.profileData) {
@@ -56,7 +69,7 @@ export function registerAuthRoutes(app: Express) {
   // Update user profile
   app.patch("/api/auth/user/profile", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
       const profileData = updateUserProfileSchema.parse(req.body);
       const updatedUser = await storage.updateUserProfile(userId, profileData);
       if (!updatedUser) {

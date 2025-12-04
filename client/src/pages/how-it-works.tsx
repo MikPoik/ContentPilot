@@ -8,7 +8,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function HowItWorksPage() {
   const handleLogin = () => {
-    window.location.href = "/api/login";
+    window.location.href = "/handler/sign-in";
   };
 
   const steps = [

@@ -4,6 +4,7 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { apiRequest } from "@/lib/queryClient";
+import { useUser as useStackUser } from "@stackframe/react";
 import Sidebar from "../components/chat/sidebar";
 import MessageList from "../components/chat/message-list";
 import MessageInput from "../components/chat/message-input";
@@ -38,6 +39,9 @@ export default function Chat() {
   const [showMemoryTester, setShowMemoryTester] = useState(false);
   const [aiActivity, setAiActivity] = useState<'thinking' | 'reasoning' | 'searching' | 'recalling' | 'analyzing' | 'generating' | 'extracting_memories' | 'saving_memories' | null>(null);
   const [aiActivityMessage, setAiActivityMessage] = useState<string>('');
+
+  // Get Stack Auth user for logout
+  const stackUser = useStackUser();
 
   // Memoize handlers to prevent dropdown re-renders
   const handleSidebarToggle = useCallback(() => {
@@ -414,7 +418,7 @@ export default function Chat() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/handler/sign-in";
         }, 500);
         return;
       }
@@ -557,9 +561,12 @@ export default function Chat() {
     setShowMemoryTester(prev => !prev);
   }, []);
 
-  const handleLogout = useCallback(() => {
-    window.location.href = "/api/logout";
-  }, []);
+  const handleLogout = useCallback(async () => {
+    if (stackUser) {
+      await stackUser.signOut();
+      window.location.href = "/";
+    }
+  }, [stackUser]);
 
   // Update viewport height on resize for mobile browsers
   useEffect(() => {

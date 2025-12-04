@@ -1,7 +1,7 @@
 import logger from "../logger";
 import type { Express, Request, Response } from 'express';
 import { z } from 'zod';
-import { isAuthenticated } from '../replitAuth.js';
+import { isAuthenticated } from '../stackAuth.js';
 import { hikerApiService } from '../services/hikerapi.js';
 import { instagrapiService } from '../services/instagrapi.js';
 import { storage } from '../storage.js';
@@ -22,7 +22,7 @@ export function registerInstagramRoutes(app: Express): void {
   app.post('/api/instagram/analyze', isAuthenticated, async (req: any, res) => {
     try {
       const { username } = analyzeInstagramProfileSchema.parse(req.body);
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
 
       // Check if profile was analyzed recently (within 24 hours)
       const user = await storage.getUser(userId);
@@ -141,7 +141,7 @@ export function registerInstagramRoutes(app: Express): void {
   app.get('/api/instagram/profile/:username', isAuthenticated, async (req: any, res) => {
     try {
       const { username } = req.params;
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
 
       const user = await storage.getUser(userId);
       const profileData = user?.profileData as any;
@@ -171,7 +171,7 @@ export function registerInstagramRoutes(app: Express): void {
   app.post('/api/instagram/hashtag/search', isAuthenticated, async (req: any, res) => {
     try {
       const { hashtag, amount } = searchInstagramHashtagSchema.parse(req.body);
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
 
       // Check if hashtag was searched recently (within 6 hours)
       const user = await storage.getUser(userId);
@@ -267,7 +267,7 @@ export function registerInstagramRoutes(app: Express): void {
   app.get('/api/instagram/hashtag/:hashtag', isAuthenticated, async (req: any, res) => {
     try {
       const { hashtag } = req.params;
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
 
       const user = await storage.getUser(userId);
       const profileData = user?.profileData as any;

@@ -9,7 +9,7 @@ export function registerMemoryRoutes(app: Express) {
   // Get all memories for authenticated user
   app.get("/api/memories", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
       const memories = await storage.getMemories(userId);
       res.json(memories);
     } catch (error) {

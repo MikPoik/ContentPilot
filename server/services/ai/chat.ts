@@ -188,11 +188,11 @@ export async function generateChatResponse(
   const openaiRequestStart = Date.now();
   logger.log(`🤖 [AI_SERVICE] Sending request to OpenAI...`);
   const stream = await openai.chat.completions.create({
-    model: "gpt-4.1",
+    model: "gpt-5.1",
     messages: chatMessages,
     stream: true,
     temperature: 0.7,
-    max_tokens: 2000,
+    max_completion_tokens: 2000,
   });
   logger.log(
     `🤖 [AI_SERVICE] OpenAI stream initialized: ${Date.now() - openaiRequestStart}ms`,

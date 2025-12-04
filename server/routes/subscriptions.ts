@@ -130,9 +130,9 @@ export function registerSubscriptionRoutes(app: Express) {
   });
 
   // Cancel subscription at period end
-  app.post("/api/subscriptions/cancel", isAuthenticated, async (req: any, res) => {
+  app.get("/api/subscriptions/status", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
       const user = await storage.getUser(userId);
 
       if (!user || !user.stripeSubscriptionId) {

@@ -15,7 +15,7 @@ export default function PricingPage() {
   });
 
   const handleLogin = () => {
-    window.location.href = "/api/login";
+    window.location.href = "/handler/sign-in";
   };
 
   const subscriptionPlans = (plans || []).filter((p) => (p as any).planType !== "message_pack");

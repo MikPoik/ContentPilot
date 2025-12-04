@@ -1,14 +1,14 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { insertConversationSchema } from "@shared/schema";
-import { isAuthenticated } from "../replitAuth";
+import { isAuthenticated } from "../stackAuth";
 import logger from "../logger";
 
 export function registerConversationRoutes(app: Express) {
   // Get all conversations for authenticated user
   app.get("/api/conversations", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
       const conversations = await storage.getConversations(userId);
       res.json(conversations);
     } catch (error) {
@@ -24,7 +24,7 @@ export function registerConversationRoutes(app: Express) {
         return res.status(404).json({ message: "Conversation not found" });
       }
       // Verify ownership
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
       if (conversation.userId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -37,7 +37,7 @@ export function registerConversationRoutes(app: Express) {
   // Create a new conversation
   app.post("/api/conversations", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
       const validatedData = insertConversationSchema.parse({ ...req.body, userId });
       const conversation = await storage.createConversation(validatedData);
       res.json(conversation);
@@ -55,7 +55,7 @@ export function registerConversationRoutes(app: Express) {
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
       }
-      const userId = req.user.claims.sub;
+      const userId = req.stackUser!.id;
       if (conversation.userId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }

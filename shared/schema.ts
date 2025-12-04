@@ -1,9 +1,23 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, jsonb, index, vector, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, jsonb, index, vector, integer, boolean, pgSchema } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Session storage table for Replit Auth
+// Neon Auth schema (managed by Neon Auth, read-only)
+const neonAuthSchema = pgSchema("neon_auth");
+
+// Neon Auth users_sync table (automatically created and managed by Neon Auth)
+export const neonAuthUsers = neonAuthSchema.table("users_sync", {
+  id: text("id").primaryKey(),
+  rawJson: jsonb("raw_json"),
+  name: text("name"),
+  email: text("email"),
+  createdAt: timestamp("created_at"),
+  deletedAt: timestamp("deleted_at"),
+  updatedAt: timestamp("updated_at"),
+});
+
+// Session storage table (may be deprecated with Stack Auth)
 export const sessions = pgTable(
   "sessions",
   {
@@ -14,7 +28,8 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table for Replit Auth
+// User storage table for app-specific data
+// Note: id now references Neon Auth user IDs instead of Auth0 IDs
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique(),
