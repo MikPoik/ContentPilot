@@ -484,10 +484,10 @@ export default function ProfileSettings() {
 
           <TabsContent value="profile" className="space-y-6">
             {/* Basic Profile Information */}
-            <BasicProfileCard user={user} />
+            <BasicProfileCard user={user as any} />
 
             {/* AI-Collected Profile Data */}
-            <AiCollectedDataCard user={user} />
+            <AiCollectedDataCard user={user as any} />
 
             {/* Data Usage Information */}
             <DataUsageInfoCard />

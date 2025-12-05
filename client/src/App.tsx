@@ -19,6 +19,13 @@ import { useLocation } from "wouter";
 import React, { Suspense } from "react";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 
+declare global {
+  interface Window {
+    gtag?: (...args: any[]) => void;
+    dataLayer?: any[];
+  }
+}
+
 function HandlerRoutes() {
   const [location] = useLocation();
   return (
@@ -88,7 +95,9 @@ function GoogleAnalyticsWithConsent() {
         script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`;
         document.head.appendChild(script);
         window.dataLayer = window.dataLayer || [];
-        function gtag(){window.dataLayer.push(arguments);}
+        function gtag(...args: any[]) {
+          (window.dataLayer as any[]).push(arguments);
+        }
         window.gtag = gtag;
         gtag('js', new Date());
         gtag('config', GA_ID);
