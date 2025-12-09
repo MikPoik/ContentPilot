@@ -3,7 +3,7 @@ import { storage } from "../storage";
 import { updateUserProfileSchema, neonAuthUsers } from "@shared/schema";
 import { isAuthenticated } from "../stackAuth";
 import { db } from "../db";
-import { eq } from "drizzle-orm";
+import { eq, isNull, and } from "drizzle-orm";
 import logger from "../logger";
 
 export function registerAuthRoutes(app: Express) {
@@ -22,12 +22,17 @@ export function registerAuthRoutes(app: Express) {
           const [neonUserRow] = await db
             .select()
             .from(neonAuthUsers)
-            .where(eq(neonAuthUsers.id, userId))
+            .where(
+              and(
+                eq(neonAuthUsers.id, userId),
+                isNull(neonAuthUsers.deletedAt)
+              )
+            )
             .limit(1);
           if (neonUserRow) {
             neonAuthUser = neonUserRow as any;
           } else {
-            logger.warn(`User ${userId} not found in neon_auth.users_sync`);
+            logger.warn(`User ${userId} not found in neon_auth.users_sync or user has been deleted`);
           }
         } catch (dbError: any) {
           // If the neon_auth schema/table is not reachable, fall back to minimal creation
